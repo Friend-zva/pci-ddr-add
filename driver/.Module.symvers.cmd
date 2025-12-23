@@ -1,0 +1,1 @@
+savedcmd_/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/Module.symvers :=  scripts/mod/modpost -M -m -a      -o /Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/Module.symvers -T /Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/modules.order -i Module.symvers -e 

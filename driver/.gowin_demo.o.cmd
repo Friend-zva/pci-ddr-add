@@ -1,0 +1,1 @@
+savedcmd_/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo.o := ld -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments   -r -o /Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo.o @/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo.mod 

@@ -1,0 +1,1 @@
+savedcmd_/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo.mod := printf '%s\n'   gowin_demo_drv.o | awk '!x[$$0]++ { print("/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/"$$0) }' > /Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo.mod
