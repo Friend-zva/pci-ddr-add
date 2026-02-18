@@ -1,1 +1,0 @@
-savedcmd_/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/modules.order := {   echo /Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo.o; :; } > /Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/modules.order

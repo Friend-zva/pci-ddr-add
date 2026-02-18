@@ -1,1 +1,0 @@
-/Users/vladimir/Projects/svg/adder/sample-based/gowin_pcie/driver/gowin_demo_drv.o
