@@ -1,0 +1,7 @@
+*.cmd
+*.o
+*.ko
+*.mod*
+bin
+driver/Module.*
+driver/modules.*
