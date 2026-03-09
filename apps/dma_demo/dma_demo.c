@@ -16,59 +16,20 @@
 #include "../libs/gowin_utils.h"
 
 #define BAR_SIZE (1024 * 4)
-
-/* ===== PIO ===== */
-
-typedef struct __gowin_adder_bar {
-    volatile uint32_t reg_a;
-    volatile uint32_t reg_b;
-    volatile uint32_t reg_sum;
-    volatile uint32_t reg_ctrl;
-    volatile uint32_t reg_status;
-} GowinAdderBar;
-
-int submain_bar(int argc, char *argv[]) {
-    int fd = dev_open(NULL);
-
-    GowinAdderBar *adder_bar = (GowinAdderBar *)mmap_bar(fd, 0, BAR_SIZE);
-
-    uint32_t a = 5, b = 3;
-
-    adder_bar->reg_a = a;
-    adder_bar->reg_b = b;
-
-    adder_bar->reg_ctrl = 1;
-
-    while (!(adder_bar->reg_status & 0x1)) {
-        usleep(10);
-    }
-
-    uint32_t result = adder_bar->reg_sum;
-
-    printf("Result: %u (waiting %u)\n", result, a + b);
-
-    munmap(adder_bar, BAR_SIZE);
-    close(fd);
-
-    return 0;
-}
-
-/* ===== DMA ===== */
-
 #define DMA_SIZE (1024 * 1024)
 
 int DBG_INFO = 1;
 int DUMP_INFO = 1;
 
 typedef struct __gowin_bar {
-    volatile uint32_t ctrl;    //* 0x0000 - global enable
-    volatile uint32_t chsw;    //* 0x0004 - channel enable
-    volatile uint32_t intr;    //* 0x0008 - irq enable
-    volatile uint32_t aclr;    //* 0x000C - auto irq clear
-    volatile uint32_t ista;    //* 0x0010 - irq status and clear
-    volatile uint32_t rsv1[3]; //* 0x0010 - irq status and clear
-    volatile uint32_t devctrl;
-    volatile uint32_t rsv2[55];
+    volatile uint32_t ctrl;     //* 0x0000 - global enable
+    volatile uint32_t chsw;     //* 0x0004 - channel enable
+    volatile uint32_t intr;     //* 0x0008 - irq enable
+    volatile uint32_t aclr;     //* 0x000C - auto irq clear
+    volatile uint32_t ista;     //* 0x0010 - irq status and clear
+    volatile uint32_t rsv1[3];  //* 0x0014-0x001F - reservation
+    volatile uint32_t devctrl;  //* 0x0020 - device control
+    volatile uint32_t rsv2[55]; //* 0x0024-0x00FF - reservation
 
     struct {
         volatile uint32_t rdma_src_lo;   //* 0x0100 - lower address of system memory
@@ -77,7 +38,7 @@ typedef struct __gowin_bar {
         volatile uint32_t rdma_tag;      //* 0x010C - reference TAG for RDMA
         volatile uint32_t rdma_it_level; //* 0x0110 - RDMA irq trigger level
         volatile uint32_t rdma_status;   //* 0x0114 - current RDMA queue level (RO)
-        volatile uint32_t rdma_rsv[58];  //*
+        volatile uint32_t rdma_rsv[58];  //* 0x0118-0x01FF - reservation
 
         volatile uint32_t wdma_dst_lo;   //* 0x0200 - lower address of system memory
         volatile uint32_t wdma_dst_hi;   //* 0x0204 - upper address of system memory
@@ -85,7 +46,7 @@ typedef struct __gowin_bar {
         volatile uint32_t wdma_tag;      //* 0x020C - reference TAG for RDMA
         volatile uint32_t wdma_it_level; //* 0x0210 - WDMA irq trigger level
         volatile uint32_t wdma_status;   //* 0x0214 - current WDMA queue level (RO)
-        volatile uint32_t wdma_rsv[58];  //*
+        volatile uint32_t wdma_rsv[58];  //* 0x0218-0x02FF - reservation
     } channel[8];
 } GowinBar;
 
@@ -163,7 +124,7 @@ void dest_proc(Process *proc) {
     free(proc);
 }
 
-int submain_dma(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     volatile int val;
     struct gowin_ioctl_param param = {0};
     Process *proc = init_proc();
@@ -192,7 +153,7 @@ int submain_dma(int argc, char *argv[]) {
     volatile uint64_t da = proc->dma_dst;
 
     int cnt_n = 2;
-    int cnt_try = 16;
+    int cnt_try = 4; //! temp value
 
     fprintf(stdout, "\nFirst  Number: ");
     uint8_t x;
@@ -223,10 +184,13 @@ int submain_dma(int argc, char *argv[]) {
         fprintf(stdout, "check DMA enable: 0x%08x\n", proc->gwbar->ctrl);
     }
 
-    //! h2c
+    int channel_wdma = 1;
 
-    proc->gwbar->intr = 1;
+    proc->gwbar->intr = 1 << 16;
     proc->gwbar->channel[0].rdma_it_level = 16;
+    proc->gwbar->channel[channel_wdma].wdma_it_level = 16;
+
+    //! h2c
 
     if (DBG_INFO) {
         fprintf(stdout, "start copy to card\n");
@@ -247,27 +211,26 @@ int submain_dma(int argc, char *argv[]) {
     }
 
     volatile int h2c_done = 0;
-    do {
-        h2c_done = proc->gwbar->channel[0].rdma_status & 0xFF;
-        if (DUMP_INFO) {
-            fprintf(stdout, "loop1 (h2c_done)\n");
-        }
-    } while (255 == h2c_done);
+    if (channel_wdma) {
+        do {
+            h2c_done = proc->gwbar->channel[0].rdma_status & 0xFF;
+            if (DUMP_INFO) {
+                fprintf(stdout, "loop1 (h2c_done)\n");
+            }
+        } while (255 == h2c_done);
+    }
 
     //! c2h
-
-    proc->gwbar->intr = 1 << 16;
-    proc->gwbar->channel[1].wdma_it_level = 16;
 
     if (DBG_INFO) {
         fprintf(stdout, "start copy to host\n");
     }
 
     for (int i = 0; i < cnt_try; i++) {
-        proc->gwbar->channel[1].wdma_dst_lo = da & 0xFFFFFFFF;
-        proc->gwbar->channel[1].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
-        proc->gwbar->channel[1].wdma_len = cnt_n / 2;
-        proc->gwbar->channel[1].wdma_tag = tx_tag++;
+        proc->gwbar->channel[channel_wdma].wdma_dst_lo = da & 0xFFFFFFFF;
+        proc->gwbar->channel[channel_wdma].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
+        proc->gwbar->channel[channel_wdma].wdma_len = cnt_n / 2;
+        proc->gwbar->channel[channel_wdma].wdma_tag = tx_tag++;
 
         da += block_size;
         dp += block_size;
@@ -279,22 +242,23 @@ int submain_dma(int argc, char *argv[]) {
 
     volatile int c2h_done = 0;
     do {
-        c2h_done = proc->gwbar->channel[1].wdma_status & 0xFF;
+        c2h_done = proc->gwbar->channel[channel_wdma].wdma_status & 0xFF;
+        if (!channel_wdma) {
+            h2c_done = proc->gwbar->channel[0].rdma_status & 0xFF;
+        }
         if (DUMP_INFO) {
             fprintf(stdout, "loop2 (c2h_done)\n");
         }
-    } while (255 == c2h_done);
+    } while (255 == c2h_done && (channel_wdma || 255 == h2c_done));
 
     fprintf(stdout, "Result: %u (waiting %hhu)\n", ((uint32_t *)dp)[0], x + y);
+    for (int i = 0; i < DMA_SIZE / 4; i++) {
+        fprintf(stdout, "0x%02x ", dp[i * 4]);
+    }
 
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 1); // turn off IR on channel 1
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 0); // turn off IR on channel 0
 
     dest_proc(proc);
     return 0;
-}
-
-int main(int argc, char *argv[]) {
-    // return submain_bar(argc, argv);
-    return submain_dma(argc, argv);
 }
