@@ -16,7 +16,7 @@
 #include "../libs/gowin_utils.h"
 
 #define BAR_SIZE (1024 * 4)
-#define DMA_SIZE (1024 * 1024)
+#define DMA_SIZE (1024 * 16)
 
 int DBG_INFO = 1;
 int DUMP_INFO = 1;
@@ -30,6 +30,11 @@ typedef struct __gowin_bar {
     volatile uint32_t rsv1[3];  //* 0x0014-0x001F - reservation
     volatile uint32_t devctrl;  //* 0x0020 - device control
     volatile uint32_t rsv2[55]; //* 0x0024-0x00FF - reservation
+
+    // volatile uint32_t ddr_base_lo;
+    // volatile uint32_t ddr_base_hi;
+    // volatile uint32_t ddr_len;
+    // volatile uint32_t ddr_ctrl;
 
     struct {
         volatile uint32_t rdma_src_lo;   //* 0x0100 - lower address of system memory
@@ -133,7 +138,7 @@ int main(int argc, char *argv[]) {
     }
 
     param.cfg_type = 2;
-    param.cfg_where = 0x88; //? Device Status / Command Register
+    param.cfg_where = 0x90; //? Device Status / Command Register
 
     while (1) {
         if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
@@ -153,7 +158,7 @@ int main(int argc, char *argv[]) {
     volatile uint64_t da = proc->dma_dst;
 
     int cnt_n = 2;
-    int cnt_try = 4; //! temp value
+    int cnt_try = 1;
 
     fprintf(stdout, "\nFirst  Number: ");
     uint8_t x;
@@ -184,13 +189,19 @@ int main(int argc, char *argv[]) {
         fprintf(stdout, "check DMA enable: 0x%08x\n", proc->gwbar->ctrl);
     }
 
-    int channel_wdma = 1;
+    int channel_wdma = 1; //! for fast toggle channel
 
     proc->gwbar->intr = 1 << 16;
     proc->gwbar->channel[0].rdma_it_level = 16;
     proc->gwbar->channel[channel_wdma].wdma_it_level = 16;
 
-    //! h2c
+    // h2c
+
+    if (DBG_INFO) {
+        for (int i = 0; i < DMA_SIZE / 4; i++) {
+            fprintf(stdout, "0x%02x ", sp[i * 4]);
+        }
+    }
 
     if (DBG_INFO) {
         fprintf(stdout, "start copy to card\n");
@@ -210,6 +221,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if (DBG_INFO) {
+        for (int i = 0; i < DMA_SIZE / 4; i++) {
+            fprintf(stdout, "0x%02x ", sp[i * 4]);
+        }
+    }
+
     volatile int h2c_done = 0;
     if (channel_wdma) {
         do {
@@ -220,7 +237,7 @@ int main(int argc, char *argv[]) {
         } while (255 == h2c_done);
     }
 
-    //! c2h
+    // c2h
 
     if (DBG_INFO) {
         fprintf(stdout, "start copy to host\n");
@@ -252,8 +269,10 @@ int main(int argc, char *argv[]) {
     } while (255 == c2h_done && (channel_wdma || 255 == h2c_done));
 
     fprintf(stdout, "Result: %u (waiting %hhu)\n", ((uint32_t *)dp)[0], x + y);
-    for (int i = 0; i < DMA_SIZE / 4; i++) {
-        fprintf(stdout, "0x%02x ", dp[i * 4]);
+    if (DBG_INFO) {
+        for (int i = 0; i < DMA_SIZE / 4; i++) {
+            fprintf(stdout, "0x%02x ", dp[i * 4]);
+        }
     }
 
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 1); // turn off IR on channel 1
