@@ -16,7 +16,7 @@
 #include "../libs/gowin_utils.h"
 
 #define BAR_SIZE (1024 * 4)
-#define DMA_SIZE (1024 * 16)
+#define DMA_SIZE (1024 * 16) //! 16 for pretty printing
 
 int DBG_INFO = 1;
 int DUMP_INFO = 1;
@@ -131,13 +131,13 @@ void dest_proc(Process *proc) {
 
 void toggle_controller(GowinBar *gwbar, int flag_enable) {
     if (DBG_INFO) {
-        fprintf(stdout, "check DMA enable: 0x%08x\n", gwbar->ctrl);
+        printf("check DMA enable: 0x%08x\n", gwbar->ctrl);
     }
     uint32_t val = gwbar->ctrl;
     val = flag_enable ? (val | 1) : (val & ~1);
     gwbar->ctrl = val;
     if (DBG_INFO) {
-        fprintf(stdout, "check DMA enable: 0x%08x\n", gwbar->ctrl);
+        printf("check DMA enable: 0x%08x\n", gwbar->ctrl);
     }
 }
 
@@ -174,24 +174,19 @@ int main(int argc, char *argv[]) {
     volatile uint8_t *dp = proc->mem_dst; // destination
     volatile uint64_t da = proc->dma_dst;
 
-    uint32_t cnt_n = 4; //! test
-    int cnt_try = 1;    //! test
+    uint32_t cnt = 64; // 64 * 4 = 256B
+    int size = DMA_SIZE / 2;
+    int loop = size / cnt;
 
-    fprintf(stdout, "\nFirst  Number: ");
-    uint8_t x;
-    scanf("%hhu", &x);
-    ((uint32_t *)sp)[0] = x;
+    for (int i = 0; i < size; i++) {
+        *(uint16_t *)(&sp[i * 2]) = i % 65536;
+    }
 
-    fprintf(stdout, "Second Number: ");
-    uint8_t y;
-    scanf("%hhu", &y);
-    ((uint32_t *)sp)[1] = y;
-
-    uint32_t block_size = (cnt_n * 4 + 1023) & (~1023);
+    uint32_t block_size = (cnt * 4 + 1023) & (~1023);
 
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 0); // turn on IR on channel 0
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
-    toggle_controller(proc, 1);
+    toggle_controller(proc->gwbar, 1);
 
     proc->gwbar->intr = 1;
     proc->gwbar->channel[0].wdma_it_level = 16;
@@ -200,66 +195,73 @@ int main(int argc, char *argv[]) {
     // h2c
 
     if (DBG_INFO) {
-        for (int i = 0; i < DMA_SIZE / 4; i++) {
-            fprintf(stdout, "0x%02x ", sp[i * 4]);
+        for (int i = 0; i < size; i++) {
+            printf("0x%02x ", sp[i * 2]);
         }
     }
 
     if (DBG_INFO) {
-        fprintf(stdout, "start copy to card\n");
+        printf("start copy to card\n");
     }
 
-    for (int i = 0; i < cnt_try; i++) {
+    for (int i = 0; i < loop; i++) {
         proc->gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFC;
         proc->gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
-        proc->gwbar->channel[0].rdma_len = cnt_n;
+        proc->gwbar->channel[0].rdma_len = cnt;
         proc->gwbar->channel[0].rdma_tag = rx_tag++;
 
-        if (cnt_try != 1) {
-            sa += block_size;
-            sp += block_size;
-            if (sa + block_size > proc->dma_src + DMA_SIZE) {
-                sp = proc->mem_src;
-                sa = proc->dma_src;
-            }
+        sa += block_size;
+        sp += block_size;
+        if (sa + block_size > proc->dma_src + DMA_SIZE) {
+            sp = proc->mem_src;
+            sa = proc->dma_src;
+        }
+
+        if (rx_tag >= 32) {
+            rx_tag = 16;
         }
     }
 
     if (DBG_INFO) {
-        for (int i = 0; i < DMA_SIZE / 4; i++) {
-            fprintf(stdout, "0x%02x ", sp[i * 4]);
+        for (int i = 0; i < size / 2; i++) {
+            uint16_t lo = *(uint16_t *)(&sp[i * 4]);
+            uint16_t hi = *(uint16_t *)(&sp[i * 4 + 2]);
+            printf("(0x%04x, 0x%04x) ", lo, hi);
         }
+        printf("\n");
     }
 
     volatile int h2c_done = 0;
     do {
         h2c_done = proc->gwbar->channel[0].rdma_status & 0xFF;
         if (DUMP_INFO) {
-            fprintf(stdout, "loop1 (h2c_done)\n");
+            printf("loop1 (h2c_done)\n");
         }
     } while (!flag_exit && 255 == h2c_done);
 
     // c2h
 
     if (DBG_INFO) {
-        fprintf(stdout, "start copy to host\n");
+        printf("start copy to host\n");
     }
 
     proc->gwbar->intr = 1 << 16;
 
-    for (int i = 0; i < cnt_try; i++) {
+    for (int i = 0; i < loop; i++) {
         proc->gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFC;
         proc->gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
-        proc->gwbar->channel[0].wdma_len = cnt_n;
+        proc->gwbar->channel[0].wdma_len = cnt;
         proc->gwbar->channel[0].wdma_tag = tx_tag++;
 
-        if (cnt_try != 1) {
-            da += block_size;
-            dp += block_size;
-            if (da + block_size > proc->dma_dst + DMA_SIZE) {
-                dp = proc->mem_dst;
-                da = proc->dma_dst;
-            }
+        da += block_size;
+        dp += block_size;
+        if (da + block_size > proc->dma_dst + DMA_SIZE) {
+            dp = proc->mem_dst;
+            da = proc->dma_dst;
+        }
+
+        if (tx_tag >= 32) {
+            tx_tag = 16;
         }
     }
 
@@ -267,15 +269,18 @@ int main(int argc, char *argv[]) {
     do {
         c2h_done = proc->gwbar->channel[0].wdma_status & 0xFF;
         if (DUMP_INFO) {
-            fprintf(stdout, "loop2 (c2h_done)\n");
+            printf("loop2 (c2h_done)\n");
         }
     } while (!flag_exit && 255 == c2h_done);
 
-    fprintf(stdout, "Result: %u (waiting %hhu)\n", ((uint32_t *)dp)[0], x + y);
+    printf("Result: 0x%08x (waiting 0x%08x)\n", ((uint32_t *)dp)[3],
+           ((uint16_t *)sp)[3 * 2] + ((uint16_t *)sp)[3 * 2 + 1]);
     if (DBG_INFO) {
-        for (int i = 0; i < DMA_SIZE / 4; i++) {
-            fprintf(stdout, "0x%02x ", dp[i * 4]);
+        for (int i = 0; i < size / 2; i++) {
+            uint32_t val = *(uint32_t *)(&dp[i * 4]);
+            printf("0x%08x ", val);
         }
+        printf("\n");
     }
 
     toggle_controller(proc->gwbar, 0);
