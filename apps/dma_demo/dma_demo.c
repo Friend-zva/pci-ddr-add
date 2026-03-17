@@ -129,22 +129,39 @@ void dest_proc(Process *proc) {
     free(proc);
 }
 
+void toggle_controller(GowinBar *gwbar, int flag_enable) {
+    if (DBG_INFO) {
+        fprintf(stdout, "check DMA enable: 0x%08x\n", gwbar->ctrl);
+    }
+    uint32_t val = gwbar->ctrl;
+    val = flag_enable ? (val | 1) : (val & ~1);
+    gwbar->ctrl = val;
+    if (DBG_INFO) {
+        fprintf(stdout, "check DMA enable: 0x%08x\n", gwbar->ctrl);
+    }
+}
+
+volatile sig_atomic_t flag_exit = 0;
+
+void handle_sigint(int sig) { flag_exit = 1; }
+
 int main(int argc, char *argv[]) {
-    volatile int val;
-    struct gowin_ioctl_param param = {0};
+    signal(SIGINT, handle_sigint);
+
     Process *proc = init_proc();
     if (proc == NULL) {
         return -1;
     }
 
-    param.cfg_type = 2; // dword
-    param.cfg_where = 0x88; // register Device Control/Status
+    struct gowin_ioctl_param param = {0};
+    param.cfg_type = 2;     // dword
+    param.cfg_where = 0x88; // Device Control/Status register //* where read dword
 
     while (1) {
         if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
-            param.cfg_dword != 0xFFFFFFFF) {
-            val = (param.cfg_dword & 0xFF1F) | (1 << 5);
-            proc->gwbar->devctrl = val; // payload
+            param.cfg_dword != 0xFFFFFFFF) { //* read cfg_where
+            proc->gwbar->devctrl =
+                (param.cfg_dword & 0xFF1F) | (1 << 5); // payload 256B
             break;
         }
     }
@@ -157,8 +174,8 @@ int main(int argc, char *argv[]) {
     volatile uint8_t *dp = proc->mem_dst; // destination
     volatile uint64_t da = proc->dma_dst;
 
-    int cnt_n = 4; //! test
-    int cnt_try = 1; //! test
+    uint32_t cnt_n = 4; //! test
+    int cnt_try = 1;    //! test
 
     fprintf(stdout, "\nFirst  Number: ");
     uint8_t x;
@@ -170,22 +187,11 @@ int main(int argc, char *argv[]) {
     scanf("%hhu", &y);
     ((uint32_t *)sp)[1] = y;
 
-    int block_size = (cnt_n * 4 + 1023) & (~1023);
+    uint32_t block_size = (cnt_n * 4 + 1023) & (~1023);
 
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 0); // turn on IR on channel 0
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
-
-    if (DBG_INFO) {
-        fprintf(stdout, "check DMA enable: 0x%08x\n", proc->gwbar->ctrl);
-    }
-
-    val = proc->gwbar->ctrl;
-    val |= 1; // turn on controller
-    proc->gwbar->ctrl = val;
-
-    if (DBG_INFO) {
-        fprintf(stdout, "check DMA enable: 0x%08x\n", proc->gwbar->ctrl);
-    }
+    toggle_controller(proc, 1);
 
     proc->gwbar->intr = 1;
     proc->gwbar->channel[0].wdma_it_level = 16;
@@ -204,7 +210,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < cnt_try; i++) {
-        proc->gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFF;
+        proc->gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFC;
         proc->gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
         proc->gwbar->channel[0].rdma_len = cnt_n;
         proc->gwbar->channel[0].rdma_tag = rx_tag++;
@@ -231,7 +237,7 @@ int main(int argc, char *argv[]) {
         if (DUMP_INFO) {
             fprintf(stdout, "loop1 (h2c_done)\n");
         }
-    } while (255 == h2c_done);
+    } while (!flag_exit && 255 == h2c_done);
 
     // c2h
 
@@ -242,7 +248,7 @@ int main(int argc, char *argv[]) {
     proc->gwbar->intr = 1 << 16;
 
     for (int i = 0; i < cnt_try; i++) {
-        proc->gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFF;
+        proc->gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFC;
         proc->gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
         proc->gwbar->channel[0].wdma_len = cnt_n;
         proc->gwbar->channel[0].wdma_tag = tx_tag++;
@@ -263,7 +269,7 @@ int main(int argc, char *argv[]) {
         if (DUMP_INFO) {
             fprintf(stdout, "loop2 (c2h_done)\n");
         }
-    } while (255 == c2h_done);
+    } while (!flag_exit && 255 == c2h_done);
 
     fprintf(stdout, "Result: %u (waiting %hhu)\n", ((uint32_t *)dp)[0], x + y);
     if (DBG_INFO) {
@@ -272,6 +278,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    toggle_controller(proc->gwbar, 0);
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 1); // turn off IR on channel 1
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 0); // turn off IR on channel 0
 
