@@ -18,8 +18,29 @@
 #define BAR_SIZE (1024 * 4)
 #define DMA_SIZE (1024 * 16) //! 16 for pretty printing
 
+volatile sig_atomic_t flag_exit = 0;
+
+void handle_sigint(int sig) { flag_exit = 1; }
+
 int DBG_INFO = 1;
 int DUMP_INFO = 1;
+
+void dump_source(volatile uint8_t *sp, int size_dump) {
+    for (int i = 0; i < size_dump; i++) {
+        uint16_t lo = *(uint16_t *)(&sp[i * 4]);
+        uint16_t hi = *(uint16_t *)(&sp[i * 4 + 2]);
+        printf("(0x%04x, 0x%04x) ", lo, hi);
+    }
+    printf("\n");
+}
+
+void dump_destination(volatile uint8_t *dp, int size_dump) {
+    for (int i = 0; i < size_dump; i++) {
+        uint32_t val = *(uint32_t *)(&dp[i * 4]);
+        printf("0x%08x ", val);
+    }
+    printf("\n");
+}
 
 typedef struct __gowin_bar {
     volatile uint32_t ctrl;     //* 0x0000 - global enable
@@ -121,6 +142,7 @@ void dest_proc(Process *proc) {
     if (proc->dma_src) {
         release_mem(proc->fd, 0);
     }
+    close(proc->fd);
     free(proc);
 }
 
@@ -129,16 +151,13 @@ void toggle_controller(GowinBar *gwbar, int flag_enable) {
         printf("check DMA enable: 0x%08x\n", gwbar->ctrl);
     }
     uint32_t val = gwbar->ctrl;
-    val = flag_enable ? (val | 1) : (val & ~1);
+    val = flag_enable ? (val | 1) : (0x03);
     gwbar->ctrl = val;
+    usleep(1000);
     if (DBG_INFO) {
         printf("check DMA enable: 0x%08x\n", gwbar->ctrl);
     }
 }
-
-volatile sig_atomic_t flag_exit = 0;
-
-void handle_sigint(int sig) { flag_exit = 1; }
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
@@ -148,12 +167,22 @@ int main(int argc, char *argv[]) {
     if (proc == NULL) {
         return -1;
     }
+
     GowinBar *gwbar = proc->gwbar;
+    toggle_controller(gwbar, 0);
 
     struct gowin_ioctl_param param = {0};
-    param.cfg_type = 2;     // dword
-    param.cfg_where = 0x88; // Device Control/Status register //* where read dword
 
+    param.cfg_type = 2; // dword
+    param.cfg_where = 0x90;
+    val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
+    if (val) {
+        dest_proc(proc);
+        return -1;
+    }
+
+    param.cfg_type = 2;
+    param.cfg_where = 0x88; // Device Control/Status register //* where read dword
     while (1) {
         if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
             param.cfg_dword != 0xFFFFFFFF) {             //* read cfg_where
@@ -184,33 +213,28 @@ int main(int argc, char *argv[]) {
 
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 0); // turn on IR on channel 0
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
+
+    gwbar->intr = 1 << 16;
     toggle_controller(gwbar, 1);
 
-    gwbar->intr = 0x00010001;
-    gwbar->channel[0].wdma_it_level = 16;
     gwbar->channel[0].rdma_it_level = 16;
+    gwbar->channel[0].wdma_it_level = 16;
 
     int step = 0;
     int h2c_count = 0, c2h_count = 0;
-    volatile int h2c_level = 0, c2h_level = 0;
-    const int max_level = 4; // RQ_CC_NUM = 4
+    volatile int h2c_level = 0, c2h_level = 0; //? RQ_CC_NUM = 4
 
-    while (c2h_count < loop || h2c_count < loop) {
+    while (h2c_count < loop || c2h_count < loop) {
+        if (DUMP_INFO) {
+            dump_source(sp, size_dump);
+        }
         if (DBG_INFO) {
-            if (DUMP_INFO) {
-                for (int i = 0; i < size_dump; i++) {
-                    uint16_t lo = *(uint16_t *)(&sp[i * 4]);
-                    uint16_t hi = *(uint16_t *)(&sp[i * 4 + 2]);
-                    printf("(0x%04x, 0x%04x) ", lo, hi);
-                }
-                printf("\n");
-            }
-            printf("start copy to card\n");
+            printf("\nstart copy to card\n");
+            printf("count h2c | c2h: %i | %i\n", h2c_count, c2h_count);
+            printf("h2c_level: %i\n", gwbar->channel[0].rdma_status);
         }
 
-        h2c_level = gwbar->channel[0].rdma_status & 0xFF;
-        step = (h2c_level < max_level) ? (max_level - h2c_level) : 0;
-
+        step = (h2c_count == 0) ? 16 : (h2c_level < 64 ? 32 : 0);
         while (h2c_count < loop && step > 0) {
             gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFC;
             gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
@@ -229,9 +253,15 @@ int main(int argc, char *argv[]) {
             }
             step--;
             h2c_count++;
+            if (DBG_INFO) {
+                printf("loop_h2c_step ");
+            }
         }
         do {
             h2c_level = gwbar->channel[0].rdma_status & 0xFF;
+            if (DBG_INFO) {
+                printf("loop_h2c_l(%i) ", h2c_level);
+            }
         } while (!flag_exit && h2c_level == 0xFF);
 
         if (h2c_count == loop) {
@@ -241,12 +271,11 @@ int main(int argc, char *argv[]) {
         }
 
         if (DBG_INFO) {
-            printf("start copy to host\n");
+            printf("\nstart copy to host\n");
+            printf("c2h_level: %i\n", gwbar->channel[0].wdma_status);
         }
 
-        c2h_level = gwbar->channel[0].wdma_status;
-        step = (c2h_level < max_level) ? (max_level - c2h_level) : 0;
-
+        step = (c2h_count == 0) ? 8 : (c2h_level < 64 ? 32 : 0);
         while (c2h_count < loop && step > 0) {
             gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFC;
             gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
@@ -265,9 +294,15 @@ int main(int argc, char *argv[]) {
             }
             step--;
             c2h_count++;
+            if (DBG_INFO) {
+                printf("loop_c2h_step ");
+            }
         }
         do {
             c2h_level = gwbar->channel[0].wdma_status & 0xFF;
+            if (DBG_INFO) {
+                printf("loop_c2h_l(%i) ", c2h_level);
+            }
         } while (!flag_exit && c2h_level == 0xFF);
 
         if (c2h_count == loop) {
@@ -276,26 +311,34 @@ int main(int argc, char *argv[]) {
             } while (!flag_exit && val != 0xC0000000);
         }
 
-        if (DUMP_INFO) {
-            for (int i = 0; i < size_dump; i++) {
-                uint32_t val = *(uint32_t *)(&dp[i * 4]);
-                printf("0x%08x ", val);
-            }
-            printf("\n");
+        if (DBG_INFO) {
+            printf("result: 0x%08x (waiting 0x%08x)\n", ((uint32_t *)dp)[3],
+                   ((uint16_t *)sp)[3 * 2] + ((uint16_t *)sp)[3 * 2 + 1]);
         }
-
+        if (DUMP_INFO) {
+            dump_destination(dp, size_dump);
+        }
         if (flag_exit) {
             break;
         }
     }
 
-    printf("Result: 0x%08x (waiting 0x%08x)\n", ((uint32_t *)dp)[3],
-           ((uint16_t *)sp)[3 * 2] + ((uint16_t *)sp)[3 * 2 + 1]);
+    for (int i = 0; i < size_dump; i++) {
+        uint32_t d = ((uint32_t *)dp)[i];
+        uint32_t s = ((uint16_t *)sp)[i * 2] + ((uint16_t *)sp)[i * 2 + 1];
+        if (d != s) {
+            printf("*** FAILED ***\n");
+            break;
+        }
+    }
 
-    toggle_controller(gwbar, 0);
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 1); // turn off IR on channel 1
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 0); // turn off IR on channel 0
 
+    toggle_controller(gwbar, 0);
     dest_proc(proc);
+    if (flag_exit) {
+        return 1;
+    }
     return 0;
 }
