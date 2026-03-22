@@ -25,6 +25,26 @@ void handle_sigint(int sig) { flag_exit = 1; }
 int DBG_INFO = 1;
 int DUMP_INFO = 1;
 
+static int irq_timeouts = 0;
+
+static void wait_irq(int fd, int irq_num, int timeout_ms) {
+    struct gowin_ioctl_param param = {0};
+    param.irq_idx = irq_num;
+    param.timeout_ms = timeout_ms;
+
+    int ret = ioctl(fd, GOWIN_WAIT_IRQ, &param);
+    if (ret) {
+        if (errno == ETIMEDOUT) {
+            irq_timeouts++;
+            return;
+        }
+        if (DBG_INFO) {
+            fprintf(stderr, "GOWIN_WAIT_IRQ(%d) failed: %s\n", irq_num,
+                    strerror(errno));
+        }
+    }
+}
+
 void dump_source(volatile uint8_t *sp, int size_dump) {
     for (int i = 0; i < size_dump; i++) {
         uint16_t lo = *(uint16_t *)(&sp[i * 4]);
@@ -220,8 +240,8 @@ int main(int argc, char *argv[]) {
 
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 0); // turn on IR on channel 0
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
-
-    gwbar->intr = 1 << 16;
+    ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 0);
+    ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 1);
     toggle_controller(gwbar, 1);
 
     gwbar->channel[0].rdma_it_level = 16;
@@ -266,6 +286,9 @@ int main(int argc, char *argv[]) {
             if (DBG_INFO) {
                 printf("* loop1: (rdma_status255, %i) *\n", h2c_level);
             }
+            if (h2c_level == 0xFF) {
+                wait_irq(proc->fd, 0, 10);
+            }
         } while (!flag_exit && h2c_level == 0xFF);
 
         if (DBG_INFO) {
@@ -297,6 +320,9 @@ int main(int argc, char *argv[]) {
             if (DBG_INFO) {
                 printf("* loop2: (wdma_status255, %i) *\n", c2h_level);
             }
+            if (c2h_level == 0xFF) {
+                wait_irq(proc->fd, 1, 10);
+            }
         } while (!flag_exit && c2h_level == 0xFF);
 
         if (DBG_INFO) {
@@ -317,12 +343,18 @@ int main(int argc, char *argv[]) {
             if (DBG_INFO) {
                 printf("* loop3: (rdma_status0xC, %i) *\n", val);
             }
+            if (val != 0xC0000000) {
+                wait_irq(proc->fd, 0, 100);
+            }
         } while (!flag_exit && val != 0xC0000000);
 
         do {
             val = 0xC0000000 & gwbar->channel[0].wdma_status;
             if (DBG_INFO) {
                 printf("* loop4: (wdma_status0xC, %i) *\n", val);
+            }
+            if (val != 0xC0000000) {
+                wait_irq(proc->fd, 1, 100);
             }
         } while (!flag_exit && val != 0xC0000000);
     }
@@ -340,6 +372,11 @@ int main(int argc, char *argv[]) {
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 0); // turn off IR on channel 0
 
     toggle_controller(gwbar, 0);
+
+    if (DBG_INFO) {
+        printf("irq_timeouts: %d\n", irq_timeouts);
+    }
+
     dest_proc(proc);
     if (flag_exit) {
         return 1;
