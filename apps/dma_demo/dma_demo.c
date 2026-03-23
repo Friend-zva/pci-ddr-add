@@ -223,7 +223,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    uint8_t rx_tag = 16; // receive
     uint8_t tx_tag = 16; // transmit
 
     volatile uint8_t *sp = proc->mem_src; // source
@@ -232,70 +231,29 @@ int main(int argc, char *argv[]) {
     volatile uint64_t da = proc->dma_dst;
 
     uint32_t cnt = 64; // 64 * 4 = 256B
-    int size = DMA_SIZE / 2;
+    int size = DMA_SIZE;
     int size_dump = 32; //* size_array = (size / 2)
-    int loop = size / (cnt * 4);
 
     for (int i = 0; i < size; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
     uint32_t block_size = (cnt * 4 + 1023) & (~1023);
+    int loop = size / block_size;
 
-    ioctl(proc->fd, GOWIN_IRQ_ENABLE, 0); // turn on IR on channel 0
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
-    ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 0);
     ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 1);
     toggle_controller(gwbar, 1);
 
-    gwbar->channel[0].rdma_it_level = 16;
     gwbar->channel[0].wdma_it_level = 16;
 
     int step = 0;
-    int h2c_count = 0, c2h_count = 0;
-    volatile int h2c_level = 0, c2h_level = 0; //? RQ_CC_NUM = 4
+    int c2h_count = 0;
+    volatile int c2h_level = 0; //? RQ_CC_NUM = 4
 
-    while (h2c_count < loop || c2h_count < loop) {
-        if (DUMP_INFO) {
-            dump_source(sp, size_dump);
-        }
+    while (c2h_count < loop) {
         if (DBG_INFO) {
-            printf("*** Loop ***\nh2c_count: %i, c2h_count: %i, step: %i,\n",
-                   h2c_count, c2h_count, step);
-            printf("*** start copy to card ***\n");
-        }
-
-        step = (h2c_count == 0) ? 16 : (h2c_level < 64 ? 31 : 0);
-        while (h2c_count < loop && step > 0) {
-            gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFC;
-            gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
-            gwbar->channel[0].rdma_len = cnt;
-            gwbar->channel[0].rdma_tag = rx_tag++;
-
-            sa += block_size;
-            sp += block_size;
-            if (sa + block_size > proc->dma_src + DMA_SIZE) {
-                sp = proc->mem_src;
-                sa = proc->dma_src;
-            }
-
-            if (rx_tag >= 32) {
-                rx_tag = 1;
-            }
-            step--;
-            h2c_count++;
-        }
-        do {
-            h2c_level = gwbar->channel[0].rdma_status & 0xFF;
-            if (DBG_INFO) {
-                printf("* loop1: (rdma_status255, %i) *\n", h2c_level);
-            }
-            if (h2c_level == 0xFF) {
-                wait_irq(proc->fd, 0, 10);
-            }
-        } while (!flag_exit && h2c_level == 0xFF);
-
-        if (DBG_INFO) {
+            printf("*** Loop ***\nc2h_count: %i, step: %i,\n", c2h_count, step);
             printf("*** start copy to host ***\n");
         }
 
@@ -343,16 +301,6 @@ int main(int argc, char *argv[]) {
 
     if (!flag_exit) {
         do {
-            val = 0xC0000000 & gwbar->channel[0].rdma_status;
-            if (DBG_INFO) {
-                printf("* loop3: (rdma_status0xC, %i) *\n", val);
-            }
-            if (val != 0xC0000000) {
-                wait_irq(proc->fd, 0, 100);
-            }
-        } while (!flag_exit && val != 0xC0000000);
-
-        do {
             val = 0xC0000000 & gwbar->channel[0].wdma_status;
             if (DBG_INFO) {
                 printf("* loop4: (wdma_status0xC, %i) *\n", val);
@@ -373,7 +321,6 @@ int main(int argc, char *argv[]) {
     }
 
     ioctl(proc->fd, GOWIN_IRQ_DISABLE, 1); // turn off IR on channel 1
-    ioctl(proc->fd, GOWIN_IRQ_DISABLE, 0); // turn off IR on channel 0
 
     toggle_controller(gwbar, 0);
 
