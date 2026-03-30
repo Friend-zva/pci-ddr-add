@@ -172,7 +172,8 @@ void dest_proc(Process *proc) {
 
 void toggle_controller(GowinBar *gwbar, int flag_enable) {
     if (DBG_INFO) {
-        printf("check DMA enable: 0x%08x\n", gwbar->ctrl);
+        printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
+               gwbar->chsw);
     }
     uint32_t val = gwbar->ctrl;
     if (val == 0xFFFFFFFFu) {
@@ -184,10 +185,6 @@ void toggle_controller(GowinBar *gwbar, int flag_enable) {
         val &= ~1u;
     }
     gwbar->ctrl = val;
-    usleep(1000);
-    if (DBG_INFO) {
-        printf("check DMA enable: 0x%08x\n", gwbar->ctrl);
-    }
 }
 
 int main(int argc, char *argv[]) {
@@ -224,7 +221,7 @@ int main(int argc, char *argv[]) {
     }
 
     uint8_t rx_tag = 16; // receive
-    uint8_t tx_tag = 16; // transmit
+    uint8_t tx_tag = 1;  // transmit
 
     volatile uint8_t *sp = proc->mem_src; // source
     volatile uint64_t sa = proc->dma_src;
@@ -242,18 +239,20 @@ int main(int argc, char *argv[]) {
 
     uint32_t block_size = (cnt * 4 + 1023) & (~1023);
 
+    gwbar->intr = (1 << 16) | 1;          // turn on IR for r/w
+    gwbar->aclr = (1 << 16) | 1;          // turn on auto-clear IR
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 0); // turn on IR on channel 0
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
     ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 0);
     ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 1);
-    toggle_controller(gwbar, 1);
-
     gwbar->channel[0].rdma_it_level = 16;
     gwbar->channel[0].wdma_it_level = 16;
 
+    toggle_controller(gwbar, 1);
+
     int step = 0;
     int h2c_count = 0, c2h_count = 0;
-    volatile int h2c_level = 0, c2h_level = 0; //? RQ_CC_NUM = 4
+    volatile int h2c_level = 0, c2h_level = 0;
 
     while (h2c_count < loop || c2h_count < loop) {
         if (DUMP_INFO) {
@@ -262,10 +261,52 @@ int main(int argc, char *argv[]) {
         if (DBG_INFO) {
             printf("*** Loop ***\nh2c_count: %i, c2h_count: %i, step: %i,\n",
                    h2c_count, c2h_count, step);
+            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
+                   gwbar->chsw);
+            printf("*** start copy to host ***\n");
+        }
+
+        step = 15;
+        while (c2h_count < loop && step > 0) {
+            gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFC;
+            gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
+            gwbar->channel[0].wdma_len = cnt;
+            gwbar->channel[0].wdma_tag = tx_tag++;
+
+            da += block_size;
+            dp += block_size;
+            if (da + block_size > proc->dma_dst + DMA_SIZE) {
+                dp = proc->mem_dst;
+                da = proc->dma_dst;
+            }
+
+            if (tx_tag >= 15) {
+                tx_tag = 1;
+            }
+            step--;
+            c2h_count++;
+            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
+                   gwbar->chsw);
+            c2h_level = gwbar->channel[0].wdma_status & 0xFF;
+            printf("* loop2: %i *\n", c2h_level);
+        }
+        do {
+            c2h_level = gwbar->channel[0].wdma_status & 0xFF;
+            if (DBG_INFO) {
+                printf("* loop2: (wdma_status255, %i) *\n", c2h_level);
+            }
+            if (c2h_level == 0xFF) {
+                wait_irq(proc->fd, 1, 10);
+            }
+        } while (!flag_exit && c2h_level == 0xFF);
+
+        if (DBG_INFO) {
+            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
+                   gwbar->chsw);
             printf("*** start copy to card ***\n");
         }
 
-        step = (h2c_count == 0) ? 16 : (h2c_level < 64 ? 31 : 0);
+        step = 15;
         while (h2c_count < loop && step > 0) {
             gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFC;
             gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
@@ -280,54 +321,24 @@ int main(int argc, char *argv[]) {
             }
 
             if (rx_tag >= 32) {
-                rx_tag = 1;
+                rx_tag = 16;
             }
             step--;
             h2c_count++;
+            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
+                   gwbar->chsw);
+            h2c_level = gwbar->channel[0].rdma_status & 0xFF;
+            printf("* loop1: %i *\n", h2c_level);
         }
         do {
             h2c_level = gwbar->channel[0].rdma_status & 0xFF;
             if (DBG_INFO) {
                 printf("* loop1: (rdma_status255, %i) *\n", h2c_level);
             }
-            if (h2c_level == 0xFF) {
+            if (h2c_level == 0xFF || c2h_level == 0xFF) {
                 wait_irq(proc->fd, 0, 10);
             }
         } while (!flag_exit && h2c_level == 0xFF);
-
-        if (DBG_INFO) {
-            printf("*** start copy to host ***\n");
-        }
-
-        step = (c2h_count == 0) ? 8 : (c2h_level < 64 ? 16 : 0);
-        while (c2h_count < loop && step > 0) {
-            gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFC;
-            gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
-            gwbar->channel[0].wdma_len = cnt;
-            gwbar->channel[0].wdma_tag = tx_tag++;
-
-            da += block_size;
-            dp += block_size;
-            if (da + block_size > proc->dma_dst + DMA_SIZE) {
-                dp = proc->mem_dst;
-                da = proc->dma_dst;
-            }
-
-            if (tx_tag >= 32) {
-                tx_tag = 16;
-            }
-            step--;
-            c2h_count++;
-        }
-        do {
-            c2h_level = gwbar->channel[0].wdma_status & 0xFF;
-            if (DBG_INFO) {
-                printf("* loop2: (wdma_status255, %i) *\n", c2h_level);
-            }
-            if (c2h_level == 0xFF) {
-                wait_irq(proc->fd, 1, 10);
-            }
-        } while (!flag_exit && c2h_level == 0xFF);
 
         if (DBG_INFO) {
             printf("result: 0x%08x (waiting 0x%08x)\n", ((uint32_t *)dp)[3],
