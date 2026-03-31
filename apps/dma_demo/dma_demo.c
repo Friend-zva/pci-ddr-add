@@ -177,7 +177,7 @@ void toggle_controller(GowinBar *gwbar, int flag_enable) {
     }
     uint32_t val = gwbar->ctrl;
     if (val == 0xFFFFFFFFu) {
-        val = 0;
+        flag_exit = 1;
     }
     if (flag_enable) {
         val |= 1u;
@@ -245,12 +245,11 @@ int main(int argc, char *argv[]) {
     ioctl(proc->fd, GOWIN_IRQ_ENABLE, 1); // turn on IR on channel 1
     ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 0);
     ioctl(proc->fd, GOWIN_CLEAR_IRQ_COUNT, 1);
-    gwbar->channel[0].rdma_it_level = 16;
-    gwbar->channel[0].wdma_it_level = 16;
+    gwbar->channel[0].rdma_it_level = 1;
+    gwbar->channel[0].wdma_it_level = 1;
 
     toggle_controller(gwbar, 1);
 
-    int step = 0;
     int h2c_count = 0, c2h_count = 0;
     volatile int h2c_level = 0, c2h_level = 0;
 
@@ -259,15 +258,13 @@ int main(int argc, char *argv[]) {
             dump_source(sp, size_dump);
         }
         if (DBG_INFO) {
-            printf("*** Loop ***\nh2c_count: %i, c2h_count: %i, step: %i,\n",
-                   h2c_count, c2h_count, step);
+            printf("*** Loop ***\nh2c_count: %i, c2h_count: %i\n", h2c_count,
+                   c2h_count);
             printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
                    gwbar->chsw);
-            printf("*** start copy to host ***\n");
         }
 
-        step = 15;
-        while (c2h_count < loop && step > 0) {
+        if (c2h_count < loop) {
             gwbar->channel[0].wdma_dst_lo = da & 0xFFFFFFFC;
             gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
             gwbar->channel[0].wdma_len = cnt;
@@ -283,31 +280,10 @@ int main(int argc, char *argv[]) {
             if (tx_tag >= 15) {
                 tx_tag = 1;
             }
-            step--;
             c2h_count++;
-            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
-                   gwbar->chsw);
-            c2h_level = gwbar->channel[0].wdma_status & 0xFF;
-            printf("* loop2: %i *\n", c2h_level);
-        }
-        do {
-            c2h_level = gwbar->channel[0].wdma_status & 0xFF;
-            if (DBG_INFO) {
-                printf("* loop2: (wdma_status255, %i) *\n", c2h_level);
-            }
-            if (c2h_level == 0xFF) {
-                wait_irq(proc->fd, 1, 10);
-            }
-        } while (!flag_exit && c2h_level == 0xFF);
-
-        if (DBG_INFO) {
-            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
-                   gwbar->chsw);
-            printf("*** start copy to card ***\n");
         }
 
-        step = 15;
-        while (h2c_count < loop && step > 0) {
+        if (h2c_count < loop) {
             gwbar->channel[0].rdma_src_lo = sa & 0xFFFFFFFC;
             gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
             gwbar->channel[0].rdma_len = cnt;
@@ -323,22 +299,36 @@ int main(int argc, char *argv[]) {
             if (rx_tag >= 32) {
                 rx_tag = 16;
             }
-            step--;
             h2c_count++;
-            printf("check DMA | channel enable: 0x%08x | 0x%08x\n", gwbar->ctrl,
-                   gwbar->chsw);
-            h2c_level = gwbar->channel[0].rdma_status & 0xFF;
-            printf("* loop1: %i *\n", h2c_level);
         }
+
         do {
-            h2c_level = gwbar->channel[0].rdma_status & 0xFF;
-            if (DBG_INFO) {
-                printf("* loop1: (rdma_status255, %i) *\n", h2c_level);
+            uint32_t rdma_stat = gwbar->channel[0].rdma_status;
+            uint32_t wdma_stat = gwbar->channel[0].wdma_status;
+
+            if (rdma_stat == 0xFFFFFFFFu || wdma_stat == 0xFFFFFFFFu) {
+                flag_exit = 1;
+                break;
             }
-            if (h2c_level == 0xFF || c2h_level == 0xFF) {
+
+            h2c_level = rdma_stat & 0xFF;
+            c2h_level = wdma_stat & 0xFF;
+
+            if (DBG_INFO) {
+                printf("h2c_done: %i, c2h_done: %i\n", rdma_stat & 0xC0000000,
+                       wdma_stat & 0xC0000000);
+                printf("check DMA | ctrl: 0x%08x\n", gwbar->ctrl);
+                printf("h2c_level: %i, c2h_level: %i\n", h2c_level, c2h_level);
+            }
+
+            if (h2c_level > 0) {
                 wait_irq(proc->fd, 0, 10);
             }
-        } while (!flag_exit && h2c_level == 0xFF);
+            if (c2h_level > 0) {
+                wait_irq(proc->fd, 1, 10);
+            }
+
+        } while (!flag_exit && (h2c_level > 0 || c2h_level > 0));
 
         if (DBG_INFO) {
             printf("result: 0x%08x (waiting 0x%08x)\n", ((uint32_t *)dp)[3],
@@ -354,22 +344,22 @@ int main(int argc, char *argv[]) {
 
     if (!flag_exit) {
         do {
-            val = 0xC0000000 & gwbar->channel[0].rdma_status;
-            if (DBG_INFO) {
-                printf("* loop3: (rdma_status0xC, %i) *\n", val);
-            }
-            if (val != 0xC0000000) {
-                wait_irq(proc->fd, 0, 100);
-            }
-        } while (!flag_exit && val != 0xC0000000);
-
-        do {
             val = 0xC0000000 & gwbar->channel[0].wdma_status;
             if (DBG_INFO) {
                 printf("* loop4: (wdma_status0xC, %i) *\n", val);
             }
             if (val != 0xC0000000) {
                 wait_irq(proc->fd, 1, 100);
+            }
+        } while (!flag_exit && val != 0xC0000000);
+
+        do {
+            val = 0xC0000000 & gwbar->channel[0].rdma_status;
+            if (DBG_INFO) {
+                printf("* loop3: (rdma_status0xC, %i) *\n", val);
+            }
+            if (val != 0xC0000000) {
+                wait_irq(proc->fd, 0, 100);
             }
         } while (!flag_exit && val != 0xC0000000);
     }
