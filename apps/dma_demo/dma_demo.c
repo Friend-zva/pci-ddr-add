@@ -303,23 +303,24 @@ int main(int argc, char *argv[]) {
         }
 
         do {
-            uint32_t rdma_stat = gwbar->channel[0].rdma_status;
-            uint32_t wdma_stat = gwbar->channel[0].wdma_status;
-
-            if (rdma_stat == 0xFFFFFFFFu || wdma_stat == 0xFFFFFFFFu) {
-                flag_exit = 1;
-                break;
-            }
-
-            h2c_level = rdma_stat & 0xFF;
-            c2h_level = wdma_stat & 0xFF;
+            int64_t rdma_stat = gwbar->channel[0].rdma_status;
+            int64_t wdma_stat = gwbar->channel[0].wdma_status;
 
             if (DBG_INFO) {
-                printf("h2c_done: %i, c2h_done: %i\n", rdma_stat & 0xC0000000,
+                printf("h2c_done: %li, c2h_done: %li\n", rdma_stat & 0xC0000000,
                        wdma_stat & 0xC0000000);
                 printf("check DMA | ctrl: 0x%08x\n", gwbar->ctrl);
                 printf("h2c_level: %i, c2h_level: %i\n", h2c_level, c2h_level);
             }
+
+            if (rdma_stat == 0xFFFFFFFFu || wdma_stat == 0xFFFFFFFFu) {
+                flag_exit = 1;
+                printf("BREAK\n");
+                break;
+            }
+
+            h2c_level = (int)rdma_stat & 0xFF;
+            c2h_level = (int)wdma_stat & 0xFF;
 
             if (h2c_level > 0) {
                 wait_irq(proc->fd, 0, 10);
