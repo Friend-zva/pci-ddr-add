@@ -1,0 +1,3 @@
+project/impl/
+project/*.gprj.user
+project/src/**/temp/

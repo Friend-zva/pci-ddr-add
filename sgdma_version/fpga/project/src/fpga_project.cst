@@ -1,0 +1,21 @@
+//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//All rights reserved. 
+//File Title: Physical Constraints file
+//Tool Version: V1.9.12 (64-bit)
+//Part Number: GW5AT-LV60UG225C2/I1
+//Device: GW5AT-60
+//Device Version: B
+//Created Time: Fri 12 12 15:09:52 2025
+
+IO_LOC "sysclk_o" F8;
+IO_PORT "sysclk_o" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "uart_tx" E5;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "uart_rx" E6;l
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=NONE BANK_VCCIO=3.3;
+IO_LOC "clk_50m" H5;
+IO_PORT "clk_50m" IO_TYPE=LVCMOS18 PULL_MODE=NONE BANK_VCCIO=1.8;
+IO_LOC "soc_pcie_rstn" H15;
+IO_PORT "soc_pcie_rstn" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "clk_200m_p" G12,H12;
+IO_PORT "clk_200m_p" IO_TYPE=LVDS25 PULL_MODE=NONE BANK_VCCIO=3.3;

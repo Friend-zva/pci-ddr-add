@@ -1,0 +1,13 @@
+[General]
+ipc_version=4
+file=Pcie_Sgdma
+module=pcie_sgdma
+target_device=gw5at60b-007
+type=pcie_sgdma
+version=1.0
+
+[Config]
+LANG=0
+Number_of_C2H=1
+Number_of_H2C=1
+Synthesis_tool=GowinSynthesis
