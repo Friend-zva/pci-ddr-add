@@ -1,0 +1,3 @@
+pcie_gen3(8G)/impl/
+pcie_gen3(8G)/*.gprj.user
+pcie_gen3(8G)/src/**/temp/
