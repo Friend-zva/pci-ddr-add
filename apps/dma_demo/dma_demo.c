@@ -220,15 +220,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    uint8_t rx_tag = 16; // receive
     uint8_t tx_tag = 1;  // transmit
+    uint8_t rx_tag = 16; // receive
 
     volatile uint8_t *sp = proc->mem_src; // source
     volatile uint64_t sa = proc->dma_src;
     volatile uint8_t *dp = proc->mem_dst; // destination
     volatile uint64_t da = proc->dma_dst;
 
-    uint32_t cnt = 64; // 64 * 4 = 256B
+    uint32_t cnt = 128; // 128 * 4 = 512B
     int size = DMA_SIZE / 2;
     int size_dump = 32; //* size_array = (size / 2)
     int loop = size / (cnt * 4);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
-    uint32_t block_size = (cnt * 4 + 1023) & (~1023);
+    uint32_t block_size = (cnt * 4 + 511) & (~511);
 
     gwbar->intr = (1 << 16) | 1;          // turn on IR for r/w
     gwbar->aclr = (1 << 16) | 1;          // turn on auto-clear IR
