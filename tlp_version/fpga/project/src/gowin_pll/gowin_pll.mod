@@ -7,7 +7,7 @@
 
 -mod_name Gowin_PLL
 -file_name gowin_pll
--path C:/Users/Think/OneDrive/Documents/FPGA_Project/Gowin/138K-PG484/PCIe_demo/neo/pcie_dma_demo/pcie_gen3(8G)/src/gowin_pll/
+-path C:/Users/Think/OneDrive/Documents/FPGA_Project/Gowin/138K-PG484/PCIe_demo/neo/pcie_dma_demo/project/src/gowin_pll/
 -type PLL_ADV
 -file_type vlg
 -ssc false
