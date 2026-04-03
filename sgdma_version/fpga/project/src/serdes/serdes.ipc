@@ -1,20 +1,21 @@
 [General]
 ipc_version=4
-target_device=gw5at60b-007
+target_device=gw5ast138b-007
 type=Serdes
 version=1.2
-
-[Config]
-LANG=0
-Synthesis_tool=GowinSynthesis
-file=serdes
-module=SerDes_Top
 
 [All_access]
 Q0_LANE0_RX=Q0_LANE0_RX -> Q0_MUX0 -> Q0_REFCLK0
 Q0_LANE0_TX=Q0_LANE0_TX -> Q0_QPLL0 -> Q0_MUX0 -> Q0_REFCLK0
 Q0_LANE1_RX=Q0_LANE1_RX -> Q0_MUX0 -> Q0_REFCLK0
 Q0_LANE1_TX=Q0_LANE1_TX -> Q0_QPLL0 -> Q0_MUX0 -> Q0_REFCLK0
+
+[Config]
+LANG=0
+Synthesis_tool=GowinSynthesis
+file=serdes
+global_reset_enable=false
+module=SerDes_Top
 
 [PCI%20Express%20Controller%3Apcie_controller%3APCIE_Controller_Top]
 Bar0_Enable=true
@@ -31,7 +32,7 @@ Bit64_3=false
 Bit64_4=false
 Bit64_5=false
 Device_ID=1100
-Enable_MSI_Capability=true
+Enable_MSI_Capability=false
 LANG=0
 Lane_Width=X2
 Max_Payload_Size=1024bytes
@@ -59,7 +60,7 @@ Vendor_ID=22C2
 file=pcie_controller
 module=PCIE_Controller_Top
 recordlanes=Q0 Lane0, Q0 Lane1
-target_device=gw5at60b-007
+target_device=gw5ast138b-007
 type=pcie
 value0=FFFFC004
 value1=00000000

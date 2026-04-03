@@ -1,13 +1,14 @@
-//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//Copyright (C)2014-2026 Gowin Semiconductor Corporation.
 //All rights reserved.
 //File Title: IP file
-//Tool Version: V1.9.12 (64-bit)
-//Part Number: GW5AT-LV60UG225C2/I1
-//Device: GW5AT-60
+//Tool Version: V1.9.12.02
+//IP Version: 1.0
+//Part Number: GW5AST-LV138FPG676AC1/I0
+//Device: GW5AST-138
 //Device Version: B
-//Created Time: Tue Oct 21 14:45:13 2025
+//Created Time: Fri Apr  3 16:01:06 2026
 
-module SerDes_Top (PCIE_Controller_Top_pcie_tl_rx_sop_o, PCIE_Controller_Top_pcie_tl_rx_eop_o, PCIE_Controller_Top_pcie_tl_rx_data_o, PCIE_Controller_Top_pcie_tl_rx_valid_o, PCIE_Controller_Top_pcie_tl_rx_bardec_o, PCIE_Controller_Top_pcie_tl_rx_err_o, PCIE_Controller_Top_pcie_tl_tx_wait_o, PCIE_Controller_Top_pcie_tl_int_ack_o, PCIE_Controller_Top_pcie_ltssm_o, PCIE_Controller_Top_pcie_tl_tx_creditsp_o, PCIE_Controller_Top_pcie_tl_tx_creditsnp_o, PCIE_Controller_Top_pcie_tl_tx_creditscpl_o, PCIE_Controller_Top_pcie_tl_cfg_busdev_o, PCIE_Controller_Top_pcie_linkup_o, PCIE_Controller_Top_pcie_tl_drp_clk_o, PCIE_Controller_Top_pcie_tl_drp_rddata_o, PCIE_Controller_Top_pcie_tl_drp_resp_o, PCIE_Controller_Top_pcie_tl_drp_rd_valid_o, PCIE_Controller_Top_pcie_tl_drp_ready_o, PCIE_Controller_Top_pcie_rstn_i, PCIE_Controller_Top_pcie_tl_clk_i, PCIE_Controller_Top_pcie_tl_rx_wait_i, PCIE_Controller_Top_pcie_tl_rx_masknp_i, PCIE_Controller_Top_pcie_tl_tx_sop_i, PCIE_Controller_Top_pcie_tl_tx_eop_i, PCIE_Controller_Top_pcie_tl_tx_data_i, PCIE_Controller_Top_pcie_tl_tx_valid_i, PCIE_Controller_Top_pcie_tl_int_status_i, PCIE_Controller_Top_pcie_tl_int_req_i, PCIE_Controller_Top_pcie_tl_int_msinum_i, PCIE_Controller_Top_pcie_tl_drp_addr_i, PCIE_Controller_Top_pcie_tl_drp_wrdata_i, PCIE_Controller_Top_pcie_tl_drp_strb_i, PCIE_Controller_Top_pcie_tl_drp_wr_i, PCIE_Controller_Top_pcie_tl_drp_rd_i);
+module SerDes_Top (PCIE_Controller_Top_pcie_tl_rx_sop_o, PCIE_Controller_Top_pcie_tl_rx_eop_o, PCIE_Controller_Top_pcie_tl_rx_data_o, PCIE_Controller_Top_pcie_tl_rx_valid_o, PCIE_Controller_Top_pcie_tl_rx_bardec_o, PCIE_Controller_Top_pcie_tl_rx_err_o, PCIE_Controller_Top_pcie_tl_tx_wait_o, PCIE_Controller_Top_pcie_ltssm_o, PCIE_Controller_Top_pcie_tl_tx_creditsp_o, PCIE_Controller_Top_pcie_tl_tx_creditsnp_o, PCIE_Controller_Top_pcie_tl_tx_creditscpl_o, PCIE_Controller_Top_pcie_tl_cfg_busdev_o, PCIE_Controller_Top_pcie_linkup_o, PCIE_Controller_Top_pcie_tl_drp_clk_o, PCIE_Controller_Top_pcie_tl_drp_rddata_o, PCIE_Controller_Top_pcie_tl_drp_resp_o, PCIE_Controller_Top_pcie_tl_drp_rd_valid_o, PCIE_Controller_Top_pcie_tl_drp_ready_o, PCIE_Controller_Top_pcie_rstn_i, PCIE_Controller_Top_pcie_tl_clk_i, PCIE_Controller_Top_pcie_tl_rx_wait_i, PCIE_Controller_Top_pcie_tl_rx_masknp_i, PCIE_Controller_Top_pcie_tl_tx_sop_i, PCIE_Controller_Top_pcie_tl_tx_eop_i, PCIE_Controller_Top_pcie_tl_tx_data_i, PCIE_Controller_Top_pcie_tl_tx_valid_i, PCIE_Controller_Top_pcie_tl_drp_addr_i, PCIE_Controller_Top_pcie_tl_drp_wrdata_i, PCIE_Controller_Top_pcie_tl_drp_strb_i, PCIE_Controller_Top_pcie_tl_drp_wr_i, PCIE_Controller_Top_pcie_tl_drp_rd_i);
 
 output PCIE_Controller_Top_pcie_tl_rx_sop_o;
 output PCIE_Controller_Top_pcie_tl_rx_eop_o;
@@ -16,7 +17,6 @@ output [7:0] PCIE_Controller_Top_pcie_tl_rx_valid_o;
 output [5:0] PCIE_Controller_Top_pcie_tl_rx_bardec_o;
 output [7:0] PCIE_Controller_Top_pcie_tl_rx_err_o;
 output PCIE_Controller_Top_pcie_tl_tx_wait_o;
-output PCIE_Controller_Top_pcie_tl_int_ack_o;
 output [4:0] PCIE_Controller_Top_pcie_ltssm_o;
 output [31:0] PCIE_Controller_Top_pcie_tl_tx_creditsp_o;
 output [31:0] PCIE_Controller_Top_pcie_tl_tx_creditsnp_o;
@@ -36,9 +36,6 @@ input PCIE_Controller_Top_pcie_tl_tx_sop_i;
 input PCIE_Controller_Top_pcie_tl_tx_eop_i;
 input [255:0] PCIE_Controller_Top_pcie_tl_tx_data_i;
 input [7:0] PCIE_Controller_Top_pcie_tl_tx_valid_i;
-input PCIE_Controller_Top_pcie_tl_int_status_i;
-input PCIE_Controller_Top_pcie_tl_int_req_i;
-input [4:0] PCIE_Controller_Top_pcie_tl_int_msinum_i;
 input [23:0] PCIE_Controller_Top_pcie_tl_drp_addr_i;
 input [31:0] PCIE_Controller_Top_pcie_tl_drp_wrdata_i;
 input [7:0] PCIE_Controller_Top_pcie_tl_drp_strb_i;
@@ -46,8 +43,10 @@ input PCIE_Controller_Top_pcie_tl_drp_wr_i;
 input PCIE_Controller_Top_pcie_tl_drp_rd_i;
 
 wire PCIE_Controller_Top_pcie_half_clk_i;
+wire q0_lane1_fabric_rx_clk;
 wire q0_lane2_fabric_rx_clk;
 wire q0_lane3_fabric_rx_clk;
+wire q0_lane1_fabric_tx_clk;
 wire q0_lane2_fabric_tx_clk;
 wire q0_lane3_fabric_tx_clk;
 wire PCIE_Controller_Top_pcie_tl_clk_o;
@@ -57,6 +56,10 @@ wire q0_quad_pcie_clk;
 wire q0_pcie_div2_reg;
 wire q0_pcie_div4_reg;
 wire q0_pmac_ln_rstn;
+wire [91:0] q0_inet_q0_q1;
+wire [531:0] q0_inet_q_pmac;
+wire [227:0] q0_inet_q_test;
+wire [420:0] q0_inet_q_upar;
 wire q0_ln0_txm_o;
 wire q0_ln0_txp_o;
 wire q0_ln1_txm_o;
@@ -181,26 +184,6 @@ wire q0_fabric_lane0_cmu_ok_o;
 wire q0_fabric_lane1_cmu_ok_o;
 wire q0_fabric_lane2_cmu_ok_o;
 wire q0_fabric_lane3_cmu_ok_o;
-wire q0_fabric_pma_cm3_dr_refclk_det_o;
-wire q0_fabric_pma_cm2_dr_refclk_det_o;
-wire q0_quad_pclk1;
-wire q0_quad_pclk0;
-wire q0_fabric_lane0_64b66b_tx_invld_blk;
-wire q0_fabric_lane0_64b66b_tx_fetch;
-wire q0_fabric_lane0_64b66b_rx_valid;
-wire q0_fabric_lane1_64b66b_tx_invld_blk;
-wire q0_fabric_lane1_64b66b_tx_fetch;
-wire q0_fabric_lane1_64b66b_rx_valid;
-wire q0_fabric_lane2_64b66b_tx_invld_blk;
-wire q0_fabric_lane2_64b66b_tx_fetch;
-wire q0_fabric_lane2_64b66b_rx_valid;
-wire q0_fabric_lane3_64b66b_tx_invld_blk;
-wire q0_fabric_lane3_64b66b_tx_fetch;
-wire q0_fabric_lane3_64b66b_rx_valid;
-wire q0_ckp_mipi_1;
-wire q0_ckp_mipi_0;
-wire q0_ckn_mipi_1;
-wire q0_ckn_mipi_0;
 wire upar_rst;
 wire upar_wren_s;
 wire [23:0] upar_addr_s;
@@ -208,22 +191,27 @@ wire [31:0] upar_wrdata_s;
 wire upar_rden_s;
 wire [7:0] upar_strb_s;
 wire upar_bus_width_s;
+wire [5466:0] inet_upar_pmac;
+wire [420:0] inet_upar_q0;
+wire [420:0] inet_upar_q1;
+wire [1328:0] inet_upar_test;
 wire csr_tdo;
 wire [31:0] upar_rddata_s;
 wire upar_rdvld_s;
 wire upar_ready_s;
 wire spi_miso;
 wire ahb_clk_o;
-wire [95:0] upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i;
-wire [3:0] upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i;
-wire [127:0] upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i;
-wire [31:0] upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i;
-wire [3:0] upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i;
-wire [3:0] upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o;
-wire [3:0] upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o;
-wire [3:0] upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o;
-wire [127:0] upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o;
-wire [3:0] upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o;
+wire tl_clkp_i;
+wire [23:0] upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i;
+wire [0:0] upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i;
+wire [31:0] upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i;
+wire [7:0] upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i;
+wire [0:0] upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i;
+wire [7:0] upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o;
+wire [7:0] upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o;
+wire [7:0] upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o;
+wire [255:0] upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o;
+wire [7:0] upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o;
 wire PCIE_Controller_Top_pcie_tl_rx_sop_i;
 wire PCIE_Controller_Top_pcie_tl_rx_eop_i;
 wire [255:0] PCIE_Controller_Top_pcie_tl_rx_data_i;
@@ -259,8 +247,15 @@ wire [7:0] PCIE_Controller_Top_pcie_tl_brsw_in_o;
 wire [3:0] PCIE_Controller_Top_pcie_tl_pm_obffcontrol_o;
 wire PCIE_Controller_Top_pcie_VCC;
 wire PCIE_Controller_Top_pcie_GND;
+wire [531:0] inet_pmac_q0;
+wire [531:0] inet_pmac_q1;
+wire [780:0] inet_pmac_test;
+wire [5466:0] inet_pmac_upar;
 wire [3:0] pl_exit;
 wire [64:0] tl_flr_req0;
+wire [64:0] tl_flr_req1;
+wire [64:0] tl_flr_req2;
+wire [64:0] tl_flr_req3;
 wire pl_wake_oen;
 wire pl_clkreq_oen;
 wire [31:0] tl_rx_prot0;
@@ -269,33 +264,82 @@ wire [15:0] tl_rx_mchit0;
 wire [31:0] tl_tx_proterr0;
 wire [7:0] tl_brsw_out;
 wire tl_int_ack1;
+wire tl_int_ack2;
+wire tl_int_ack3;
 wire [3:0] tl_int_pinstate;
 wire [3:0] tl_pm_clkstatus;
 wire tl_pm_tostatus;
 wire [3:0] tl_pm_obffstatus;
 wire [7:0] tl_report_event;
 wire [3:0] tl_report_timer;
+wire [7:0] fabric_phy_invalidreq;
+wire [7:0] fabric_phy_invalidreq_h;
+wire [7:0] fabric_phy_reqlocal;
+wire [7:0] fabric_phy_reqlocal_h;
+wire [31:0] fabric_phy_reqlocalidx;
+wire [31:0] fabric_phy_reqlocalidx_h;
+wire [7:0] fabric_phy_rxeqeval;
+wire [7:0] fabric_phy_rxeqeval_h;
+wire [7:0] fabric_phy_rxeqinprogress;
+wire [7:0] fabric_phy_rxeqinprogress_h;
+wire [23:0] fabric_phy_rxprehint;
+wire [23:0] fabric_phy_rxprehint_h;
+wire [15:0] fabric_phy_txdeemph;
+wire [15:0] fabric_phy_txdeemph_h;
+wire fabric_pl_blockaligncontrol;
+wire fabric_pl_blockaligncontrol_h;
+wire [1:0] fabric_pl_powerdown;
+wire [1:0] fabric_pl_powerdown_h;
+wire [7:0] fabric_pl_rxpolarity;
+wire [7:0] fabric_pl_rxpolarity_h;
+wire [7:0] fabric_pl_rxstandby;
+wire [7:0] fabric_pl_rxstandby_h;
+wire [7:0] fabric_pl_txcompliance;
+wire [7:0] fabric_pl_txcompliance_h;
+wire [7:0] fabric_pl_txdetectrx;
+wire [7:0] fabric_pl_txdetectrx_h;
+wire [7:0] fabric_pl_txelecidle;
+wire [7:0] fabric_pl_txelecidle_h;
+wire [2:0] fabric_pl_txmargin;
+wire [2:0] fabric_pl_txmargin_h;
+wire [7:0] fabric_pl_txstartblock;
+wire [7:0] fabric_pl_txstartblock_h;
+wire fabric_pl_txswing;
+wire fabric_pl_txswing_h;
+wire [15:0] fabric_pl_txsyncheader;
+wire [15:0] fabric_pl_txsyncheader_h;
+wire [1:0] fabric_pl_width;
+wire [1:0] fabric_pl_width_h;
 wire [18:0] tl_cfgexpaddr0;
 wire [18:0] tl_cfgexpaddr1;
+wire [18:0] tl_cfgexpaddr2;
+wire [18:0] tl_cfgexpaddr3;
 wire tl_cfgexpread0;
 wire tl_cfgexpread1;
+wire tl_cfgexpread2;
+wire tl_cfgexpread3;
 wire [3:0] tl_cfgexpstrb0;
 wire [3:0] tl_cfgexpstrb1;
+wire [3:0] tl_cfgexpstrb2;
+wire [3:0] tl_cfgexpstrb3;
 wire [31:0] tl_cfgexpwdata0;
 wire [31:0] tl_cfgexpwdata1;
+wire [31:0] tl_cfgexpwdata2;
+wire [31:0] tl_cfgexpwdata3;
 wire tl_cfgexpwrite0;
 wire tl_cfgexpwrite1;
-wire fabric_pcie_prgm_active;
-wire tl_apb_pready;
-wire [31:0] tl_apb_prdata;
+wire tl_cfgexpwrite2;
+wire tl_cfgexpwrite3;
 wire gw_vcc;
 wire gw_gnd;
+
+
 
 
 assign gw_vcc = 1'b1;
 assign gw_gnd = 1'b0;
 
-GTR12_QUADA gtr12_quad_inst0 (
+GTR12_QUAD gtr12_quad_inst0 (
     .LN0_TXM_O(q0_ln0_txm_o),
     .LN0_TXP_O(q0_ln0_txp_o),
     .LN1_TXM_O(q0_ln1_txm_o),
@@ -420,26 +464,10 @@ GTR12_QUADA gtr12_quad_inst0 (
     .FABRIC_LANE1_CMU_OK_O(q0_fabric_lane1_cmu_ok_o),
     .FABRIC_LANE2_CMU_OK_O(q0_fabric_lane2_cmu_ok_o),
     .FABRIC_LANE3_CMU_OK_O(q0_fabric_lane3_cmu_ok_o),
-    .FABRIC_PMA_CM3_DR_REFCLK_DET_O(q0_fabric_pma_cm3_dr_refclk_det_o),
-    .FABRIC_PMA_CM2_DR_REFCLK_DET_O(q0_fabric_pma_cm2_dr_refclk_det_o),
-    .QUAD_PCLK1(q0_quad_pclk1),
-    .QUAD_PCLK0(q0_quad_pclk0),
-    .FABRIC_LANE0_64B66B_TX_INVLD_BLK(q0_fabric_lane0_64b66b_tx_invld_blk),
-    .FABRIC_LANE0_64B66B_TX_FETCH(q0_fabric_lane0_64b66b_tx_fetch),
-    .FABRIC_LANE0_64B66B_RX_VALID(q0_fabric_lane0_64b66b_rx_valid),
-    .FABRIC_LANE1_64B66B_TX_INVLD_BLK(q0_fabric_lane1_64b66b_tx_invld_blk),
-    .FABRIC_LANE1_64B66B_TX_FETCH(q0_fabric_lane1_64b66b_tx_fetch),
-    .FABRIC_LANE1_64B66B_RX_VALID(q0_fabric_lane1_64b66b_rx_valid),
-    .FABRIC_LANE2_64B66B_TX_INVLD_BLK(q0_fabric_lane2_64b66b_tx_invld_blk),
-    .FABRIC_LANE2_64B66B_TX_FETCH(q0_fabric_lane2_64b66b_tx_fetch),
-    .FABRIC_LANE2_64B66B_RX_VALID(q0_fabric_lane2_64b66b_rx_valid),
-    .FABRIC_LANE3_64B66B_TX_INVLD_BLK(q0_fabric_lane3_64b66b_tx_invld_blk),
-    .FABRIC_LANE3_64B66B_TX_FETCH(q0_fabric_lane3_64b66b_tx_fetch),
-    .FABRIC_LANE3_64B66B_RX_VALID(q0_fabric_lane3_64b66b_rx_valid),
-    .CKP_MIPI_1(q0_ckp_mipi_1),
-    .CKP_MIPI_0(q0_ckp_mipi_0),
-    .CKN_MIPI_1(q0_ckn_mipi_1),
-    .CKN_MIPI_0(q0_ckn_mipi_0),
+    .INET_Q0_Q1(q0_inet_q0_q1),
+    .INET_Q_PMAC(q0_inet_q_pmac),
+    .INET_Q_TEST(q0_inet_q_test),
+    .INET_Q_UPAR(q0_inet_q_upar),
     .LN0_RXM_I(gw_gnd),
     .LN0_RXP_I(gw_gnd),
     .LN1_RXM_I(gw_gnd),
@@ -448,20 +476,22 @@ GTR12_QUADA gtr12_quad_inst0 (
     .LN2_RXP_I(gw_gnd),
     .LN3_RXM_I(gw_gnd),
     .LN3_RXP_I(gw_gnd),
+    .FABRIC_CLK_LIFE_DIV_I({gw_gnd,gw_gnd}),
+    .FABRIC_CM0_RXCLK_OE_L_I(gw_gnd),
+    .FABRIC_CM0_RXCLK_OE_R_I(gw_gnd),
     .FABRIC_PMA_PD_REFHCLK_I(gw_gnd),
     .FABRIC_REFCLK1_INPUT_SEL_I({gw_gnd,gw_gnd,gw_gnd}),
     .FABRIC_REFCLK_INPUT_SEL_I({gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_REFCLK_OE_L_I(gw_gnd),
+    .FABRIC_REFCLK_OE_R_I(gw_gnd),
+    .FABRIC_REFCLK_OUTPUT_SEL_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .REFCLKM0_I(gw_gnd),
     .REFCLKM1_I(gw_gnd),
     .REFCLKP0_I(gw_gnd),
     .REFCLKP1_I(gw_gnd),
-    .REFCLKM2_I(gw_gnd),
-    .REFCLKM3_I(gw_gnd),
-    .REFCLKP2_I(gw_gnd),
-    .REFCLKP3_I(gw_gnd),
     .FABRIC_BURN_IN_I(gw_gnd),
     .FABRIC_CK_SOC_DIV_I({gw_gnd,gw_gnd}),
-    .FABRIC_CLK_REF_CORE_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_CLK_REF_CORE_I(gw_gnd),
     .FABRIC_CMU1_REFCLK_GATE_I(gw_gnd),
     .FABRIC_CMU_REFCLK_GATE_I(gw_gnd),
     .FABRIC_GLUE_MAC_INIT_INFO_I(gw_gnd),
@@ -507,7 +537,7 @@ GTR12_QUADA gtr12_quad_inst0 (
     .LANE2_PCS_TX_RST(gw_gnd),
     .LANE3_PCS_TX_RST(gw_gnd),
     .LANE0_FABRIC_RX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
-    .LANE1_FABRIC_RX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .LANE1_FABRIC_RX_CLK(q0_lane1_fabric_rx_clk),
     .LANE2_FABRIC_RX_CLK(q0_lane2_fabric_rx_clk),
     .LANE3_FABRIC_RX_CLK(q0_lane3_fabric_rx_clk),
     .LANE0_FABRIC_C2I_CLK(gw_gnd),
@@ -515,7 +545,7 @@ GTR12_QUADA gtr12_quad_inst0 (
     .LANE2_FABRIC_C2I_CLK(gw_gnd),
     .LANE3_FABRIC_C2I_CLK(gw_gnd),
     .LANE0_FABRIC_TX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
-    .LANE1_FABRIC_TX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .LANE1_FABRIC_TX_CLK(q0_lane1_fabric_tx_clk),
     .LANE2_FABRIC_TX_CLK(q0_lane2_fabric_tx_clk),
     .LANE3_FABRIC_TX_CLK(q0_lane3_fabric_tx_clk),
     .LANE0_RX_IF_FIFO_RDEN(gw_gnd),
@@ -567,17 +597,12 @@ GTR12_QUADA gtr12_quad_inst0 (
     .QUAD_PCIE_CLK(q0_quad_pcie_clk),
     .PCIE_DIV2_REG(q0_pcie_div2_reg),
     .PCIE_DIV4_REG(q0_pcie_div4_reg),
-    .PMAC_LN_RSTN(q0_pmac_ln_rstn),
-    .FABRIC_CM3_PD_REFCLK_DET_I(gw_gnd),
-    .FABRIC_CM2_PD_REFCLK_DET_I(gw_gnd),
-    .FABRIC_LN0_TX_DISPARITY_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .FABRIC_LN1_TX_DISPARITY_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .FABRIC_LN2_TX_DISPARITY_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .FABRIC_LN3_TX_DISPARITY_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .CLK_VIQ_I({gw_gnd,gw_gnd,gw_gnd,gw_gnd})
+    .PMAC_LN_RSTN(q0_pmac_ln_rstn)
 );
 
-GTR12_UPARA gtr12_upar_inst (
+defparam gtr12_quad_inst0.POSITION = "Q0";
+
+GTR12_UPAR gtr12_upar_inst (
     .CSR_TDO(csr_tdo),
     .UPAR_RDDATA_S(upar_rddata_s),
     .UPAR_RDVLD_S(upar_rdvld_s),
@@ -586,6 +611,11 @@ GTR12_UPARA gtr12_upar_inst (
     .AHB_CLK_O(ahb_clk_o),
     .QUAD_CFG_TEST_DEC_EN(q0_test_dec_en),
     .AHB_RSTN_O(q0_ahb_rstn),
+    .TL_CLKP_I(tl_clkp_i),
+    .INET_UPAR_PMAC(inet_upar_pmac),
+    .INET_UPAR_Q0(inet_upar_q0),
+    .INET_UPAR_Q1(inet_upar_q1),
+    .INET_UPAR_TEST(inet_upar_test),
     .CSR_TCK(gw_gnd),
     .CSR_TMS(gw_gnd),
     .CSR_TDI(gw_gnd),
@@ -625,11 +655,11 @@ GTR12_UPARA gtr12_upar_inst (
 );
 
 \~upar_arbiter_wrap.SerDes_Top upar_arbiter_wrap_SerDes_Top_inst (
-    .drp_clk_o({upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[0]}),
-    .drp_ready_o({upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[0]}),
-    .drp_rdvld_o({upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[0]}),
-    .drp_rddata_o({upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[127:96],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[95:64],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[63:32],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[31:0]}),
-    .drp_resp_o({upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[0]}),
+    .drp_clk_o({upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[7],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[6],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[5],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[4],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_clk_o[0]}),
+    .drp_ready_o({upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[7],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[6],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[5],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[4],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_ready_o[0]}),
+    .drp_rdvld_o({upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[7],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[6],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[5],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[4],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_rdvld_o[0]}),
+    .drp_rddata_o({upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[255:224],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[223:192],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[191:160],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[159:128],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[127:96],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[95:64],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[63:32],upar_arbiter_wrap_SerDes_Top_inst_drp_rddata_o[31:0]}),
+    .drp_resp_o({upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[7],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[6],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[5],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[4],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[3],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[2],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[1],upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[0]}),
     .upar_rst_o(upar_rst),
     .upar_addr_o(upar_addr_s),
     .upar_wren_o(upar_wren_s),
@@ -637,11 +667,11 @@ GTR12_UPARA gtr12_upar_inst (
     .upar_strb_o(upar_strb_s),
     .upar_rden_o(upar_rden_s),
     .upar_bus_width_o(upar_bus_width_s),
-    .drp_addr_i({upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i[95:72],upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i[71:48],upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i[47:24],upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i[23:0]}),
-    .drp_wren_i({upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i[3],upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i[2],upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i[1],upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i[0]}),
-    .drp_wrdata_i({upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i[127:96],upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i[95:64],upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i[63:32],upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i[31:0]}),
-    .drp_strb_i({upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i[31:24],upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i[23:16],upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i[15:8],upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i[7:0]}),
-    .drp_rden_i({upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i[3],upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i[2],upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i[1],upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i[0]}),
+    .drp_addr_i({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,upar_arbiter_wrap_SerDes_Top_inst_drp_addr_i[23:0]}),
+    .drp_wren_i({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,upar_arbiter_wrap_SerDes_Top_inst_drp_wren_i[0]}),
+    .drp_wrdata_i({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,upar_arbiter_wrap_SerDes_Top_inst_drp_wrdata_i[31:0]}),
+    .drp_strb_i({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,upar_arbiter_wrap_SerDes_Top_inst_drp_strb_i[7:0]}),
+    .drp_rden_i({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,upar_arbiter_wrap_SerDes_Top_inst_drp_rden_i[0]}),
     .upar_clk_i(PCIE_Controller_Top_pcie_tl_clk_o),
     .upar_ready_i(upar_ready_s),
     .upar_rdvld_i(upar_rdvld_s),
@@ -656,7 +686,6 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .pcie_tl_rx_bardec_o(PCIE_Controller_Top_pcie_tl_rx_bardec_o[5:0]),
     .pcie_tl_rx_err_o(PCIE_Controller_Top_pcie_tl_rx_err_o[7:0]),
     .pcie_tl_tx_wait_o(PCIE_Controller_Top_pcie_tl_tx_wait_o),
-    .pcie_tl_int_ack_o(PCIE_Controller_Top_pcie_tl_int_ack_o),
     .pcie_ltssm_o(PCIE_Controller_Top_pcie_ltssm_o[4:0]),
     .pcie_tl_tx_creditsp_o(PCIE_Controller_Top_pcie_tl_tx_creditsp_o[31:0]),
     .pcie_tl_tx_creditsnp_o(PCIE_Controller_Top_pcie_tl_tx_creditsnp_o[31:0]),
@@ -698,9 +727,6 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .pcie_tl_tx_eop_i(PCIE_Controller_Top_pcie_tl_tx_eop_i),
     .pcie_tl_tx_data_i(PCIE_Controller_Top_pcie_tl_tx_data_i[255:0]),
     .pcie_tl_tx_valid_i(PCIE_Controller_Top_pcie_tl_tx_valid_i[7:0]),
-    .pcie_tl_int_status_i(PCIE_Controller_Top_pcie_tl_int_status_i),
-    .pcie_tl_int_req_i(PCIE_Controller_Top_pcie_tl_int_req_i),
-    .pcie_tl_int_msinum_i(PCIE_Controller_Top_pcie_tl_int_msinum_i[4:0]),
     .pcie_tl_rx_sop_i(PCIE_Controller_Top_pcie_tl_rx_sop_i),
     .pcie_tl_rx_eop_i(PCIE_Controller_Top_pcie_tl_rx_eop_i),
     .pcie_tl_rx_data_i(PCIE_Controller_Top_pcie_tl_rx_data_i[255:0]),
@@ -723,7 +749,6 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .fabric_pl_txdatavalid_h(PCIE_Controller_Top_fabric_pl_txdatavalid_h[7:0]),
     .fabric_ln0_rxdata(q0_fabric_ln0_rxdata_o[87:0]),
     .fabric_ln0_rxdatavalid(q0_fabric_ln0_rx_vld_out),
-    .fabric_ln1_rxdata(q0_fabric_ln1_rxdata_o[87:0]),
     .fabric_pl_rate(PCIE_Controller_Top_fabric_pl_rate[1:0]),
     .fabric_pl_rate_h(PCIE_Controller_Top_fabric_pl_rate_h[1:0]),
     .pcie_half_clk_i(PCIE_Controller_Top_pcie_half_clk_i),
@@ -739,9 +764,12 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .pcie_tl_drp_resp_i(upar_arbiter_wrap_SerDes_Top_inst_drp_resp_o[0])
 );
 
-GTR12_PMACA gtr12_pmac_inst (
+GTR12_PMAC gtr12_pmac_inst (
     .PL_EXIT(pl_exit),
     .TL_FLR_REQ0(tl_flr_req0),
+    .TL_FLR_REQ1(tl_flr_req1),
+    .TL_FLR_REQ2(tl_flr_req2),
+    .TL_FLR_REQ3(tl_flr_req3),
     .PL_WAKE_OEN(pl_wake_oen),
     .PL_CLKREQ_OEN(pl_clkreq_oen),
     .TL_RX_SOP0(PCIE_Controller_Top_pcie_tl_rx_sop_i),
@@ -758,6 +786,8 @@ GTR12_PMACA gtr12_pmac_inst (
     .TL_BRSW_OUT(tl_brsw_out),
     .TL_INT_ACK0(PCIE_Controller_Top_pcie_tl_int_ack_i),
     .TL_INT_ACK1(tl_int_ack1),
+    .TL_INT_ACK2(tl_int_ack2),
+    .TL_INT_ACK3(tl_int_ack3),
     .TL_INT_PINSTATE(tl_int_pinstate),
     .TL_PM_CLKSTATUS(tl_pm_clkstatus),
     .TL_PM_TOSTATUS(tl_pm_tostatus),
@@ -765,26 +795,86 @@ GTR12_PMACA gtr12_pmac_inst (
     .TL_REPORT_EVENT(tl_report_event),
     .TL_REPORT_TIMER(tl_report_timer),
     .PCIE_HALF_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .FABRIC_PHY_INVALIDREQ(fabric_phy_invalidreq),
+    .FABRIC_PHY_INVALIDREQ_H(fabric_phy_invalidreq_h),
+    .FABRIC_PHY_REQLOCAL(fabric_phy_reqlocal),
+    .FABRIC_PHY_REQLOCAL_H(fabric_phy_reqlocal_h),
+    .FABRIC_PHY_REQLOCALIDX(fabric_phy_reqlocalidx),
+    .FABRIC_PHY_REQLOCALIDX_H(fabric_phy_reqlocalidx_h),
+    .FABRIC_PHY_RXEQEVAL(fabric_phy_rxeqeval),
+    .FABRIC_PHY_RXEQEVAL_H(fabric_phy_rxeqeval_h),
+    .FABRIC_PHY_RXEQINPROGRESS(fabric_phy_rxeqinprogress),
+    .FABRIC_PHY_RXEQINPROGRESS_H(fabric_phy_rxeqinprogress_h),
+    .FABRIC_PHY_RXPREHINT(fabric_phy_rxprehint),
+    .FABRIC_PHY_RXPREHINT_H(fabric_phy_rxprehint_h),
+    .FABRIC_PHY_TXDEEMPH(fabric_phy_txdeemph),
+    .FABRIC_PHY_TXDEEMPH_H(fabric_phy_txdeemph_h),
+    .FABRIC_PL_BLOCKALIGNCONTROL(fabric_pl_blockaligncontrol),
+    .FABRIC_PL_BLOCKALIGNCONTROL_H(fabric_pl_blockaligncontrol_h),
+    .FABRIC_PL_POWERDOWN(fabric_pl_powerdown),
+    .FABRIC_PL_POWERDOWN_H(fabric_pl_powerdown_h),
+    .FABRIC_PL_RATE(PCIE_Controller_Top_fabric_pl_rate),
+    .FABRIC_PL_RATE_H(PCIE_Controller_Top_fabric_pl_rate_h),
+    .FABRIC_PL_RXPOLARITY(fabric_pl_rxpolarity),
+    .FABRIC_PL_RXPOLARITY_H(fabric_pl_rxpolarity_h),
+    .FABRIC_PL_RXSTANDBY(fabric_pl_rxstandby),
+    .FABRIC_PL_RXSTANDBY_H(fabric_pl_rxstandby_h),
+    .FABRIC_PL_TXCOMPLIANCE(fabric_pl_txcompliance),
+    .FABRIC_PL_TXCOMPLIANCE_H(fabric_pl_txcompliance_h),
+    .FABRIC_PL_TXDATA(PCIE_Controller_Top_fabric_pl_txdata),
+    .FABRIC_PL_TXDATA_H(PCIE_Controller_Top_fabric_pl_txdata_h),
+    .FABRIC_PL_TXDATAK(PCIE_Controller_Top_fabric_pl_txdatak),
+    .FABRIC_PL_TXDATAK_H(PCIE_Controller_Top_fabric_pl_txdatak_h),
+    .FABRIC_PL_TXDATAVALID(PCIE_Controller_Top_fabric_pl_txdatavalid),
+    .FABRIC_PL_TXDATAVALID_H(PCIE_Controller_Top_fabric_pl_txdatavalid_h),
+    .FABRIC_PL_TXDETECTRX(fabric_pl_txdetectrx),
+    .FABRIC_PL_TXDETECTRX_H(fabric_pl_txdetectrx_h),
+    .FABRIC_PL_TXELECIDLE(fabric_pl_txelecidle),
+    .FABRIC_PL_TXELECIDLE_H(fabric_pl_txelecidle_h),
+    .FABRIC_PL_TXMARGIN(fabric_pl_txmargin),
+    .FABRIC_PL_TXMARGIN_H(fabric_pl_txmargin_h),
+    .FABRIC_PL_TXSTARTBLOCK(fabric_pl_txstartblock),
+    .FABRIC_PL_TXSTARTBLOCK_H(fabric_pl_txstartblock_h),
+    .FABRIC_PL_TXSWING(fabric_pl_txswing),
+    .FABRIC_PL_TXSWING_H(fabric_pl_txswing_h),
+    .FABRIC_PL_TXSYNCHEADER(fabric_pl_txsyncheader),
+    .FABRIC_PL_TXSYNCHEADER_H(fabric_pl_txsyncheader_h),
+    .FABRIC_PL_WIDTH(fabric_pl_width),
+    .FABRIC_PL_WIDTH_H(fabric_pl_width_h),
     .FABRIC_TEST_BUS_MON(PCIE_Controller_Top_pcie_pl_test_out_i),
     .TL_CFGEXPADDR0(tl_cfgexpaddr0),
     .TL_CFGEXPADDR1(tl_cfgexpaddr1),
+    .TL_CFGEXPADDR2(tl_cfgexpaddr2),
+    .TL_CFGEXPADDR3(tl_cfgexpaddr3),
     .TL_CFGEXPREAD0(tl_cfgexpread0),
     .TL_CFGEXPREAD1(tl_cfgexpread1),
+    .TL_CFGEXPREAD2(tl_cfgexpread2),
+    .TL_CFGEXPREAD3(tl_cfgexpread3),
     .TL_CFGEXPSTRB0(tl_cfgexpstrb0),
     .TL_CFGEXPSTRB1(tl_cfgexpstrb1),
+    .TL_CFGEXPSTRB2(tl_cfgexpstrb2),
+    .TL_CFGEXPSTRB3(tl_cfgexpstrb3),
     .TL_CFGEXPWDATA0(tl_cfgexpwdata0),
     .TL_CFGEXPWDATA1(tl_cfgexpwdata1),
+    .TL_CFGEXPWDATA2(tl_cfgexpwdata2),
+    .TL_CFGEXPWDATA3(tl_cfgexpwdata3),
     .TL_CFGEXPWRITE0(tl_cfgexpwrite0),
     .TL_CFGEXPWRITE1(tl_cfgexpwrite1),
+    .TL_CFGEXPWRITE2(tl_cfgexpwrite2),
+    .TL_CFGEXPWRITE3(tl_cfgexpwrite3),
     .TLCFG_BUSDEV(PCIE_Controller_Top_pcie_tl_cfg_busdev_i),
     .PCIE_CLK(q0_quad_pcie_clk),
     .PMAC_LN_RSTN(q0_pmac_ln_rstn),
     .PCIE_DIV2_REG(q0_pcie_div2_reg),
     .PCIE_DIV4_REG(q0_pcie_div4_reg),
-    .FABRIC_PCIE_PRGM_ACTIVE(fabric_pcie_prgm_active),
-    .TL_APB_PREADY(tl_apb_pready),
-    .TL_APB_PRDATA(tl_apb_prdata),
+    .INET_PMAC_Q0(inet_pmac_q0),
+    .INET_PMAC_Q1(inet_pmac_q1),
+    .INET_PMAC_TEST(inet_pmac_test),
+    .INET_PMAC_UPAR(inet_pmac_upar),
     .TL_FLR_ACK0({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_FLR_ACK1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_FLR_ACK2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_FLR_ACK3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_CLOCK_FREQ(PCIE_Controller_Top_pcie_tl_clk_freq_o),
     .PL_WAKE_IN(PCIE_Controller_Top_pcie_GND),
     .PL_CLKREQ_IN(PCIE_Controller_Top_pcie_GND),
@@ -808,11 +898,23 @@ GTR12_PMACA gtr12_pmac_inst (
     .TL_INT_REQ1(PCIE_Controller_Top_pcie_GND),
     .TL_INT_MSINUM1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_INT_VFNUM1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_INT_STATUS2(PCIE_Controller_Top_pcie_GND),
+    .TL_INT_REQ2(PCIE_Controller_Top_pcie_GND),
+    .TL_INT_MSINUM2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_INT_VFNUM2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_INT_STATUS3(PCIE_Controller_Top_pcie_GND),
+    .TL_INT_REQ3(PCIE_Controller_Top_pcie_GND),
+    .TL_INT_MSINUM3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_INT_VFNUM3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_INT_PINCONTROL({gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .TL_PM_EVENT0(PCIE_Controller_Top_pcie_GND),
     .TL_PM_DATA0({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_PM_EVENT1(PCIE_Controller_Top_pcie_GND),
     .TL_PM_DATA1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_PM_EVENT2(PCIE_Controller_Top_pcie_GND),
+    .TL_PM_DATA2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_PM_EVENT3(PCIE_Controller_Top_pcie_GND),
+    .TL_PM_DATA3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_PM_CLKCONTROL(PCIE_Controller_Top_pcie_GND),
     .TL_PM_BWCHANGE({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_PM_TOCONTROL(PCIE_Controller_Top_pcie_GND),
@@ -822,7 +924,18 @@ GTR12_PMACA gtr12_pmac_inst (
     .TL_REPORT_STATE0({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_REPORT_CPLPENDING0({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_REPORT_HEADER0({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_ERROR1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_REPORT_STATE1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_CPLPENDING1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_HEADER1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_ERROR2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_STATE2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_CPLPENDING2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_HEADER2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_ERROR3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_STATE3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_CPLPENDING3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
+    .TL_REPORT_HEADER3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_REPORT_HOTPLUG({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .TL_REPORT_LATENCY({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,PCIE_Controller_Top_pcie_GND}),
     .FABRIC_PL_NPOR(PCIE_Controller_Top_pcie_pmac_rstn_o),
@@ -837,10 +950,34 @@ GTR12_PMACA gtr12_pmac_inst (
     .FABRIC_TL_CRST(PCIE_Controller_Top_pcie_GND),
     .FABRIC_PL_PCLK_STOP(gw_gnd),
     .FABRIC_CTRL_GATE_TL_CLK(gw_gnd),
+    .FABRIC_PHY_ACKLOCAL({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PHY_ACKLOCAL_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_PHYSTATUS({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_PHYSTATUS_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXDATA({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXDATA_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXDATAK({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXDATAK_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXDATAVALID({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXDATAVALID_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXELECIDLE({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXELECIDLE_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXSTARTBLOCK({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXSTARTBLOCK_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXSTATUS({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXSTATUS_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXSYNCHEADER({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXSYNCHEADER_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXVALID({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .FABRIC_PL_RXVALID_H({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .TL_CFGEXPRDATA0({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .TL_CFGEXPRDATA1({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .TL_CFGEXPRDATA2({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
+    .TL_CFGEXPRDATA3({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
     .TL_CFGEXPVALID0(gw_gnd),
     .TL_CFGEXPVALID1(gw_gnd),
+    .TL_CFGEXPVALID2(gw_gnd),
+    .TL_CFGEXPVALID3(gw_gnd),
     .TL_CLKP(PCIE_Controller_Top_pcie_tl_clk_o),
     .Q0_CPLL0_OK_I(q0_fabric_lane0_cmu_ok_o),
     .Q0_CPLL1_OK_I(q0_fabric_lane1_cmu_ok_o),
@@ -850,17 +987,7 @@ GTR12_PMACA gtr12_pmac_inst (
     .Q1_CPLL1_OK_I(gw_gnd),
     .Q1_CPLL2_OK_I(gw_gnd),
     .Q1_CPLL3_OK_I(gw_gnd),
-    .FABRIC_PCLK_I(PCIE_Controller_Top_pcie_tl_clk_o),
-    .TL_EN_PF0_FLR(gw_gnd),
-    .TL_APB_PSTRB({gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .TL_APB_PWDATA({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .TL_APB_PWRITE(gw_gnd),
-    .TL_APB_PENABLE(gw_gnd),
-    .TL_APB_PADDR({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd}),
-    .TL_EN_PF0_REPORT_ERROR(gw_gnd),
-    .TL_EN_PF0_REPORT_HEADER(gw_gnd),
-    .TL_EN_PF0_REPORT_CPLPENDING(gw_gnd),
-    .OSC_CLK(gw_gnd)
+    .FABRIC_PCLK_I(PCIE_Controller_Top_pcie_tl_clk_o)
 );
 
 endmodule //SerDes_Top

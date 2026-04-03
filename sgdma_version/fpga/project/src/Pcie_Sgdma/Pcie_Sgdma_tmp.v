@@ -1,17 +1,17 @@
-//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//Copyright (C)2014-2026 Gowin Semiconductor Corporation.
 //All rights reserved.
 //File Title: Template file for instantiation
-//Tool Version: V1.9.12.01 (64-bit)
+//Tool Version: V1.9.12.02
 //IP Version: 1.0
-//Part Number: GW5AT-LV60UG225C2/I1
-//Device: GW5AT-60
+//Part Number: GW5AST-LV138FPG676AC1/I0
+//Device: GW5AST-138
 //Device Version: B
-//Created Time: Wed Jan  7 14:56:20 2026
+//Created Time: Fri Apr  3 16:17:19 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
-	pcie_sgdma your_instance_name(
+	Pcie_Sgdma_Top your_instance_name(
 		.pcie_rstn(pcie_rstn), //input pcie_rstn
 		.clk(clk), //input clk
 		.pcie_tl_rx_sop(pcie_tl_rx_sop), //input pcie_tl_rx_sop
