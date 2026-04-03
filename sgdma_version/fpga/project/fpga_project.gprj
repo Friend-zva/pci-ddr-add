@@ -3,17 +3,23 @@
 <Project>
     <Template>FPGA</Template>
     <Version>5</Version>
-    <Device name="" pn="GW5AST-LV138FPG676AC1/I0">gw5ast138b-007</Device>
+    <Device name="GW5AST-138B" pn="GW5AST-LV138FPG676AC1/I0">gw5ast138b-007</Device>
     <FileList>
-        <File path="src/Pcie_Sgdma/Pcie_Sgdma.v" type="file.verilog" enable="1" />
-        <File path="src/gowin_pll/gowin_pll.v" type="file.verilog" enable="1" />
-        <File path="src/gowin_pll/gowin_pll_mod.v" type="file.verilog" enable="1" />
+        <File path="src/logic.v" type="file.verilog" enable="1" />
+        <File path="src/axi/axi_interconnect.v" type="file.verilog" enable="1" />
+        <File path="src/axi/axi_dma.v" type="file.verilog" enable="1" />
+        <File path="src/axi/axi_dma_rd.v" type="file.verilog" enable="1" />
+        <File path="src/axi/axi_dma_wr.v" type="file.verilog" enable="1" />
+        <File path="src/axi/arbiter.v" type="file.verilog" enable="1" />
+        <File path="src/axi/priority_encoder.v" type="file.verilog" enable="1" />
+        <File path="src/top.v" type="file.verilog" enable="1" />
         <File path="src/pll_init.v" type="file.verilog" enable="1" />
+        <File path="src/Pcie_Sgdma/Pcie_Sgdma.v" type="file.verilog" enable="1" />
         <File path="src/serdes/pcie_controller/pcie_controller.v" type="file.verilog" enable="1" />
         <File path="src/serdes/serdes.v" type="file.verilog" enable="1" />
         <File path="src/serdes/upar_arbiter/upar_arbiter.v" type="file.verilog" enable="1" />
-        <File path="src/top.v" type="file.verilog" enable="1" />
-        <File path="src/logic.v" type="file.verilog" enable="1" />
+        <File path="src/gowin_pll/gowin_pll.v" type="file.verilog" enable="1" />
+        <File path="src/gowin_pll/gowin_pll_mod.v" type="file.verilog" enable="1" />
         <File path="src/fpga_project.cst" type="file.cst" enable="1" />
         <File path="src/fpga_project.sdc" type="file.sdc" enable="1" />
     </FileList>
