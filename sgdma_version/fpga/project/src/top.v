@@ -1,9 +1,24 @@
 module top (
-    input  soc_pcie_rstn,
-    input  clk_200m_p,
-    input  clk_200m_n,
-    input  clk_50m,
-    output sysclk_o
+    input soc_pcie_rstn,
+    input clk_200m_p,
+    input clk_200m_n,
+    input clk_50m,
+    output sysclk_o,
+    output [13:0] ddr_addr,
+    output [2:0] ddr_bank,
+    output ddr_cs,
+    output ddr_ras,
+    output ddr_cas,
+    output ddr_we,
+    output ddr_ck,
+    output ddr_ck_n,
+    output ddr_cke,
+    output ddr_odt,
+    output ddr_reset_n,
+    output [3:0] ddr_dm,
+    inout [31:0] ddr_dq,
+    inout [3:0] ddr_dqs,
+    inout [3:0] ddr_dqs_n
 );
 
   wire         sysclk;
@@ -75,10 +90,17 @@ module top (
   wire         user_zero_read;
 
   localparam integer AXIDATAWIDTH = 256;
-  localparam integer AXIADDRWIDTH = 32;
+  localparam integer AXIADDRWIDTH = 29;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
-  localparam integer AXIIDWIDTH = 8;
+  localparam integer AXIIDWIDTH = 4;
   localparam integer AXILENWIDTH = 20;
+
+  wire                    ddr_pll_stop;
+  wire                    ddr_clk_out;
+  wire                    ddr_rst;
+  wire                    ddr_init_calib_complete;
+  wire                    ddr_sr_ack;
+  wire                    ddr_ref_ack;
 
   wire [AXIADDRWIDTH-1:0] dma_read_desc_addr;
   wire [ AXILENWIDTH-1:0] dma_read_desc_len;
@@ -186,7 +208,7 @@ module top (
   wire                    ic_m_axi_rvalid;
   wire                    ic_m_axi_rready;
 
-  assign dma_read_desc_addr = c2h_overhead_data[31:0];
+  assign dma_read_desc_addr = c2h_overhead_data[28:0];
   assign dma_read_desc_len = c2h_overhead_data[51:32];
   assign dma_read_desc_tag = 8'd0;
   assign dma_read_desc_id = 8'd0;
@@ -194,7 +216,7 @@ module top (
   assign dma_read_desc_user = 32'd0;
   assign dma_read_desc_valid = c2h_overhead_valid;
 
-  assign dma_write_desc_addr = h2c_overhead[31:0];
+  assign dma_write_desc_addr = h2c_overhead[28:0];
   assign dma_write_desc_len = h2c_overhead[51:32];
   assign dma_write_desc_tag = 8'd0;
   assign dma_write_desc_valid = m_axis_h2c_tvalid && m_axis_h2c_tlast;
@@ -533,17 +555,67 @@ module top (
       .m_axi_rready(ic_m_axi_rready)
   );
 
-  assign ic_m_axi_awready = 1'b0;
-  assign ic_m_axi_wready = 1'b0;
-  assign ic_m_axi_bid = {AXIIDWIDTH{1'b0}};
-  assign ic_m_axi_bresp = 2'b00;
+  //**************ddr3 memory interface****************
+  DDR3_Memory_Interface_Top u_ddr3 (
+      .clk(sysclk),
+      .pll_stop(ddr_pll_stop),
+      .memory_clk(sysclk),
+      .pll_lock(1'b1),
+      .rst_n(pcie_rstn),
+      .clk_out(ddr_clk_out),
+      .ddr_rst(ddr_rst),
+      .init_calib_complete(ddr_init_calib_complete),
+      .s_axi_awvalid(ic_m_axi_awvalid),
+      .s_axi_awready(ic_m_axi_awready),
+      .s_axi_awid(ic_m_axi_awid),
+      .s_axi_awaddr(ic_m_axi_awaddr),
+      .s_axi_awlen(ic_m_axi_awlen),
+      .s_axi_awsize(ic_m_axi_awsize),
+      .s_axi_awburst(ic_m_axi_awburst),
+      .s_axi_wvalid(ic_m_axi_wvalid),
+      .s_axi_wready(ic_m_axi_wready),
+      .s_axi_wdata(ic_m_axi_wdata),
+      .s_axi_wstrb(ic_m_axi_wstrb),
+      .s_axi_wlast(ic_m_axi_wlast),
+      .s_axi_bvalid(ic_m_axi_bvalid),
+      .s_axi_bready(ic_m_axi_bready),
+      .s_axi_bresp(ic_m_axi_bresp),
+      .s_axi_bid(ic_m_axi_bid),
+      .s_axi_arvalid(ic_m_axi_arvalid),
+      .s_axi_arready(ic_m_axi_arready),
+      .s_axi_arid(ic_m_axi_arid),
+      .s_axi_araddr(ic_m_axi_araddr),
+      .s_axi_arlen(ic_m_axi_arlen),
+      .s_axi_arsize(ic_m_axi_arsize),
+      .s_axi_arburst(ic_m_axi_arburst),
+      .s_axi_rvalid(ic_m_axi_rvalid),
+      .s_axi_rready(ic_m_axi_rready),
+      .s_axi_rdata(ic_m_axi_rdata),
+      .s_axi_rresp(ic_m_axi_rresp),
+      .s_axi_rid(ic_m_axi_rid),
+      .s_axi_rlast(ic_m_axi_rlast),
+      .sr_req(1'b0),
+      .ref_req(1'b0),
+      .sr_ack(ddr_sr_ack),
+      .ref_ack(ddr_ref_ack),
+      .burst(1'b1),
+      .O_ddr_addr(ddr_addr),
+      .O_ddr_ba(ddr_bank),
+      .O_ddr_cs_n(ddr_cs),
+      .O_ddr_ras_n(ddr_ras),
+      .O_ddr_cas_n(ddr_cas),
+      .O_ddr_we_n(ddr_we),
+      .O_ddr_clk(ddr_ck),
+      .O_ddr_clk_n(ddr_ck_n),
+      .O_ddr_cke(ddr_cke),
+      .O_ddr_odt(ddr_odt),
+      .O_ddr_reset_n(ddr_reset_n),
+      .O_ddr_dqm(ddr_dm),
+      .IO_ddr_dq(ddr_dq),
+      .IO_ddr_dqs(ddr_dqs),
+      .IO_ddr_dqs_n(ddr_dqs_n)
+  );
+
   assign ic_m_axi_buser = 1'b0;
-  assign ic_m_axi_bvalid = 1'b0;
-  assign ic_m_axi_arready = 1'b0;
-  assign ic_m_axi_rid = {AXIIDWIDTH{1'b0}};
-  assign ic_m_axi_rdata = {AXIDATAWIDTH{1'b0}};
-  assign ic_m_axi_rresp = 2'b00;
-  assign ic_m_axi_rlast = 1'b0;
   assign ic_m_axi_ruser = 1'b0;
-  assign ic_m_axi_rvalid = 1'b0;
 endmodule
