@@ -150,3 +150,6 @@ IO_PORT "ddr_dqs[0]" IO_TYPE=SSTL15D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=1.5;
 
 //INS_LOC "u_ddr3/gw3_top/u_ddr_phy_top/u_dll" DDRDLLM_BL;
 //INS_LOC "u_ddr3/gw3_top/u_ddr_phy_top/fclkdiv" LEFTSIDE[4];
+INS_LOC "u_ddr3/gw3_top/u_GW_DDR3_PHY_MC/u_ddr_phy_top/u_dll" DDRDLLM_BL;
+INS_LOC "u_ddr3/gw3_top/u_GW_DDR3_PHY_MC/u_ddr_phy_top/fclkdiv" LEFTSIDE[4];
+// warn: 'u_ddr3/gw3_top/u_GW_DDR3_PHY_MC/u_ddr_phy_top/fclkdiv/CLKOUT.default_gen_clk' was determined to be a clock but was not created.

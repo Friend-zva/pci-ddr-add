@@ -1,0 +1,144 @@
+module logic_adder (
+    input             clk,
+    input             rstn,
+    // dma descriptors: logic -> axi_dma_2
+    output reg        s_axis_read_desc_valid,
+    input             s_axis_read_desc_ready,
+    output     [63:0] s_axis_read_desc_addr,
+    output     [31:0] s_axis_read_desc_len,
+    output     [ 7:0] s_axis_read_desc_tag,
+
+    output reg        s_axis_write_desc_valid,
+    input             s_axis_write_desc_ready,
+    output     [63:0] s_axis_write_desc_addr,
+    output     [31:0] s_axis_write_desc_len,
+    output     [ 7:0] s_axis_write_desc_tag,
+
+    // h2c
+    output reg         m_axis_h2c_tready,
+    input              m_axis_h2c_tvalid,
+    input      [255:0] m_axis_h2c_tdata,
+    input              m_axis_h2c_tlast,
+    input      [ 31:0] m_axis_h2c_tuser,
+    input      [ 31:0] m_axis_h2c_tkeep,
+    input      [ 63:0] h2c_overhead,
+    // c2h
+    input              s_axis_c2h_tready,
+    output             s_axis_c2h_tvalid,
+    output             s_axis_c2h_tlast,
+    output     [255:0] s_axis_c2h_tdata,
+    output     [ 31:0] s_axis_c2h_tuser,
+    output     [ 31:0] s_axis_c2h_tkeep,
+    output             c2h_overhead_valid,
+    output     [ 63:0] c2h_overhead_data,
+
+    input      h2c_run,
+    input      c2h_run,
+    output reg busy,
+    output reg done
+);
+
+  parameter [63:0] READ_ADDR = 64'h0000_0000_0000_5000;
+  parameter [63:0] WRITE_ADDR = 64'h0000_0000_0000_6000;
+  parameter [31:0] BYTE_LEN = 32'd1000;
+  parameter [7:0] DESC_TAG = 8'h01;
+
+  wire stream_enable;
+  wire read_desc_fire;
+  wire write_desc_fire;
+  wire stream_fire;
+  wire [255:0] c2h_tx_data_add16;
+
+  reg read_desc_issued;
+  reg write_desc_issued;
+
+  assign stream_enable = h2c_run && c2h_run;
+  assign read_desc_fire = s_axis_read_desc_valid && s_axis_read_desc_ready;
+  assign write_desc_fire = s_axis_write_desc_valid && s_axis_write_desc_ready;
+  assign stream_fire = m_axis_h2c_tvalid && m_axis_h2c_tready;
+
+  assign s_axis_read_desc_addr = READ_ADDR;
+  assign s_axis_read_desc_len = BYTE_LEN;
+  assign s_axis_read_desc_tag = DESC_TAG;
+  assign s_axis_write_desc_addr = WRITE_ADDR;
+  assign s_axis_write_desc_len = BYTE_LEN;
+  assign s_axis_write_desc_tag = DESC_TAG;
+
+  genvar c2h_dw;
+  generate
+    for (c2h_dw = 0; c2h_dw < 8; c2h_dw = c2h_dw + 1) begin : gen_c2h_add16
+      wire [31:0] word_in;
+      wire [16:0] sum16;
+      assign word_in = m_axis_h2c_tdata[c2h_dw*32+:32];
+      assign sum16 = word_in[15:0] + word_in[31:16];
+      assign c2h_tx_data_add16[c2h_dw*32+:32] = {15'd0, sum16};
+    end
+  endgenerate
+
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      s_axis_read_desc_valid <= 1'b0;
+      s_axis_write_desc_valid <= 1'b0;
+      m_axis_h2c_tready <= 1'b0;
+      read_desc_issued <= 1'b0;
+      write_desc_issued <= 1'b0;
+      busy <= 1'b0;
+      done <= 1'b0;
+    end else begin
+      done <= 1'b0;
+
+      if (!stream_enable) begin
+        s_axis_read_desc_valid <= 1'b0;
+        s_axis_write_desc_valid <= 1'b0;
+        m_axis_h2c_tready <= 1'b0;
+        read_desc_issued <= 1'b0;
+        write_desc_issued <= 1'b0;
+        busy <= 1'b0;
+      end else begin
+        busy <= 1'b1;
+
+        // Issue one read descriptor per run.
+        if (!read_desc_issued) begin
+          s_axis_read_desc_valid <= 1'b1;
+          if (read_desc_fire) begin
+            s_axis_read_desc_valid <= 1'b0;
+            read_desc_issued <= 1'b1;
+          end
+        end else begin
+          s_axis_read_desc_valid <= 1'b0;
+        end
+
+        // Issue one write descriptor per run.
+        if (!write_desc_issued) begin
+          s_axis_write_desc_valid <= 1'b1;
+          if (write_desc_fire) begin
+            s_axis_write_desc_valid <= 1'b0;
+            write_desc_issued <= 1'b1;
+          end
+        end else begin
+          s_axis_write_desc_valid <= 1'b0;
+        end
+
+        // Stream payload only after both descriptors are accepted.
+        m_axis_h2c_tready <= read_desc_issued && write_desc_issued && s_axis_c2h_tready;
+
+        if (stream_fire && m_axis_h2c_tlast) begin
+          m_axis_h2c_tready <= 1'b0;
+          read_desc_issued <= 1'b0;
+          write_desc_issued <= 1'b0;
+          busy <= 1'b0;
+          done <= 1'b1;
+        end
+      end
+    end
+  end
+
+  assign s_axis_c2h_tvalid  = stream_enable && read_desc_issued && write_desc_issued && m_axis_h2c_tvalid;
+  assign s_axis_c2h_tdata = c2h_tx_data_add16;
+  assign s_axis_c2h_tlast = m_axis_h2c_tlast;
+  assign s_axis_c2h_tkeep = m_axis_h2c_tkeep;
+  assign s_axis_c2h_tuser = m_axis_h2c_tuser;
+  assign c2h_overhead_valid = 1'b0;
+  assign c2h_overhead_data = 64'h01_02_03_04_aa_bb_cc_dd;
+
+endmodule
