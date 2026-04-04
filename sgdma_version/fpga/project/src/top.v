@@ -85,8 +85,8 @@ module top (
   wire [ 31:0] user_wr_data;
   wire [  3:0] user_wr_be;
   wire [  3:0] user_rd_be;
-  reg          user_rd_valid;
-  reg  [ 31:0] user_rd_data;
+  wire         user_rd_valid;
+  wire [ 31:0] user_rd_data;
   wire         user_zero_read;
 
   localparam integer AXIDATAWIDTH = 256;
@@ -172,6 +172,10 @@ module top (
   wire                      lad_c2h_run;
   wire                      lad_busy;
   wire                      lad_done;
+  wire [            63 : 0] lad_cfg_read_addr;
+  wire [            63 : 0] lad_cfg_write_addr;
+  wire [            31 : 0] lad_cfg_byte_len;
+  wire [             7 : 0] lad_cfg_desc_tag;
 
   wire [    AXIIDWIDTH-1:0] dma_axi_awid;
   wire [  AXIADDRWIDTH-1:0] dma_axi_awaddr;
@@ -302,26 +306,12 @@ module top (
   wire                      ic_m_axi_rvalid;
   wire                      ic_m_axi_rready;
 
-  assign dma_read_desc_addr = c2h_overhead_data[28:0];
-  assign dma_read_desc_len = c2h_overhead_data[51:32];
   assign dma_read_desc_tag = 8'd0;
   assign dma_read_desc_id = 8'd0;
   assign dma_read_desc_dest = 8'd0;
   assign dma_read_desc_user = 32'd0;
-  assign dma_read_desc_valid = c2h_overhead_valid;
-
-  assign dma_write_desc_addr = h2c_overhead[28:0];
-  assign dma_write_desc_len = h2c_overhead[51:32];
   assign dma_write_desc_tag = 8'd0;
-  assign dma_write_desc_valid = m_axis_h2c_tvalid && m_axis_h2c_tlast;
-
-  assign c2h_overhead_valid = 1'b0;
-  assign c2h_overhead_data = 64'd0;
-  assign h2c_run = 1'b1;
-  assign c2h_run = 1'b1;
   assign lad_h2c_overhead = 64'd0;
-  assign lad_h2c_run = 1'b1;
-  assign lad_c2h_run = 1'b1;
 
   assign sysclk_o = sysclk;
 
@@ -448,6 +438,41 @@ module top (
       .c2h_run(c2h_run)
   );
 
+  //**************logic dma control (BAR2)****************
+  logic_dma #(
+      .AXIADDRWIDTH(AXIADDRWIDTH),
+      .AXILENWIDTH (AXILENWIDTH)
+  ) u_logic_dma (
+      .clk(sysclk),
+      .rstn(pcie_rstn),
+      .user_cs(user_cs),
+      .user_address(user_address),
+      .user_rw(user_rw),
+      .user_wr_data(user_wr_data),
+      .user_wr_be(user_wr_be),
+      .user_rd_be(user_rd_be),
+      .user_rd_valid(user_rd_valid),
+      .user_rd_data(user_rd_data),
+      .pcie_read_desc_addr(dma_read_desc_addr),
+      .pcie_read_desc_len(dma_read_desc_len),
+      .pcie_read_desc_tag(),
+      .pcie_read_desc_valid(dma_read_desc_valid),
+      .pcie_read_desc_ready(dma_read_desc_ready),
+      .pcie_write_desc_addr(dma_write_desc_addr),
+      .pcie_write_desc_len(dma_write_desc_len),
+      .pcie_write_desc_tag(),
+      .pcie_write_desc_valid(dma_write_desc_valid),
+      .pcie_write_desc_ready(dma_write_desc_ready),
+      .lad_read_addr(lad_cfg_read_addr),
+      .lad_write_addr(lad_cfg_write_addr),
+      .lad_byte_len(lad_cfg_byte_len),
+      .lad_desc_tag(lad_cfg_desc_tag),
+      .lad_h2c_run(lad_h2c_run),
+      .lad_c2h_run(lad_c2h_run),
+      .lad_busy(lad_busy),
+      .lad_done(lad_done)
+  );
+
   //**************axi dma (pcie_sgdma)****************
   axi_dma #(
       .AXI_DATA_WIDTH(AXIDATAWIDTH),
@@ -555,6 +580,10 @@ module top (
   logic_adder u_logic_adder (
       .clk(sysclk),
       .rstn(pcie_rstn),
+      .cfg_read_addr(lad_cfg_read_addr),
+      .cfg_write_addr(lad_cfg_write_addr),
+      .cfg_byte_len(lad_cfg_byte_len),
+      .cfg_desc_tag(lad_cfg_desc_tag),
       .s_axis_read_desc_valid(lad_read_desc_valid),
       .s_axis_read_desc_ready(lad_read_desc_ready),
       .s_axis_read_desc_addr(lad_read_desc_addr),

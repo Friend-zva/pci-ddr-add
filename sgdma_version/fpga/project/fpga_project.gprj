@@ -6,6 +6,7 @@
     <Device name="GW5AST-138B" pn="GW5AST-LV138FPG676AC1/I0">gw5ast138b-007</Device>
     <FileList>
         <File path="src/logic_adder.v" type="file.verilog" enable="1" />
+        <File path="src/logic_dma.v" type="file.verilog" enable="1" />
         <File path="src/ddr3_memory_interface/ddr3_memory_interface.v" type="file.verilog"
             enable="1" />
         <File path="src/axi/arbiter.v" type="file.verilog" enable="1" />

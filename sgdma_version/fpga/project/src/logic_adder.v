@@ -1,6 +1,10 @@
 module logic_adder (
     input             clk,
     input             rstn,
+    input      [63:0] cfg_read_addr,
+    input      [63:0] cfg_write_addr,
+    input      [31:0] cfg_byte_len,
+    input      [ 7:0] cfg_desc_tag,
     // dma descriptors: logic -> axi_dma_2
     output reg        s_axis_read_desc_valid,
     input             s_axis_read_desc_ready,
@@ -38,11 +42,6 @@ module logic_adder (
     output reg done
 );
 
-  parameter [63:0] READ_ADDR = 64'h0000_0000_0000_5000;
-  parameter [63:0] WRITE_ADDR = 64'h0000_0000_0000_6000;
-  parameter [31:0] BYTE_LEN = 32'd1000;
-  parameter [7:0] DESC_TAG = 8'h01;
-
   wire stream_enable;
   wire read_desc_fire;
   wire write_desc_fire;
@@ -57,12 +56,12 @@ module logic_adder (
   assign write_desc_fire = s_axis_write_desc_valid && s_axis_write_desc_ready;
   assign stream_fire = m_axis_h2c_tvalid && m_axis_h2c_tready;
 
-  assign s_axis_read_desc_addr = READ_ADDR;
-  assign s_axis_read_desc_len = BYTE_LEN;
-  assign s_axis_read_desc_tag = DESC_TAG;
-  assign s_axis_write_desc_addr = WRITE_ADDR;
-  assign s_axis_write_desc_len = BYTE_LEN;
-  assign s_axis_write_desc_tag = DESC_TAG;
+  assign s_axis_read_desc_addr = cfg_read_addr;
+  assign s_axis_read_desc_len = cfg_byte_len;
+  assign s_axis_read_desc_tag = cfg_desc_tag;
+  assign s_axis_write_desc_addr = cfg_write_addr;
+  assign s_axis_write_desc_len = cfg_byte_len;
+  assign s_axis_write_desc_tag = cfg_desc_tag;
 
   genvar c2h_dw;
   generate
@@ -133,7 +132,8 @@ module logic_adder (
     end
   end
 
-  assign s_axis_c2h_tvalid  = stream_enable && read_desc_issued && write_desc_issued && m_axis_h2c_tvalid;
+  assign s_axis_c2h_tvalid  = stream_enable && read_desc_issued &&
+      write_desc_issued && m_axis_h2c_tvalid;
   assign s_axis_c2h_tdata = c2h_tx_data_add16;
   assign s_axis_c2h_tlast = m_axis_h2c_tlast;
   assign s_axis_c2h_tkeep = m_axis_h2c_tkeep;
