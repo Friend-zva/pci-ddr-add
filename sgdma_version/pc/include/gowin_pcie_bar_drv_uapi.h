@@ -34,8 +34,7 @@
 #define GOWIN_CLEAR_IRQ_COUNT       _IOW ('G',  0xA, unsigned long)
 #define GOWIN_IRQ_ENABLE            _IOW ('G',  0xB, unsigned long)
 #define GOWIN_IRQ_DISABLE           _IOW ('G',  0xC, unsigned long)
-#define GOWIN_THROUGHPUT_TEST       _IOW ('G', 0x1E, unsigned long)
-#define GOWIN_DEBUG_ONLY            _IOWR('G', 0x1F, unsigned long)
+#define GOWIN_DEBUG_ONLY            _IOWR('G', 0x1E, unsigned long)
 
 struct gowin_ioctl_param {
     union {
