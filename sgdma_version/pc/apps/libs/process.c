@@ -2,9 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 
-#include "gowin_utils.h"
 #include "process.h"
 
 Process *init_proc() {
@@ -44,6 +42,11 @@ Process *init_proc() {
         return NULL;
     }
     proc->gwbar0 = (GowinBar0 *)bar0;
+    uint32_t *bar2 = mmap_bar(fd, 1, BAR2_SIZE); //? index = 2
+    if (bar2 == NULL) {
+        return NULL;
+    }
+    proc->gwbar2 = (GowinBar2 *)bar2;
 
     return proc;
 }
@@ -54,6 +57,9 @@ void dest_proc(Process *proc) {
     }
     if (proc->gwbar0) {
         munmap(proc->gwbar0, BAR0_SIZE);
+    }
+    if (proc->gwbar2) {
+        munmap(proc->gwbar2, BAR2_SIZE);
     }
     if (proc->mem_dst) {
         munmap(proc->mem_dst, DMA_SIZE);

@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 
 #include "../../include/gowin_bar0.h"
+#include "../../include/gowin_bar2.h"
 #include "../../include/gowin_descriptor.h"
 #include "../../include/gowin_pcie_bar_drv_uapi.h"
 #include "../libs/dump.h"
@@ -37,6 +38,7 @@ int main(int argc, char *argv[]) {
     }
 
     GowinBar0 *gwbar0 = (GowinBar0 *)proc->gwbar0;
+    GowinBar2 *gwbar2 = (GowinBar2 *)proc->gwbar2;
 
     gwbar0->ctrl.ctrl_init = 1;
     while ((gwbar0->ctrl.ctrl_init & MAXFF) != 0xaa009719) {
@@ -84,6 +86,9 @@ int main(int argc, char *argv[]) {
     int loop = size / length;
     uint32_t block_size = (length + 511) & (~511);
 
+    uint32_t ptr_h2c_ddr3 = 0x00000000;
+    uint32_t ptr_c2h_ddr3 = 0x01000000;
+
     for (int i = 0; i < size; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
@@ -115,6 +120,10 @@ int main(int argc, char *argv[]) {
             gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
             gwbar0->h2c[0].num_desc_adj = 0;
 
+            gwbar2->addr_s2mm_lo = ptr_h2c_ddr3;
+            gwbar2->addr_s2mm_hi = 0;
+            gwbar2->length_s2mm = length;
+
             gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
         }
 
@@ -134,6 +143,10 @@ int main(int argc, char *argv[]) {
             gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
             gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
             gwbar0->c2h[0].num_desc_adj = 0;
+
+            gwbar2->addr_mm2s_lo = ptr_c2h_ddr3;
+            gwbar2->addr_mm2s_hi = 0;
+            gwbar2->length_mm2s = length;
 
             gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
         }
@@ -157,6 +170,7 @@ int main(int argc, char *argv[]) {
             if (sa + block_size > proc->dma_src + DMA_SIZE) {
                 sa = proc->dma_src + 64;
                 sp = proc->mem_src + 64;
+                ptr_h2c_ddr3 += block_size;
             }
             h2c_count++;
         }
@@ -165,6 +179,7 @@ int main(int argc, char *argv[]) {
             gwbar0->c2h[0].ctrl = SGDMA_STOP;
             da += block_size;
             dp += block_size;
+            ptr_c2h_ddr3 += block_size;
             if (da + block_size > proc->dma_dst + DMA_SIZE) {
                 da = proc->dma_dst + 64;
                 dp = proc->mem_dst + 64;
