@@ -16,6 +16,8 @@
 -PCIE_Controller_TopReferenceClockSource Q0REFCLK0
 -PCIE_Controller_TopQ0Lane0 true
 -PCIE_Controller_TopQ0Lane1 true
--PCIE_Controller_TopEnableMSI false
--PCIE_Controller_TopLaneWidth X2
+-PCIE_Controller_TopQ0Lane2 true
+-PCIE_Controller_TopQ0Lane3 true
+-PCIE_Controller_TopEnableMSI true
+-PCIE_Controller_TopLaneWidth X4
 -PCIE_Controller_TopEnableDRP true

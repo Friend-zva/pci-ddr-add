@@ -6,9 +6,9 @@
 //Part Number: GW5AST-LV138FPG676AC1/I0
 //Device: GW5AST-138
 //Device Version: B
-//Created Time: Fri Apr  3 16:01:06 2026
+//Created Time: Sun Apr  5 11:35:43 2026
 
-module SerDes_Top (PCIE_Controller_Top_pcie_tl_rx_sop_o, PCIE_Controller_Top_pcie_tl_rx_eop_o, PCIE_Controller_Top_pcie_tl_rx_data_o, PCIE_Controller_Top_pcie_tl_rx_valid_o, PCIE_Controller_Top_pcie_tl_rx_bardec_o, PCIE_Controller_Top_pcie_tl_rx_err_o, PCIE_Controller_Top_pcie_tl_tx_wait_o, PCIE_Controller_Top_pcie_ltssm_o, PCIE_Controller_Top_pcie_tl_tx_creditsp_o, PCIE_Controller_Top_pcie_tl_tx_creditsnp_o, PCIE_Controller_Top_pcie_tl_tx_creditscpl_o, PCIE_Controller_Top_pcie_tl_cfg_busdev_o, PCIE_Controller_Top_pcie_linkup_o, PCIE_Controller_Top_pcie_tl_drp_clk_o, PCIE_Controller_Top_pcie_tl_drp_rddata_o, PCIE_Controller_Top_pcie_tl_drp_resp_o, PCIE_Controller_Top_pcie_tl_drp_rd_valid_o, PCIE_Controller_Top_pcie_tl_drp_ready_o, PCIE_Controller_Top_pcie_rstn_i, PCIE_Controller_Top_pcie_tl_clk_i, PCIE_Controller_Top_pcie_tl_rx_wait_i, PCIE_Controller_Top_pcie_tl_rx_masknp_i, PCIE_Controller_Top_pcie_tl_tx_sop_i, PCIE_Controller_Top_pcie_tl_tx_eop_i, PCIE_Controller_Top_pcie_tl_tx_data_i, PCIE_Controller_Top_pcie_tl_tx_valid_i, PCIE_Controller_Top_pcie_tl_drp_addr_i, PCIE_Controller_Top_pcie_tl_drp_wrdata_i, PCIE_Controller_Top_pcie_tl_drp_strb_i, PCIE_Controller_Top_pcie_tl_drp_wr_i, PCIE_Controller_Top_pcie_tl_drp_rd_i);
+module SerDes_Top (PCIE_Controller_Top_pcie_tl_rx_sop_o, PCIE_Controller_Top_pcie_tl_rx_eop_o, PCIE_Controller_Top_pcie_tl_rx_data_o, PCIE_Controller_Top_pcie_tl_rx_valid_o, PCIE_Controller_Top_pcie_tl_rx_bardec_o, PCIE_Controller_Top_pcie_tl_rx_err_o, PCIE_Controller_Top_pcie_tl_tx_wait_o, PCIE_Controller_Top_pcie_tl_int_ack_o, PCIE_Controller_Top_pcie_ltssm_o, PCIE_Controller_Top_pcie_tl_tx_creditsp_o, PCIE_Controller_Top_pcie_tl_tx_creditsnp_o, PCIE_Controller_Top_pcie_tl_tx_creditscpl_o, PCIE_Controller_Top_pcie_tl_cfg_busdev_o, PCIE_Controller_Top_pcie_linkup_o, PCIE_Controller_Top_pcie_tl_drp_clk_o, PCIE_Controller_Top_pcie_tl_drp_rddata_o, PCIE_Controller_Top_pcie_tl_drp_resp_o, PCIE_Controller_Top_pcie_tl_drp_rd_valid_o, PCIE_Controller_Top_pcie_tl_drp_ready_o, PCIE_Controller_Top_pcie_rstn_i, PCIE_Controller_Top_pcie_tl_clk_i, PCIE_Controller_Top_pcie_tl_rx_wait_i, PCIE_Controller_Top_pcie_tl_rx_masknp_i, PCIE_Controller_Top_pcie_tl_tx_sop_i, PCIE_Controller_Top_pcie_tl_tx_eop_i, PCIE_Controller_Top_pcie_tl_tx_data_i, PCIE_Controller_Top_pcie_tl_tx_valid_i, PCIE_Controller_Top_pcie_tl_int_status_i, PCIE_Controller_Top_pcie_tl_int_req_i, PCIE_Controller_Top_pcie_tl_int_msinum_i, PCIE_Controller_Top_pcie_tl_drp_addr_i, PCIE_Controller_Top_pcie_tl_drp_wrdata_i, PCIE_Controller_Top_pcie_tl_drp_strb_i, PCIE_Controller_Top_pcie_tl_drp_wr_i, PCIE_Controller_Top_pcie_tl_drp_rd_i);
 
 output PCIE_Controller_Top_pcie_tl_rx_sop_o;
 output PCIE_Controller_Top_pcie_tl_rx_eop_o;
@@ -17,6 +17,7 @@ output [7:0] PCIE_Controller_Top_pcie_tl_rx_valid_o;
 output [5:0] PCIE_Controller_Top_pcie_tl_rx_bardec_o;
 output [7:0] PCIE_Controller_Top_pcie_tl_rx_err_o;
 output PCIE_Controller_Top_pcie_tl_tx_wait_o;
+output PCIE_Controller_Top_pcie_tl_int_ack_o;
 output [4:0] PCIE_Controller_Top_pcie_ltssm_o;
 output [31:0] PCIE_Controller_Top_pcie_tl_tx_creditsp_o;
 output [31:0] PCIE_Controller_Top_pcie_tl_tx_creditsnp_o;
@@ -36,6 +37,9 @@ input PCIE_Controller_Top_pcie_tl_tx_sop_i;
 input PCIE_Controller_Top_pcie_tl_tx_eop_i;
 input [255:0] PCIE_Controller_Top_pcie_tl_tx_data_i;
 input [7:0] PCIE_Controller_Top_pcie_tl_tx_valid_i;
+input PCIE_Controller_Top_pcie_tl_int_status_i;
+input PCIE_Controller_Top_pcie_tl_int_req_i;
+input [4:0] PCIE_Controller_Top_pcie_tl_int_msinum_i;
 input [23:0] PCIE_Controller_Top_pcie_tl_drp_addr_i;
 input [31:0] PCIE_Controller_Top_pcie_tl_drp_wrdata_i;
 input [7:0] PCIE_Controller_Top_pcie_tl_drp_strb_i;
@@ -43,12 +47,6 @@ input PCIE_Controller_Top_pcie_tl_drp_wr_i;
 input PCIE_Controller_Top_pcie_tl_drp_rd_i;
 
 wire PCIE_Controller_Top_pcie_half_clk_i;
-wire q0_lane1_fabric_rx_clk;
-wire q0_lane2_fabric_rx_clk;
-wire q0_lane3_fabric_rx_clk;
-wire q0_lane1_fabric_tx_clk;
-wire q0_lane2_fabric_tx_clk;
-wire q0_lane3_fabric_tx_clk;
 wire PCIE_Controller_Top_pcie_tl_clk_o;
 wire q0_ahb_rstn;
 wire q0_test_dec_en;
@@ -537,17 +535,17 @@ GTR12_QUAD gtr12_quad_inst0 (
     .LANE2_PCS_TX_RST(gw_gnd),
     .LANE3_PCS_TX_RST(gw_gnd),
     .LANE0_FABRIC_RX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
-    .LANE1_FABRIC_RX_CLK(q0_lane1_fabric_rx_clk),
-    .LANE2_FABRIC_RX_CLK(q0_lane2_fabric_rx_clk),
-    .LANE3_FABRIC_RX_CLK(q0_lane3_fabric_rx_clk),
+    .LANE1_FABRIC_RX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .LANE2_FABRIC_RX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .LANE3_FABRIC_RX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
     .LANE0_FABRIC_C2I_CLK(gw_gnd),
     .LANE1_FABRIC_C2I_CLK(gw_gnd),
     .LANE2_FABRIC_C2I_CLK(gw_gnd),
     .LANE3_FABRIC_C2I_CLK(gw_gnd),
     .LANE0_FABRIC_TX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
-    .LANE1_FABRIC_TX_CLK(q0_lane1_fabric_tx_clk),
-    .LANE2_FABRIC_TX_CLK(q0_lane2_fabric_tx_clk),
-    .LANE3_FABRIC_TX_CLK(q0_lane3_fabric_tx_clk),
+    .LANE1_FABRIC_TX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .LANE2_FABRIC_TX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
+    .LANE3_FABRIC_TX_CLK(PCIE_Controller_Top_pcie_half_clk_i),
     .LANE0_RX_IF_FIFO_RDEN(gw_gnd),
     .LANE1_RX_IF_FIFO_RDEN(gw_gnd),
     .LANE2_RX_IF_FIFO_RDEN(gw_gnd),
@@ -686,6 +684,7 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .pcie_tl_rx_bardec_o(PCIE_Controller_Top_pcie_tl_rx_bardec_o[5:0]),
     .pcie_tl_rx_err_o(PCIE_Controller_Top_pcie_tl_rx_err_o[7:0]),
     .pcie_tl_tx_wait_o(PCIE_Controller_Top_pcie_tl_tx_wait_o),
+    .pcie_tl_int_ack_o(PCIE_Controller_Top_pcie_tl_int_ack_o),
     .pcie_ltssm_o(PCIE_Controller_Top_pcie_ltssm_o[4:0]),
     .pcie_tl_tx_creditsp_o(PCIE_Controller_Top_pcie_tl_tx_creditsp_o[31:0]),
     .pcie_tl_tx_creditsnp_o(PCIE_Controller_Top_pcie_tl_tx_creditsnp_o[31:0]),
@@ -727,6 +726,9 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .pcie_tl_tx_eop_i(PCIE_Controller_Top_pcie_tl_tx_eop_i),
     .pcie_tl_tx_data_i(PCIE_Controller_Top_pcie_tl_tx_data_i[255:0]),
     .pcie_tl_tx_valid_i(PCIE_Controller_Top_pcie_tl_tx_valid_i[7:0]),
+    .pcie_tl_int_status_i(PCIE_Controller_Top_pcie_tl_int_status_i),
+    .pcie_tl_int_req_i(PCIE_Controller_Top_pcie_tl_int_req_i),
+    .pcie_tl_int_msinum_i(PCIE_Controller_Top_pcie_tl_int_msinum_i[4:0]),
     .pcie_tl_rx_sop_i(PCIE_Controller_Top_pcie_tl_rx_sop_i),
     .pcie_tl_rx_eop_i(PCIE_Controller_Top_pcie_tl_rx_eop_i),
     .pcie_tl_rx_data_i(PCIE_Controller_Top_pcie_tl_rx_data_i[255:0]),
@@ -749,6 +751,9 @@ PCIE_Controller_Top PCIE_Controller_Top_inst (
     .fabric_pl_txdatavalid_h(PCIE_Controller_Top_fabric_pl_txdatavalid_h[7:0]),
     .fabric_ln0_rxdata(q0_fabric_ln0_rxdata_o[87:0]),
     .fabric_ln0_rxdatavalid(q0_fabric_ln0_rx_vld_out),
+    .fabric_ln1_rxdata(q0_fabric_ln1_rxdata_o[87:0]),
+    .fabric_ln2_rxdata(q0_fabric_ln2_rxdata_o[87:0]),
+    .fabric_ln3_rxdata(q0_fabric_ln3_rxdata_o[87:0]),
     .fabric_pl_rate(PCIE_Controller_Top_fabric_pl_rate[1:0]),
     .fabric_pl_rate_h(PCIE_Controller_Top_fabric_pl_rate_h[1:0]),
     .pcie_half_clk_i(PCIE_Controller_Top_pcie_half_clk_i),

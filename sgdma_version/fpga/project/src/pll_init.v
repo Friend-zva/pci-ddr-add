@@ -95,6 +95,7 @@ module PLL_INIT #(
     endcase
   end
 
+
   reg [3:0] state = 'd0;
   localparam IDLE = 4'd0;
   localparam STATE1 = 4'd1;
@@ -104,6 +105,8 @@ module PLL_INIT #(
   localparam STATE5 = 4'd5;
   localparam STATE6 = 4'd6;
   localparam STATE7 = 4'd7;
+
+
 
   always @(posedge CLKIN or negedge Enable) begin
     if (Enable == 1'b0) begin
@@ -150,10 +153,16 @@ module PLL_INIT #(
   end
 
   always @(posedge CLKIN) begin
+
+
     Waitlock <= (&waitcnt == 1'b1) ? 1'b1 : 1'b0;
+
     waitcnt  <= (state == STATE3) ? (waitcnt + 1) : 'd0;
+
     if (~Enable) locksig <= 8'b0000_0000;
     else if (state == STATE4) locksig[RomAddr[3:0]] <= PLLLOCK;
+
+
   end
 
   assign ICPSEL = Regicp;
@@ -162,3 +171,6 @@ module PLL_INIT #(
   assign O_LOCK = (state == STATE7) ? PLLLOCK : 1'b0;
 
 endmodule
+
+
+

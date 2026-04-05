@@ -6,7 +6,7 @@
 //Part Number: GW5AST-LV138FPG676AC1/I0
 //Device: GW5AST-138
 //Device Version: B
-//Created Time: Fri Apr  3 16:31:41 2026
+//Created Time: Sun Apr  5 16:23:25 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
@@ -14,6 +14,7 @@
     Gowin_PLL_MOD your_instance_name(
         .lock(lock), //output lock
         .clkout0(clkout0), //output clkout0
+        .clkout1(clkout1), //output clkout1
         .clkin(clkin), //input clkin
         .reset(reset), //input reset
         .icpsel(icpsel), //input [5:0] icpsel

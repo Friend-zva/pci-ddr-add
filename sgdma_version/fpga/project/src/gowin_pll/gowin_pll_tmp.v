@@ -11,7 +11,9 @@
     Gowin_PLL your_instance_name(
         .clkin(clkin), //input  clkin
         .init_clk(init_clk), //input  init_clk
-        .clkout0(clkout0) //output  clkout0
+        .clkout0(clkout0), //output  clkout0
+        .clkout1(clkout1), //output  clkout1
+        .lock(lock) //output  lock
 );
 
 

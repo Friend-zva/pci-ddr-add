@@ -1,9 +1,10 @@
 module top (
-    input soc_pcie_rstn,
-    input clk_200m_p,
-    input clk_200m_n,
-    input clk_50m,
-    output sysclk_o,
+    input sys_clk_p,
+    input pcie_rstn,
+    input rst_n,
+
+    output [3:0] led,
+
     output [13:0] ddr_addr,
     output [2:0] ddr_bank,
     output ddr_cs,
@@ -21,13 +22,92 @@ module top (
     inout [3:0] ddr_dqs_n
 );
 
-  wire         sysclk;
-  reg  [ 15:0] reset_cnt = 0;
-  reg          soc_pcie_rstn_d0 = 0;
-  reg          soc_pcie_rstn_d1 = 0;
-  reg          pcie_rstn = 0;
+  localparam PCIE_DLY = 8;  //25~500ms
+  localparam PERST_DLY = 25;
+  localparam RUN_DLY = 23;
+  localparam SYS_RST_DLY = 20;
 
-  //PCIe IP
+
+  /* Clocks & Reset */
+  // Clocks
+  wire sys_clk;
+  /* synthesis syn_keep = 1 */
+  wire cfg_clk;
+  /* synthesis syn_keep = 1 */
+  wire ddr_clk;
+  /* synthesis syn_keep = 1 */
+  wire div_clk;
+  wire tlp_clk;
+  wire pll_200m_clk, pll_400m_clk, o_pll_lock;
+
+  // CLOCK input
+  Gowin_PLL u_pll (
+      .lock   (o_pll_lock),
+      .clkout0(pll_200m_clk),
+      .clkout1(pll_400m_clk),
+      .clkin  (sys_clk_p),
+      .init_clk(sys_clk_p)
+  );
+  assign sys_clk = pll_200m_clk;
+  assign ddr_clk = pll_400m_clk;
+
+  CLKDIV #(
+      .DIV_MODE("2")
+  ) uut_div2 (
+      div_clk,
+      'b0,
+      sys_clk,
+      'b1
+  );
+
+  assign cfg_clk = div_clk;
+  assign tlp_clk = div_clk;
+
+  // Reset generate
+  reg  [         26:0] pcie_st_cnt = 0;
+  reg  [         26:0] run_cnt = 0;
+  reg  [         26:0] perst_cnt = 0;
+  reg  [SYS_RST_DLY:0] sys_rst_cnt = 0;
+
+  wire                 w_rst_n = rst_n & pcie_rstn;
+  wire                 pcie_start;
+  wire                 tlp_rst = !pcie_start;
+
+
+  // PCIE Start Delay
+  always @(posedge cfg_clk or negedge w_rst_n)
+    if (!w_rst_n) sys_rst_cnt <= 0;
+    else if (!sys_rst_cnt[SYS_RST_DLY]) sys_rst_cnt <= sys_rst_cnt + 2'd1;
+
+  wire rstn = sys_rst_cnt[SYS_RST_DLY];
+
+  always @(posedge cfg_clk or negedge rstn)
+    if (!rstn) perst_cnt <= 0;
+    else if (!perst_cnt[PERST_DLY]) perst_cnt <= perst_cnt + 2'd1;
+
+  always @(posedge cfg_clk or negedge rstn)
+    if (!rstn) pcie_st_cnt <= 0;
+    else if (!pcie_start) pcie_st_cnt <= pcie_st_cnt + 2'd1;
+
+  assign pcie_start = pcie_st_cnt[PCIE_DLY] ? 1'b1 : 1'b0;
+
+  // for Led blink
+  always @(posedge cfg_clk or negedge w_rst_n)
+    if (!w_rst_n) run_cnt <= 0;
+    else run_cnt <= run_cnt + 2'd1;
+
+  wire pcie_linkup;
+  reg  pcie_linkup_r;
+  /* synthesis syn_keep = 1 */
+
+  always @(posedge tlp_clk) pcie_linkup_r <= pcie_linkup;
+
+  assign led[0] = ~run_cnt[RUN_DLY];
+  assign led[1] = ~perst_cnt[PERST_DLY];
+  assign led[2] = ~pcie_start;
+  assign led[3] = ~pcie_linkup_r;
+
+  /* PCIe IP */
   wire         pcie_tl_rx_sop;
   wire         pcie_tl_rx_eop;
   wire [255:0] pcie_tl_rx_data;
@@ -56,7 +136,6 @@ module top (
   wire [ 31:0] pcie_tl_drp_rddata;
   wire         pcie_tl_drp_resp;
   wire [  4:0] pcie_ltssm;
-  wire         pcie_linkup;
   wire [ 12:0] pcie_tl_cfg_busdev;
   //H2C axi stream
   wire         m_axis_h2c_tready;
@@ -306,40 +385,12 @@ module top (
   wire                      ic_m_axi_rvalid;
   wire                      ic_m_axi_rready;
 
-  assign dma_read_desc_tag = 8'd0;
-  assign dma_read_desc_id = 8'd0;
+  assign dma_read_desc_tag  = 8'd0;
+  assign dma_read_desc_id   = 8'd0;
   assign dma_read_desc_dest = 8'd0;
   assign dma_read_desc_user = 32'd0;
   assign dma_write_desc_tag = 8'd0;
-  assign lad_h2c_overhead = 64'd0;
-
-  assign sysclk_o = sysclk;
-
-  //*************sysclk generate*************
-
-  TLVDS_IBUF u_TLVDS_IBUF (
-      .O (clk_200m),
-      .I (clk_200m_p),
-      .IB(clk_200m_n)
-  );
-
-  Gowin_PLL u_Gowin_PLL (
-      .clkin(clk_200m),  //input  clkin
-      .clkout0(sysclk),  //output  clkout0
-      .init_clk(clk_50m)  //input  init_clk
-  );
-
-  //*************reset generate*************
-  always @(posedge sysclk) begin
-    soc_pcie_rstn_d0 <= soc_pcie_rstn;
-    soc_pcie_rstn_d1 <= soc_pcie_rstn_d0;
-    if (!soc_pcie_rstn_d1) begin
-      reset_cnt <= 0;
-    end else if (reset_cnt < 16'd50000) begin
-      reset_cnt <= reset_cnt + 1;
-    end
-    pcie_rstn <= (reset_cnt == 16'd50000);
-  end
+  assign lad_h2c_overhead   = 64'd0;
 
   //*************PCIe IP*************
   SerDes_Top u_PCIe_IP (
@@ -361,8 +412,8 @@ module top (
       .PCIE_Controller_Top_pcie_tl_drp_resp_o(pcie_tl_drp_resp),
       .PCIE_Controller_Top_pcie_tl_drp_rd_valid_o(pcie_tl_drp_rd_valid),
       .PCIE_Controller_Top_pcie_tl_drp_ready_o(pcie_tl_drp_ready),
-      .PCIE_Controller_Top_pcie_rstn_i(pcie_rstn),
-      .PCIE_Controller_Top_pcie_tl_clk_i(sysclk),
+      .PCIE_Controller_Top_pcie_rstn_i(rst_n),
+      .PCIE_Controller_Top_pcie_tl_clk_i(tlp_clk),
       .PCIE_Controller_Top_pcie_tl_rx_wait_i(pcie_tl_rx_wait),
       .PCIE_Controller_Top_pcie_tl_rx_masknp_i(pcie_tl_rx_masknp),
       .PCIE_Controller_Top_pcie_tl_tx_sop_i(pcie_tl_tx_sop),
@@ -378,8 +429,8 @@ module top (
 
   //**************************dut dma********************
   Pcie_Sgdma_Top u_dut (
-      .pcie_rstn(pcie_rstn),
-      .clk(sysclk),
+      .pcie_rstn(tlp_rst),
+      .clk(tlp_clk),
       .pcie_tl_rx_sop(pcie_tl_rx_sop),
       .pcie_tl_rx_eop(pcie_tl_rx_eop),
       .pcie_tl_rx_data(pcie_tl_rx_data),
@@ -443,8 +494,8 @@ module top (
       .AXIADDRWIDTH(AXIADDRWIDTH),
       .AXILENWIDTH (AXILENWIDTH)
   ) u_logic_dma (
-      .clk(sysclk),
-      .rstn(pcie_rstn),
+      .clk(tlp_clk),
+      .rstn(tlp_rst),
       .user_cs(user_cs),
       .user_address(user_address),
       .user_rw(user_rw),
@@ -495,8 +546,8 @@ module top (
       .ENABLE_SG(0),
       .ENABLE_UNALIGNED(0)
   ) u_axi_dma_pcie_sgdma (
-      .clk(sysclk),
-      .rst(!pcie_rstn),
+      .clk(tlp_clk),
+      .rst(!tlp_rst),
       .s_axis_read_desc_addr(dma_read_desc_addr),
       .s_axis_read_desc_len(dma_read_desc_len),
       .s_axis_read_desc_tag(dma_read_desc_tag),
@@ -578,8 +629,8 @@ module top (
 
   //**************logic_adder****************
   logic_adder u_logic_adder (
-      .clk(sysclk),
-      .rstn(pcie_rstn),
+      .clk(tlp_clk),
+      .rstn(tlp_rst),
       .cfg_read_addr(lad_cfg_read_addr),
       .cfg_write_addr(lad_cfg_write_addr),
       .cfg_byte_len(lad_cfg_byte_len),
@@ -637,8 +688,8 @@ module top (
       .ENABLE_SG(0),
       .ENABLE_UNALIGNED(0)
   ) u_axi_dma_logic_adder (
-      .clk(sysclk),
-      .rst(!pcie_rstn),
+      .clk(tlp_clk),
+      .rst(!tlp_rst),
       .s_axis_read_desc_addr(lad_read_desc_addr[AXIADDRWIDTH-1:0]),
       .s_axis_read_desc_len(lad_read_desc_len[AXILENWIDTH-1:0]),
       .s_axis_read_desc_tag(lad_read_desc_tag),
@@ -729,8 +780,8 @@ module top (
       .M_REGIONS(1),
       .M_ADDR_WIDTH(32'd30)
   ) u_axi_interconnect (
-      .clk(sysclk),
-      .rst(!pcie_rstn),
+      .clk(tlp_clk),
+      .rst(!tlp_rst),
       .s_axi_awid({lad_dma_axi_awid, dma_axi_awid}),
       .s_axi_awaddr({lad_dma_axi_awaddr, dma_axi_awaddr}),
       .s_axi_awlen({lad_dma_axi_awlen, dma_axi_awlen}),
@@ -833,11 +884,11 @@ module top (
 
   //**************ddr3 memory interface****************
   DDR3_Memory_Interface_Top u_ddr3 (
-      .clk(sysclk),
+      .clk(ddr_clk),
       .pll_stop(ddr_pll_stop),
-      .memory_clk(sysclk),
+      .memory_clk(ddr_clk),
       .pll_lock(1'b1),
-      .rst_n(pcie_rstn),
+      .rst_n(rst_n),
       .clk_out(ddr_clk_out),
       .ddr_rst(ddr_rst),
       .init_calib_complete(ddr_init_calib_complete),
