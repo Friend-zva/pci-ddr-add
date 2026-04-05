@@ -93,98 +93,122 @@ int main(int argc, char *argv[]) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
-    int h2c_count = 0, c2h_count = 0;
-    while (h2c_count < loop || c2h_count < loop) {
+    for (int chunk = 0; chunk < loop; chunk++) {
+        if (flag_exit) {
+            break;
+        }
         if (DUMP_INFO) {
             dump_source((uint8_t *)sp, size_dump);
         }
         if (DBG_INFO) {
-            printf("*** Loop ***\nh2c_count: %i, c2h_count: %i\n", h2c_count,
-                   c2h_count);
+            printf("*** Chunk %i/%i ***\n", chunk + 1, loop);
         }
 
-        if (h2c_count < loop) {
-            *poll_h2c = 0;
+        // ====================
+        // Host PC -> FPGA DDR3
+        // ====================
+        *poll_h2c = 0;
 
-            desc_h2c->flags = SET_FLAG;
-            desc_h2c->length = cnt;
-            desc_h2c->addr_src_lo = sa & MAXFF;
-            desc_h2c->addr_src_hi = (sa >> 32) & MAXFF;
-            // overhead data
-            desc_h2c->addr_dst_lo = 0;
-            desc_h2c->addr_dst_hi = 0;
+        desc_h2c->flags = SET_FLAG;
+        desc_h2c->length = cnt;
+        desc_h2c->addr_src_lo = sa & MAXFF;
+        desc_h2c->addr_src_hi = (sa >> 32) & MAXFF;
+        // overhead data
+        desc_h2c->addr_dst_lo = 0;
+        desc_h2c->addr_dst_hi = 0;
 
-            gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
-            gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
-            gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
-            gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
-            gwbar0->h2c[0].num_desc_adj = 0;
+        gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
+        gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
+        gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
+        gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
+        gwbar0->h2c[0].num_desc_adj = 0;
 
-            gwbar2->addr_s2mm_lo = ptr_h2c_ddr3;
-            gwbar2->addr_s2mm_hi = 0;
-            gwbar2->length_s2mm = length;
+        gwbar2->addr_pcie_rd_lo = ptr_h2c_ddr3;
+        gwbar2->addr_pcie_rd_hi = 0;
+        gwbar2->length_pcie_rd = length;
 
-            gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
+        gwbar2->ctrl = BAR2_CTRL_PCIE_RD_START;
+
+        gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
+
+        while (*poll_h2c == 0 && !flag_exit) {
+            usleep(1);
         }
-
-        if (c2h_count < loop) {
-            *poll_c2h = 0;
-
-            desc_c2h->flags = SET_FLAG;
-            desc_c2h->length = cnt;
-            desc_c2h->addr_dst_lo = da & MAXFF;
-            desc_c2h->addr_dst_hi = (da >> 32) & MAXFF;
-            // write-back
-            desc_c2h->addr_src_lo = (proc->dma_dst + 36) & MAXFF;
-            desc_c2h->addr_src_hi = ((proc->dma_dst + 36) >> 32) & MAXFF;
-
-            gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
-            gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
-            gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
-            gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
-            gwbar0->c2h[0].num_desc_adj = 0;
-
-            gwbar2->addr_mm2s_lo = ptr_c2h_ddr3;
-            gwbar2->addr_mm2s_hi = 0;
-            gwbar2->length_mm2s = length;
-
-            gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
-        }
-
-        while (!flag_exit) {
-            int h2c_done = (h2c_count >= loop) || (*poll_h2c > 0);
-            int c2h_done = (c2h_count >= loop) || (*poll_c2h > 0);
-
-            if (h2c_done && c2h_done) {
-                break;
-            }
-        }
+        gwbar0->h2c[0].ctrl = SGDMA_STOP;
         if (flag_exit) {
             break;
         }
 
-        if (h2c_count < loop) {
-            gwbar0->h2c[0].ctrl = SGDMA_STOP;
-            sa += block_size;
-            sp += block_size;
-            if (sa + block_size > proc->dma_src + DMA_SIZE) {
-                sa = proc->dma_src + 64;
-                sp = proc->mem_src + 64;
-                ptr_h2c_ddr3 += block_size;
-            }
-            h2c_count++;
+        // ==================================
+        // Logic Adder: DDR3 -> Logic -> DDR3
+        // ==================================
+        gwbar2->addr_lad_rd_lo = ptr_h2c_ddr3;
+        gwbar2->addr_lad_rd_hi = 0;
+        gwbar2->addr_lad_wr_lo = ptr_c2h_ddr3;
+        gwbar2->addr_lad_wr_hi = 0;
+        gwbar2->length_lad = length;
+
+        gwbar2->ctrl = BAR2_CTRL_LAD_START;
+
+        while ((gwbar2->status & BAR2_STATUS_LAD_DONE) == 0 && !flag_exit) {
+            usleep(1);
+        }
+        gwbar2->ctrl = BAR2_CTRL_LAD_STOP;
+        if (flag_exit) {
+            break;
         }
 
-        if (c2h_count < loop) {
-            gwbar0->c2h[0].ctrl = SGDMA_STOP;
-            da += block_size;
-            dp += block_size;
-            ptr_c2h_ddr3 += block_size;
-            if (da + block_size > proc->dma_dst + DMA_SIZE) {
-                da = proc->dma_dst + 64;
-                dp = proc->mem_dst + 64;
-            }
-            c2h_count++;
+        // ====================
+        // FPGA DDR3 -> Host PC
+        // ====================
+        *poll_c2h = 0;
+
+        desc_c2h->flags = SET_FLAG;
+        desc_c2h->length = cnt;
+        desc_c2h->addr_dst_lo = da & MAXFF;
+        desc_c2h->addr_dst_hi = (da >> 32) & MAXFF;
+        // write-back
+        desc_c2h->addr_src_lo = (proc->dma_dst + 36) & MAXFF;
+        desc_c2h->addr_src_hi = ((proc->dma_dst + 36) >> 32) & MAXFF;
+
+        gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
+        gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
+        gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
+        gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
+        gwbar0->c2h[0].num_desc_adj = 0;
+
+        gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
+
+        gwbar2->addr_pcie_wr_lo = ptr_h2c_ddr3;
+        gwbar2->addr_pcie_wr_hi = 0;
+        gwbar2->length_pcie_wr = length;
+
+        gwbar2->ctrl = BAR2_CTRL_PCIE_WR_START;
+
+        while (*poll_c2h == 0 && !flag_exit) {
+            usleep(1);
+        }
+        gwbar0->c2h[0].ctrl = SGDMA_STOP;
+        if (flag_exit) {
+            break;
+        }
+
+        sa += block_size;
+        sp += block_size;
+        da += block_size;
+        dp += block_size;
+
+        //? Temp shift
+        ptr_h2c_ddr3 += block_size;
+        ptr_c2h_ddr3 += block_size;
+
+        if (sa + block_size > proc->dma_src + DMA_SIZE) {
+            sa = proc->dma_src + 64;
+            sp = proc->mem_src + 64;
+        }
+        if (da + block_size > proc->dma_dst + DMA_SIZE) {
+            da = proc->dma_dst + 64;
+            dp = proc->mem_dst + 64;
         }
 
         if (DUMP_INFO) {
@@ -203,6 +227,7 @@ int main(int argc, char *argv[]) {
 
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
     gwbar0->c2h[0].ctrl = SGDMA_STOP;
+    gwbar2->ctrl = BAR2_CTRL_LAD_STOP;
     dest_proc(proc);
     if (flag_exit) {
         return 1;
