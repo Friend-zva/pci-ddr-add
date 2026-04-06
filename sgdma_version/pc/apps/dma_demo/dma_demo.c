@@ -41,12 +41,12 @@ int main(int argc, char *argv[]) {
     GowinBar2 *gwbar2 = (GowinBar2 *)proc->gwbar2;
 
     if (DBG_INFO) {
-        val = gwbar0->rsv;
+        val = gwbar0->rsv[0];
         printf("gwbar0 alive.\n");
         fflush(stdout);
     }
     if (DBG_INFO) {
-        val = gwbar2->rsv_28;
+        val = gwbar2->rsv_28[0];
         printf("gwbar2 alive.\n");
         fflush(stdout);
     }

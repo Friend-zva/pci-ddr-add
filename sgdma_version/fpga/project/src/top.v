@@ -438,7 +438,7 @@ module top (
 
   //**************************dut dma********************
   Pcie_Sgdma_Top u_dut (
-      .pcie_rstn(tlp_rst_n),
+      .pcie_rstn(rst_n),
       .clk(tlp_clk),
       .pcie_tl_rx_sop(pcie_tl_rx_sop),
       .pcie_tl_rx_eop(pcie_tl_rx_eop),

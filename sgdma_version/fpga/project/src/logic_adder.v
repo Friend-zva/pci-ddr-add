@@ -19,22 +19,22 @@ module logic_adder (
     output     [ 7:0] s_axis_write_desc_tag,
 
     // h2c
-    output reg         m_axis_h2c_tready,
-    input              m_axis_h2c_tvalid,
-    input      [255:0] m_axis_h2c_tdata,
-    input              m_axis_h2c_tlast,
-    input      [ 31:0] m_axis_h2c_tuser,
-    input      [ 31:0] m_axis_h2c_tkeep,
-    input      [ 63:0] h2c_overhead,
+    output         m_axis_h2c_tready,
+    input          m_axis_h2c_tvalid,
+    input  [255:0] m_axis_h2c_tdata,
+    input          m_axis_h2c_tlast,
+    input  [ 31:0] m_axis_h2c_tuser,
+    input  [ 31:0] m_axis_h2c_tkeep,
+    input  [ 63:0] h2c_overhead,
     // c2h
-    input              s_axis_c2h_tready,
-    output             s_axis_c2h_tvalid,
-    output             s_axis_c2h_tlast,
-    output     [255:0] s_axis_c2h_tdata,
-    output     [ 31:0] s_axis_c2h_tuser,
-    output     [ 31:0] s_axis_c2h_tkeep,
-    output             c2h_overhead_valid,
-    output     [ 63:0] c2h_overhead_data,
+    input          s_axis_c2h_tready,
+    output         s_axis_c2h_tvalid,
+    output         s_axis_c2h_tlast,
+    output [255:0] s_axis_c2h_tdata,
+    output [ 31:0] s_axis_c2h_tuser,
+    output [ 31:0] s_axis_c2h_tkeep,
+    output         c2h_overhead_valid,
+    output [ 63:0] c2h_overhead_data,
 
     input      h2c_run,
     input      c2h_run,
@@ -78,7 +78,6 @@ module logic_adder (
     if (!rstn) begin
       s_axis_read_desc_valid <= 1'b0;
       s_axis_write_desc_valid <= 1'b0;
-      m_axis_h2c_tready <= 1'b0;
       read_desc_issued <= 1'b0;
       write_desc_issued <= 1'b0;
       busy <= 1'b0;
@@ -89,7 +88,6 @@ module logic_adder (
       if (!stream_enable) begin
         s_axis_read_desc_valid <= 1'b0;
         s_axis_write_desc_valid <= 1'b0;
-        m_axis_h2c_tready <= 1'b0;
         read_desc_issued <= 1'b0;
         write_desc_issued <= 1'b0;
         busy <= 1'b0;
@@ -118,11 +116,7 @@ module logic_adder (
           s_axis_write_desc_valid <= 1'b0;
         end
 
-        // Stream payload only after both descriptors are accepted.
-        m_axis_h2c_tready <= read_desc_issued && write_desc_issued && s_axis_c2h_tready;
-
         if (stream_fire && m_axis_h2c_tlast) begin
-          m_axis_h2c_tready <= 1'b0;
           read_desc_issued <= 1'b0;
           write_desc_issued <= 1'b0;
           busy <= 1'b0;
@@ -132,6 +126,8 @@ module logic_adder (
     end
   end
 
+  assign m_axis_h2c_tready = stream_enable && read_desc_issued && 
+      write_desc_issued && s_axis_c2h_tready;
   assign s_axis_c2h_tvalid  = stream_enable && read_desc_issued &&
       write_desc_issued && m_axis_h2c_tvalid;
   assign s_axis_c2h_tdata = c2h_tx_data_add16;

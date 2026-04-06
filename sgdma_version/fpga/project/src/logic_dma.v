@@ -69,8 +69,8 @@ module logic_dma #(
   wire rd_en;
   wire [7:0] reg_addr;
 
-  assign wr_en = user_cs && (|user_wr_be);
-  assign rd_en = user_cs && (|user_rd_be);
+  assign wr_en = user_cs && user_rw;
+  assign rd_en = user_cs && !user_rw;
   assign reg_addr = user_address[7:0];
 
   always @(posedge clk or negedge rstn) begin
@@ -104,7 +104,7 @@ module logic_dma #(
       lad_rd_addr_hi <= 32'd0;
       lad_wr_addr_lo <= 32'h0000_6000;
       lad_wr_addr_hi <= 32'd0;
-      
+
       lad_done_latched <= 1'b0;
     end else begin
       user_rd_valid <= 1'b0;
