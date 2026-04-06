@@ -230,14 +230,14 @@ int main(int argc, char *argv[]) {
 
     uint32_t cnt = 16; //* 128 * 4 = 512B
     int size = DMA_SIZE / 2;
-    int size_dump = 32; //* size_array = (size / 2)
+    int size_dump = 16; //* size_array = (size / 2)
     int loop = size / (cnt * 4);
 
     for (int i = 0; i < size; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
-    uint32_t block_size = (cnt * 4 + 1023) & (~1023);
+    uint32_t block_size = (cnt * 4 + 63) & (~63);
 
     gwbar->intr = (1 << 16) | 1;          // turn on IR for r/w
     gwbar->aclr = (1 << 16) | 1;          // turn on auto-clear IR
@@ -269,18 +269,6 @@ int main(int argc, char *argv[]) {
             gwbar->channel[0].wdma_dst_hi = (da >> 32) & 0xFFFFFFFF;
             gwbar->channel[0].wdma_len = cnt;
             gwbar->channel[0].wdma_tag = tx_tag++;
-
-            da += block_size;
-            dp += block_size;
-            if (da + block_size > proc->dma_dst + DMA_SIZE) {
-                dp = proc->mem_dst;
-                da = proc->dma_dst;
-            }
-
-            if (tx_tag >= 15) {
-                tx_tag = 1;
-            }
-            c2h_count++;
         }
 
         if (h2c_count < loop) {
@@ -288,30 +276,11 @@ int main(int argc, char *argv[]) {
             gwbar->channel[0].rdma_src_hi = (sa >> 32) & 0xFFFFFFFF;
             gwbar->channel[0].rdma_len = cnt;
             gwbar->channel[0].rdma_tag = rx_tag++;
-
-            sa += block_size;
-            sp += block_size;
-            if (sa + block_size > proc->dma_src + DMA_SIZE) {
-                sp = proc->mem_src;
-                sa = proc->dma_src;
-            }
-
-            if (rx_tag >= 32) {
-                rx_tag = 16;
-            }
-            h2c_count++;
         }
 
         do {
             int64_t rdma_stat = gwbar->channel[0].rdma_status;
             int64_t wdma_stat = gwbar->channel[0].wdma_status;
-
-            if (DBG_INFO) {
-                printf("h2c_done: %li, c2h_done: %li\n", rdma_stat & 0xC0000000,
-                       wdma_stat & 0xC0000000);
-                printf("check DMA | ctrl: 0x%08x\n", gwbar->ctrl);
-                printf("h2c_level: %i, c2h_level: %i\n", h2c_level, c2h_level);
-            }
 
             if (rdma_stat == 0xFFFFFFFFu || wdma_stat == 0xFFFFFFFFu) {
                 // flag_exit = 1;
@@ -322,13 +291,19 @@ int main(int argc, char *argv[]) {
             h2c_level = (int)rdma_stat & 0xFF;
             c2h_level = (int)wdma_stat & 0xFF;
 
+            if (DBG_INFO) {
+                printf("h2c_done: %li, c2h_done: %li\n", rdma_stat & 0xC0000000,
+                       wdma_stat & 0xC0000000);
+                printf("check DMA | ctrl: 0x%08x\n", gwbar->ctrl);
+                printf("h2c_level: %i, c2h_level: %i\n", h2c_level, c2h_level);
+            }
+
             if (h2c_level > 0) {
                 wait_irq(proc->fd, 0, 10);
             }
             if (c2h_level > 0) {
                 wait_irq(proc->fd, 1, 10);
             }
-
         } while (!flag_exit && (h2c_level > 0 || c2h_level > 0));
 
         if (DBG_INFO) {
@@ -338,6 +313,33 @@ int main(int argc, char *argv[]) {
         if (DUMP_INFO) {
             dump_destination(dp, size_dump);
         }
+
+        if (c2h_count < loop) {
+            da += block_size;
+            dp += block_size;
+            if (da + block_size > proc->dma_dst + DMA_SIZE) {
+                dp = proc->mem_dst;
+                da = proc->dma_dst;
+            }
+            if (tx_tag >= 15) {
+                tx_tag = 0;
+            }
+            c2h_count++;
+        }
+
+        if (h2c_count < loop) {
+            sa += block_size;
+            sp += block_size;
+            if (sa + block_size > proc->dma_src + DMA_SIZE) {
+                sp = proc->mem_src;
+                sa = proc->dma_src;
+            }
+            if (rx_tag >= 31) {
+                rx_tag = 16;
+            }
+            h2c_count++;
+        }
+
         if (flag_exit) {
             break;
         }
