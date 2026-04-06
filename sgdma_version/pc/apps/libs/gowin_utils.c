@@ -130,5 +130,7 @@ void *mmap_mem(int fd, int index, size_t length) {
 void *mmap_bar(int fd, int index, size_t length) {
     switch_bar_or_mem(fd, 1, index);
     void *ptr = mmap(NULL, length, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+    printf("mmap_bar(index=%d) ptr = %p\n", index, ptr);
+    fflush(stdout);
     return (ptr == MAP_FAILED) ? NULL : ptr;
 }

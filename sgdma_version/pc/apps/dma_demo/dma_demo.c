@@ -40,31 +40,55 @@ int main(int argc, char *argv[]) {
     GowinBar0 *gwbar0 = (GowinBar0 *)proc->gwbar0;
     GowinBar2 *gwbar2 = (GowinBar2 *)proc->gwbar2;
 
+    if (DBG_INFO) {
+        val = gwbar0->rsv;
+        printf("gwbar0 alive.\n");
+        fflush(stdout);
+    }
+    if (DBG_INFO) {
+        val = gwbar2->rsv_28;
+        printf("gwbar2 alive.\n");
+        fflush(stdout);
+    }
+
     gwbar0->ctrl.ctrl_init = 1;
     while ((gwbar0->ctrl.ctrl_init & MAXFF) != 0xaa009719) {
         if (flag_exit) {
-            break;
+            dest_proc(proc);
+            return -1;
         }
+    }
+
+    if (DBG_INFO) {
+        printf("gwbar0->ctrl.ctrl_init passed.\n");
+        fflush(stdout);
     }
 
     struct gowin_ioctl_param param = {0};
     param.cfg_type = 2;
     param.cfg_where = 0x90;
-    // val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
-    // if (val) {
-    //     dest_proc(proc);
-    //     return -1;
-    // }
+    val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
+    if (val) {
+        dest_proc(proc);
+        return -1;
+    }
 
     param.cfg_type = 2;
     param.cfg_where = 0x88;
-    while (0) {
+    while (1) {
+        if (DBG_INFO) {
+            printf("waiting\n");
+        }
         if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
             param.cfg_dword != MAXFF) {
             val = (param.cfg_dword & 0xFF1F) | (1 << 5); //? payload 256B?
-            printf("waiting\n");
             break;
         }
+    }
+
+    if (DBG_INFO) {
+        printf("start state checked.\n");
+        fflush(stdout);
     }
 
     //? volatile? for bar too?
