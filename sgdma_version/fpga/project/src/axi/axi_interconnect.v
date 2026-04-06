@@ -492,7 +492,7 @@ module axi_interconnect #(
 
   // request generation
   generate
-    for (n = 0; n < S_COUNT; n = n + 1) begin
+    for (n = 0; n < S_COUNT; n = n + 1) begin : request_gen
       assign request[2*n]   = s_axi_awvalid[n];
       assign request[2*n+1] = s_axi_arvalid[n];
     end
@@ -500,7 +500,7 @@ module axi_interconnect #(
 
   // acknowledge generation
   generate
-    for (n = 0; n < S_COUNT; n = n + 1) begin
+    for (n = 0; n < S_COUNT; n = n + 1) begin : acknowledge_gen
       assign acknowledge[2*n] = grant[2*n] && s_axi_bvalid[n] && s_axi_bready[n];
       assign acknowledge[2*n+1] = grant[2*n+1] && s_axi_rvalid[n] && s_axi_rready[n] && s_axi_rlast[n];
     end

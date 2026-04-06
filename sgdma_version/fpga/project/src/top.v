@@ -72,7 +72,7 @@ module top (
   wire                 w_rst_n = rst_n & pcie_rstn;
   wire                 pcie_start;
   wire                 tlp_rst = !pcie_start;
-
+  wire                 tlp_rst_n = rst_n & pcie_start;
 
   // PCIE Start Delay
   always @(posedge cfg_clk or negedge w_rst_n)
@@ -121,6 +121,9 @@ module top (
   wire [255:0] pcie_tl_tx_data;
   wire [  7:0] pcie_tl_tx_valid;
   wire         pcie_tl_tx_wait;
+  wire [ 31:0] PCIE_Controller_Top_pcie_tl_tx_creditsp;
+  wire [ 31:0] PCIE_Controller_Top_pcie_tl_tx_creditsnp;
+  wire [ 31:0] PCIE_Controller_Top_pcie_tl_tx_creditscpl;
   wire         pcie_tl_int_status;
   wire         pcie_tl_int_req;
   wire [  4:0] pcie_tl_int_msinum;
@@ -390,6 +393,8 @@ module top (
   assign dma_read_desc_dest = 8'd0;
   assign dma_read_desc_user = 32'd0;
   assign dma_write_desc_tag = 8'd0;
+  assign c2h_overhead_valid = 1'b0;
+  assign c2h_overhead_data  = 64'd0;
   assign lad_h2c_overhead   = 64'd0;
 
   //*************PCIe IP*************
@@ -424,12 +429,16 @@ module top (
       .PCIE_Controller_Top_pcie_tl_drp_wrdata_i(pcie_tl_drp_wrdata),
       .PCIE_Controller_Top_pcie_tl_drp_strb_i(pcie_tl_drp_strb),
       .PCIE_Controller_Top_pcie_tl_drp_wr_i(pcie_tl_drp_wr),
-      .PCIE_Controller_Top_pcie_tl_drp_rd_i(pcie_tl_drp_rd)
+      .PCIE_Controller_Top_pcie_tl_drp_rd_i(pcie_tl_drp_rd),
+      .PCIE_Controller_Top_pcie_tl_int_status_i(pcie_tl_int_status),
+      .PCIE_Controller_Top_pcie_tl_int_req_i(pcie_tl_int_req),
+      .PCIE_Controller_Top_pcie_tl_int_msinum_i(pcie_tl_int_msinum),
+      .PCIE_Controller_Top_pcie_tl_int_ack_o(pcie_tl_int_ack)
   );
 
   //**************************dut dma********************
   Pcie_Sgdma_Top u_dut (
-      .pcie_rstn(tlp_rst),
+      .pcie_rstn(tlp_rst_n),
       .clk(tlp_clk),
       .pcie_tl_rx_sop(pcie_tl_rx_sop),
       .pcie_tl_rx_eop(pcie_tl_rx_eop),
@@ -495,7 +504,7 @@ module top (
       .AXILENWIDTH (AXILENWIDTH)
   ) u_logic_dma (
       .clk(tlp_clk),
-      .rstn(tlp_rst),
+      .rstn(tlp_rst_n),
       .user_cs(user_cs),
       .user_address(user_address),
       .user_rw(user_rw),
@@ -547,7 +556,7 @@ module top (
       .ENABLE_UNALIGNED(0)
   ) u_axi_dma_pcie_sgdma (
       .clk(tlp_clk),
-      .rst(!tlp_rst),
+      .rst(tlp_rst),
       .s_axis_read_desc_addr(dma_read_desc_addr),
       .s_axis_read_desc_len(dma_read_desc_len),
       .s_axis_read_desc_tag(dma_read_desc_tag),
@@ -630,7 +639,7 @@ module top (
   //**************logic_adder****************
   logic_adder u_logic_adder (
       .clk(tlp_clk),
-      .rstn(tlp_rst),
+      .rstn(tlp_rst_n),
       .cfg_read_addr(lad_cfg_read_addr),
       .cfg_write_addr(lad_cfg_write_addr),
       .cfg_byte_len(lad_cfg_byte_len),
@@ -689,7 +698,7 @@ module top (
       .ENABLE_UNALIGNED(0)
   ) u_axi_dma_logic_adder (
       .clk(tlp_clk),
-      .rst(!tlp_rst),
+      .rst(tlp_rst),
       .s_axis_read_desc_addr(lad_read_desc_addr[AXIADDRWIDTH-1:0]),
       .s_axis_read_desc_len(lad_read_desc_len[AXILENWIDTH-1:0]),
       .s_axis_read_desc_tag(lad_read_desc_tag),
@@ -778,10 +787,10 @@ module top (
       .STRB_WIDTH(AXISTRBWIDTH),
       .ID_WIDTH(AXIIDWIDTH),
       .M_REGIONS(1),
-      .M_ADDR_WIDTH(32'd30)
+      .M_ADDR_WIDTH(32'd29)
   ) u_axi_interconnect (
       .clk(tlp_clk),
-      .rst(!tlp_rst),
+      .rst(tlp_rst),
       .s_axi_awid({lad_dma_axi_awid, dma_axi_awid}),
       .s_axi_awaddr({lad_dma_axi_awaddr, dma_axi_awaddr}),
       .s_axi_awlen({lad_dma_axi_awlen, dma_axi_awlen}),
@@ -888,7 +897,7 @@ module top (
       .pll_stop(ddr_pll_stop),
       .memory_clk(ddr_clk),
       .pll_lock(1'b1),
-      .rst_n(rst_n),
+      .rst_n(tlp_rst_n),
       .clk_out(ddr_clk_out),
       .ddr_rst(ddr_rst),
       .init_calib_complete(ddr_init_calib_complete),

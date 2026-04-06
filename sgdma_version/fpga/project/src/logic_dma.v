@@ -63,6 +63,8 @@ module logic_dma #(
   reg [31:0] lad_wr_addr_lo;
   reg [31:0] lad_wr_addr_hi;
 
+  reg lad_done_latched;
+
   wire wr_en;
   wire rd_en;
   wire [7:0] reg_addr;
@@ -102,6 +104,8 @@ module logic_dma #(
       lad_rd_addr_hi <= 32'd0;
       lad_wr_addr_lo <= 32'h0000_6000;
       lad_wr_addr_hi <= 32'd0;
+      
+      lad_done_latched <= 1'b0;
     end else begin
       user_rd_valid <= 1'b0;
 
@@ -115,6 +119,7 @@ module logic_dma #(
       if (lad_done) begin
         lad_h2c_run <= 1'b0;
         lad_c2h_run <= 1'b0;
+        lad_done_latched <= 1'b1;
       end
 
       if (wr_en) begin
@@ -135,6 +140,7 @@ module logic_dma #(
             if (user_wr_data[2]) begin
               lad_h2c_run <= 1'b1;
               lad_c2h_run <= 1'b1;
+              lad_done_latched <= 1'b0;
             end
             if (user_wr_data[3]) begin
               lad_h2c_run <= 1'b0;
@@ -205,7 +211,7 @@ module logic_dma #(
             user_rd_data[4] <= lad_h2c_run;
             user_rd_data[5] <= lad_c2h_run;
             user_rd_data[6] <= lad_busy;
-            user_rd_data[7] <= lad_done;
+            user_rd_data[7] <= lad_done_latched;
             user_rd_data[31:8] <= 24'd0;
           end
 
