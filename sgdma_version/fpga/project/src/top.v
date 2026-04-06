@@ -158,8 +158,8 @@ module top (
   wire         c2h_overhead_valid;
   wire [ 63:0] c2h_overhead_data;
 
-  wire         h2c_run;
-  wire         c2h_run;
+  wire         h2c_run = 1'b1;
+  wire         c2h_run = 1'b1;
   //BAR2
   wire         user_cs;
   wire [ 63:0] user_address;
@@ -530,7 +530,8 @@ module top (
       .lad_h2c_run(lad_h2c_run),
       .lad_c2h_run(lad_c2h_run),
       .lad_busy(lad_busy),
-      .lad_done(lad_done)
+      .lad_done(lad_done),
+      .ddr_ready(ddr_init_calib_complete)
   );
 
   //**************axi dma (pcie_sgdma)****************
@@ -893,7 +894,7 @@ module top (
 
   //**************ddr3 memory interface****************
   DDR3_Memory_Interface_Top u_ddr3 (
-      .clk(ddr_clk),
+      .clk(tlp_clk),
       .pll_stop(ddr_pll_stop),
       .memory_clk(ddr_clk),
       .pll_lock(1'b1),

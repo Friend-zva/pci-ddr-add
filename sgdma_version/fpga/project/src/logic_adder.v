@@ -55,6 +55,8 @@ module logic_adder (
   assign read_desc_fire = s_axis_read_desc_valid && s_axis_read_desc_ready;
   assign write_desc_fire = s_axis_write_desc_valid && s_axis_write_desc_ready;
   assign stream_fire = m_axis_h2c_tvalid && m_axis_h2c_tready;
+  assign m_axis_h2c_tready = stream_enable && read_desc_issued &&
+      write_desc_issued && s_axis_c2h_tready;
 
   assign s_axis_read_desc_addr = cfg_read_addr;
   assign s_axis_read_desc_len = cfg_byte_len;
@@ -126,8 +128,6 @@ module logic_adder (
     end
   end
 
-  assign m_axis_h2c_tready = stream_enable && read_desc_issued && 
-      write_desc_issued && s_axis_c2h_tready;
   assign s_axis_c2h_tvalid  = stream_enable && read_desc_issued &&
       write_desc_issued && m_axis_h2c_tvalid;
   assign s_axis_c2h_tdata = c2h_tx_data_add16;

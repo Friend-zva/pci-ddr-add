@@ -3,8 +3,6 @@
 #include "../../include/gowin_bar0.h"
 #include "../../include/gowin_bar2.h"
 
-#define BAR0_SIZE (1024 * 16)
-#define BAR2_SIZE (1024 * 2)
 #define DMA_SIZE (1024 * 16) //! 16 for pretty printing
 
 typedef struct process {

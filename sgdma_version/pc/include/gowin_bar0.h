@@ -3,6 +3,8 @@
 #ifndef GOWIN_BAR0_H
 #define GOWIN_BAR0_H
 
+#define BAR0_SIZE (1024 * 16)
+
 // For control register (0x04/0x08)
 #define SGDMA_POLL_START 0x0003 // Bit:0 = 1 (Start), Bit:1 = 1 (Poll mode)
 #define SGDMA_STOP 0x0000

@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     }
 
     gwbar0->ctrl.ctrl_init = 1;
-    while ((gwbar0->ctrl.ctrl_init & MAXFF) != 0xaa009719) {
+    while ((gwbar0->ctrl.stat_init & MAXFF) != 0xaa009719) {
         if (flag_exit) {
             dest_proc(proc);
             return -1;
@@ -118,6 +118,13 @@ int main(int argc, char *argv[]) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
+    uint32_t status_bar2 = gwbar2->status;
+    if ((status_bar2 & BAR2_STATUS_DDR) == 0) {
+        printf("Failed to calibrate DDR3\n");
+        dest_proc(proc);
+        return -1;
+    }
+
     for (int chunk = 0; chunk < loop; chunk++) {
         if (flag_exit) {
             break;
@@ -135,7 +142,7 @@ int main(int argc, char *argv[]) {
         *poll_h2c = 0;
 
         desc_h2c->flags = SET_FLAG;
-        desc_h2c->length = cnt;
+        desc_h2c->length = length;
         desc_h2c->addr_src_lo = sa & MAXFF;
         desc_h2c->addr_src_hi = (sa >> 32) & MAXFF;
         // overhead data
@@ -157,6 +164,12 @@ int main(int argc, char *argv[]) {
         gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
 
         while (*poll_h2c == 0 && !flag_exit) {
+            uint32_t status_h2c = gwbar0->h2c[0].status0;
+            if (status_h2c & (1 << 2)) {
+                printf("FPGA reports h2c DONE, but poll memory is 0.\n");
+                break;
+            }
+            printf("loop h2c\n");
             usleep(1);
         }
         gwbar0->h2c[0].ctrl = SGDMA_STOP;
@@ -176,6 +189,7 @@ int main(int argc, char *argv[]) {
         gwbar2->ctrl = BAR2_CTRL_LAD_START;
 
         while ((gwbar2->status & BAR2_STATUS_LAD_DONE) == 0 && !flag_exit) {
+            printf("loop ddr\n");
             usleep(1);
         }
         gwbar2->ctrl = BAR2_CTRL_LAD_STOP;
@@ -189,7 +203,7 @@ int main(int argc, char *argv[]) {
         *poll_c2h = 0;
 
         desc_c2h->flags = SET_FLAG;
-        desc_c2h->length = cnt;
+        desc_c2h->length = length;
         desc_c2h->addr_dst_lo = da & MAXFF;
         desc_c2h->addr_dst_hi = (da >> 32) & MAXFF;
         // write-back
@@ -211,6 +225,12 @@ int main(int argc, char *argv[]) {
         gwbar2->ctrl = BAR2_CTRL_PCIE_WR_START;
 
         while (*poll_c2h == 0 && !flag_exit) {
+            uint32_t status_c2h = gwbar0->h2c[0].status0;
+            if (status_c2h & (1 << 2)) {
+                printf("FPGA reports c2h DONE, but poll memory is 0.\n");
+                break;
+            }
+            printf("loop c2h\n");
             usleep(1);
         }
         gwbar0->c2h[0].ctrl = SGDMA_STOP;

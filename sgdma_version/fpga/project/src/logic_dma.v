@@ -14,6 +14,8 @@ module logic_dma #(
     output reg        user_rd_valid,
     output reg [31:0] user_rd_data,
 
+    input ddr_ready,
+
     // Descriptor control for axi_dma_pcie_sgdma
     output reg [AXIADDRWIDTH-1:0] pcie_read_desc_addr,
     output reg [ AXILENWIDTH-1:0] pcie_read_desc_len,
@@ -187,7 +189,10 @@ module logic_dma #(
             lad_write_addr[63:32] <= user_wr_data;
           end
           RegLadLen: begin
-            lad_byte_len <= user_wr_data;
+            if (user_wr_be[0]) lad_byte_len[7:0] <= user_wr_data[7:0];
+            if (user_wr_be[1]) lad_byte_len[15:8] <= user_wr_data[15:8];
+            if (user_wr_be[2]) lad_byte_len[23:16] <= user_wr_data[23:16];
+            if (user_wr_be[3]) lad_byte_len[31:24] <= user_wr_data[31:24];
           end
           RegTags: begin
             pcie_read_desc_tag <= user_wr_data[7:0];
@@ -212,7 +217,8 @@ module logic_dma #(
             user_rd_data[5] <= lad_c2h_run;
             user_rd_data[6] <= lad_busy;
             user_rd_data[7] <= lad_done_latched;
-            user_rd_data[31:8] <= 24'd0;
+            user_rd_data[8] <= ddr_ready;
+            user_rd_data[31:9] <= 23'd0;
           end
 
           RegPcieRdAddrLo: user_rd_data <= pcie_rd_addr_lo;

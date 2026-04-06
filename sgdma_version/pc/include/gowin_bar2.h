@@ -3,13 +3,15 @@
 #ifndef GOWIN_BAR2_H
 #define GOWIN_BAR2_H
 
+#define BAR2_SIZE (1024 * 2)
+
 // For control register (0x00)
 #define BAR2_CTRL_PCIE_RD_START (1 << 0)
 #define BAR2_CTRL_PCIE_WR_START (1 << 1)
 #define BAR2_CTRL_LAD_START (1 << 2)
 #define BAR2_CTRL_LAD_STOP (1 << 3)
-
 #define BAR2_STATUS_LAD_DONE (1 << 7)
+#define BAR2_STATUS_DDR (1 << 8)
 
 typedef struct {
     volatile uint32_t ctrl;      //* 0x00 - Control (RW)
