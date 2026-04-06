@@ -103,6 +103,7 @@ static inline u32 gowin_readl(struct gowin_bar_data *data, u32 bar, u32 offset) 
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return 0;
     } else {
+        // return readl(pcim_iomap_table(data->pdev)[bar] + offset);
         return readl(data->iomap[bar] + offset);
     }
 }
@@ -121,6 +122,7 @@ static inline void gowin_writel(struct gowin_bar_data *data, u32 bar, u32 offset
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return;
     } else {
+        // writel(value, pcim_iomap_table(data->pdev)[bar] + offset);
         writel(value, data->iomap[bar] + offset);
     }
 }
@@ -137,6 +139,7 @@ static inline u16 gowin_readw(struct gowin_bar_data *data, u32 bar, u32 offset) 
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return 0;
     } else {
+        // return readw(pcim_iomap_table(data->pdev)[bar] + offset);
         return readw(data->iomap[bar] + offset);
     }
 }
@@ -155,6 +158,7 @@ static inline void gowin_writew(struct gowin_bar_data *data, u32 bar, u32 offset
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return;
     } else {
+        // writew(value, pcim_iomap_table(data->pdev)[bar] + offset);
         writew(value, data->iomap[bar] + offset);
     }
 }
@@ -171,6 +175,7 @@ static inline u8 gowin_readb(struct gowin_bar_data *data, u32 bar, u32 offset) {
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return 0;
     } else {
+        // return readb(pcim_iomap_table(data->pdev)[bar] + offset);
         return readb(data->iomap[bar] + offset);
     }
 }
@@ -189,6 +194,7 @@ static inline void gowin_writeb(struct gowin_bar_data *data, u32 bar, u32 offset
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return;
     } else {
+        // writeb(value, pcim_iomap_table(data->pdev)[bar] + offset);
         writeb(value, data->iomap[bar] + offset);
     }
 }
@@ -502,13 +508,15 @@ static int ioctl_dma_mem_request(struct gowin_bar_data *data, unsigned long arg)
     }
 
     if (param.dma_realloc != 0 && data->dma_ctx[id].len > 0) {
+        // pci_free_consistent(data->pdev,
         dma_free_coherent(dev, data->dma_ctx[id].len, data->dma_ctx[id].vir,
                           data->dma_ctx[id].phy);
         data->dma_ctx[id].len = 0;
         data->dma_ctx[id].vir = 0;
         data->dma_ctx[id].phy = 0;
     }
-
+    // data->dma_ctx[id].vir = pci_alloc_consistent(data->pdev,
+    //                                 size, &data->dma_ctx[id].phy);
     data->dma_ctx[id].vir =
         dma_alloc_coherent(dev, size, &data->dma_ctx[id].phy, GFP_KERNEL);
     if (data->dma_ctx[id].vir == NULL) {
@@ -523,6 +531,7 @@ static int ioctl_dma_mem_request(struct gowin_bar_data *data, unsigned long arg)
     param.dma_addr = data->dma_ctx[id].vir;
 
     if (copy_to_user((void __user *)arg, &param, sizeof(param))) {
+        // pci_free_consistent(data->pdev,
         dma_free_coherent(dev, data->dma_ctx[id].len, data->dma_ctx[id].vir,
                           data->dma_ctx[id].phy);
         data->dma_ctx[id].len = 0;
@@ -568,6 +577,7 @@ static int ioctl_dma_mem_release(struct gowin_bar_data *data, unsigned long arg)
         dev_info(dev, "#%d DMA memory released.\n", id);
 
         if (data->dma_ctx[id].len != 0) {
+            // pci_free_consistent(data->pdev,
             dma_free_coherent(dev, data->dma_ctx[id].len, data->dma_ctx[id].vir,
                               data->dma_ctx[id].phy);
             data->dma_ctx[id].len = 0;
@@ -582,7 +592,7 @@ static int ioctl_dma_mem_release(struct gowin_bar_data *data, unsigned long arg)
         for (i = 0; i < MAX_DMA_CTX_NUM; i++) {
             if (data->dma_ctx[i].len == 0)
                 continue;
-
+            // pci_free_consistent(data->pdev,
             dma_free_coherent(dev, data->dma_ctx[i].len, data->dma_ctx[i].vir,
                               data->dma_ctx[i].phy);
             data->dma_ctx[i].len = 0;
@@ -627,14 +637,14 @@ static int ioctl_switch_bar_mem(struct gowin_bar_data *data, unsigned long arg) 
             dev_err(dev, "Wrong parameter.");
             return -EINVAL;
         }
-        if (data->iomap[index] == NULL)
+        // if (pcim_iomap_table(data->pdev)[index] == NULL) {
+        if (data->iomap[index] == NULL) {
             return -EINVAL;
-
+        }
         data->cur_bar = index;
         // data->base = data->bar[index];
         data->mem_select = 0;
     }
-
     return 0;
 }
 
@@ -729,6 +739,47 @@ static int ioctl_disable_irq(struct gowin_bar_data *data, unsigned long arg) {
 }
 
 /*!
+ * ioctl_thoughtput_test() -
+ *      static function for ioctl: GOWIN_THROUGHPUT_TEST
+ *      Only for test.
+ *
+ * @param[in]   data:   pointer to struct gowin_bar_data
+ * @param[inout] arg:   parameters for ioctl
+ */
+static int ioctl_thoughtput_test(struct gowin_bar_data *data, unsigned long arg) {
+#if 0
+    int ret;
+    struct gowin_ioctl_param param;
+    struct device *dev;
+
+    if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
+        return -EINVAL;
+
+    dev = &data->pdev->dev;
+
+    if (copy_from_user(&param, (void __user *)arg, sizeof(param)))
+        return -EFAULT;
+
+    ioctl_enable_irq(data, 0);
+    data->test = &param;
+    do {
+        if (param.dma_number == 0)  break;
+        gowin_writel(data, 0, 0x100, param.dma_addr_lo);
+        gowin_writel(data, 0, 0x104, param.dma_addr_hi);
+        gowin_writel(data, 0, 0x110, param.dma_length);
+        gowin_writel(data, 0, 0x114, 0x55);     //! triggr
+        ret = wait_event_interruptible(data->irq_wait[0], param.dma_number == 0);
+    } while (0);
+    data->test = NULL;
+    ioctl_disable_irq(data, 0);
+
+    return ret;
+#else
+    return 0;
+#endif
+}
+
+/*!
  * ioctl_debug() -
  *      static function for ioctl: GOWIN_DEBUG_ONLY
  *
@@ -797,6 +848,9 @@ static long gowin_bar_ioctl(struct file *filp, unsigned int cmd, unsigned long a
             break;
         case GOWIN_IRQ_DISABLE:
             err = ioctl_disable_irq(data, arg);
+            break;
+        case GOWIN_THROUGHPUT_TEST:
+            err = ioctl_thoughtput_test(data, arg);
             break;
         case GOWIN_DEBUG_ONLY:
             err = ioctl_debug(data, arg);
@@ -901,6 +955,7 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
      * and prevent the pages from being swapped out
      */
 
+    // vm_flags_set(vma, VMEM_FLAGS);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
     vm_flags_set(vma, VMEM_FLAGS);
 #else
@@ -949,8 +1004,10 @@ static const struct file_operations gowin_bar_fops = {
     .owner = THIS_MODULE,
     .unlocked_ioctl = gowin_bar_ioctl,
     .compat_ioctl = compat_ptr_ioctl,
+    // .llseek         = no_llseek,
     .llseek = noop_llseek,
     .open = gowin_bar_open,
+    //.write          = ,
     .mmap = gowin_bar_mmap,
     .release = gowin_bar_release,
 };
@@ -989,6 +1046,20 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
 
     pci_set_master(pdev);
 
+    // if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64))) {
+    //     if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+    //         dev_err(dev, "No suitable DMA available.\n");
+    //         return -EINVAL;
+    //     }
+    //     else {
+    //         dev_info(dev, "Use 32-bits DMA\n");
+    //         pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+    //     }
+    // }
+    // else {
+    //     dev_info(dev, "Use 64-bits DMA\n");
+    //     pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+    // }
     if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64))) {
         if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32))) {
             dev_err(dev, "No suitable DMA available.\n");
@@ -1000,6 +1071,8 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         dev_info(dev, "Use 64-bits DMA\n");
     }
 
+#if 1
+    // err = pcim_iomap_regions_request_all(pdev, 1, DRIVER_NAME);
     /* Reserve BAR regions (bitmask: 1 << BAR0 = 1) */
     err = pcim_iomap_regions(pdev, 1, DRIVER_NAME);
     if (unlikely(err)) {
@@ -1017,6 +1090,7 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
 
     data->cur_bar = -1;
     for (bar = 0; bar < PCI_STD_NUM_BARS; bar++) {
+        // if (!pcim_iomap_table(pdev)[bar])
         if (!data->iomap[bar])
             continue;
         if (data->cur_bar < 0)
@@ -1068,6 +1142,8 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_free_irq_vectors;
     }
 
+#endif
+
     err = alloc_chrdev_region(&data->gw_devid, 0, 1, DRIVER_NAME);
     if (err < 0) {
         dev_err(dev, "alloc_chrdev_region() failed.\n");
@@ -1083,6 +1159,7 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_unregister_chrdev_region;
     }
 
+    // data->gw_class = class_create(CLASS_NAME);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
     data->gw_class = class_create(CLASS_NAME);
 #else
@@ -1104,6 +1181,7 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_class_destroy;
     }
 
+    // for (i = 0; i < msi_number; i++) {
     for (i = 0; i < GW_IRQ_NUM; i++) {
         atomic64_set(&data->irq_count[i], 0);
         init_waitqueue_head(&data->irq_wait[i]);

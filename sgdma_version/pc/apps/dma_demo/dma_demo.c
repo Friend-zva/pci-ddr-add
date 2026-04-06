@@ -50,18 +50,19 @@ int main(int argc, char *argv[]) {
     struct gowin_ioctl_param param = {0};
     param.cfg_type = 2;
     param.cfg_where = 0x90;
-    val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
-    if (val) {
-        dest_proc(proc);
-        return -1;
-    }
+    // val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
+    // if (val) {
+    //     dest_proc(proc);
+    //     return -1;
+    // }
 
     param.cfg_type = 2;
     param.cfg_where = 0x88;
-    while (1) {
+    while (0) {
         if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
             param.cfg_dword != MAXFF) {
             val = (param.cfg_dword & 0xFF1F) | (1 << 5); //? payload 256B?
+            printf("waiting\n");
             break;
         }
     }
