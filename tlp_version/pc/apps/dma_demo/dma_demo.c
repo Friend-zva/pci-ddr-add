@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
     volatile uint8_t *dp = proc->mem_dst; // destination
     volatile uint64_t da = proc->dma_dst;
 
-    uint32_t cnt = 128; // 128 * 4 = 512B
+    uint32_t cnt = 16; //* 128 * 4 = 512B
     int size = DMA_SIZE / 2;
     int size_dump = 32; //* size_array = (size / 2)
     int loop = size / (cnt * 4);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
-    uint32_t block_size = (cnt * 4 + 511) & (~511);
+    uint32_t block_size = (cnt * 4 + 1023) & (~1023);
 
     gwbar->intr = (1 << 16) | 1;          // turn on IR for r/w
     gwbar->aclr = (1 << 16) | 1;          // turn on auto-clear IR
@@ -314,9 +314,9 @@ int main(int argc, char *argv[]) {
             }
 
             if (rdma_stat == 0xFFFFFFFFu || wdma_stat == 0xFFFFFFFFu) {
-                flag_exit = 1;
+                // flag_exit = 1;
                 printf("BREAK\n");
-                break;
+                // break;
             }
 
             h2c_level = (int)rdma_stat & 0xFF;

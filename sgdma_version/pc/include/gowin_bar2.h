@@ -1,5 +1,8 @@
 #include <stdint.h>
 
+#ifndef GOWIN_BAR2_H
+#define GOWIN_BAR2_H
+
 // For control register (0x00)
 #define BAR2_CTRL_PCIE_RD_START (1 << 0)
 #define BAR2_CTRL_PCIE_WR_START (1 << 1)
@@ -28,3 +31,5 @@ typedef struct {
     volatile uint32_t addr_lad_wr_hi; //* 0x3C - Logic Adder Write High Address
     volatile uint32_t length_lad;     //* 0x40 - Logic Adder Length
 } GowinBar2;
+
+#endif // GOWIN_BAR2_H

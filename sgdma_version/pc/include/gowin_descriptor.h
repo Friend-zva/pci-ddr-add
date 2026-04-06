@@ -1,5 +1,8 @@
 #include <stdint.h>
 
+#ifndef GOWIN_DESCRIPTOR_H
+#define GOWIN_DESCRIPTOR_H
+
 #define SET_FLAG                                                                    \
     ((1 << 0) | (1 << 1) | (1 << 2)) // Stop=1, Eop=1, Completed=1, Adj=0
 
@@ -17,3 +20,5 @@ typedef struct {
     volatile uint32_t next_lo; //* 0x18 - Next Descriptor Low Address
     volatile uint32_t next_hi; //* 0x1C - Next Descriptor High Address
 } GowinDescriptor;
+
+#endif // GOWIN_DESCRIPTOR_H

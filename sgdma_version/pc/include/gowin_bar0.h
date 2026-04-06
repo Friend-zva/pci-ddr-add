@@ -1,5 +1,8 @@
 #include <stdint.h>
 
+#ifndef GOWIN_BAR0_H
+#define GOWIN_BAR0_H
+
 // For control register (0x04/0x08)
 #define SGDMA_POLL_START 0x0003 // Bit:0 = 1 (Start), Bit:1 = 1 (Poll mode)
 #define SGDMA_STOP 0x0000
@@ -46,3 +49,5 @@ typedef struct {
 
     volatile uint32_t rsv[1024]; //* 0x3000 - 0x3FFF
 } GowinBar0;
+
+#endif // GOWIN_BAR0_H
