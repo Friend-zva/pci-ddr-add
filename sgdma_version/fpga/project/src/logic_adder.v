@@ -55,9 +55,6 @@ module logic_adder (
   assign read_desc_fire = s_axis_read_desc_valid && s_axis_read_desc_ready;
   assign write_desc_fire = s_axis_write_desc_valid && s_axis_write_desc_ready;
   assign stream_fire = m_axis_h2c_tvalid && m_axis_h2c_tready;
-  assign m_axis_h2c_tready = stream_enable && read_desc_issued &&
-      write_desc_issued && s_axis_c2h_tready;
-
   assign s_axis_read_desc_addr = cfg_read_addr;
   assign s_axis_read_desc_len = cfg_byte_len;
   assign s_axis_read_desc_tag = cfg_desc_tag;
@@ -96,7 +93,6 @@ module logic_adder (
       end else begin
         busy <= 1'b1;
 
-        // Issue one read descriptor per run.
         if (!read_desc_issued) begin
           s_axis_read_desc_valid <= 1'b1;
           if (read_desc_fire) begin
@@ -107,7 +103,6 @@ module logic_adder (
           s_axis_read_desc_valid <= 1'b0;
         end
 
-        // Issue one write descriptor per run.
         if (!write_desc_issued) begin
           s_axis_write_desc_valid <= 1'b1;
           if (write_desc_fire) begin
@@ -128,13 +123,39 @@ module logic_adder (
     end
   end
 
-  assign s_axis_c2h_tvalid  = stream_enable && read_desc_issued &&
-      write_desc_issued && m_axis_h2c_tvalid;
-  assign s_axis_c2h_tdata = c2h_tx_data_add16;
-  assign s_axis_c2h_tlast = m_axis_h2c_tlast;
-  assign s_axis_c2h_tkeep = m_axis_h2c_tkeep;
-  assign s_axis_c2h_tuser = m_axis_h2c_tuser;
+  // Pipeline
+  reg [255:0] pipe_tdata;
+  reg pipe_tvalid;
+  reg pipe_tlast;
+  reg [31:0] pipe_tkeep;
+  reg [31:0] pipe_tuser;
+
+  wire pipe_ready = s_axis_c2h_tready || !pipe_tvalid;
+  wire in_valid = stream_enable && read_desc_issued && write_desc_issued && m_axis_h2c_tvalid;
+
+  assign m_axis_h2c_tready = stream_enable && read_desc_issued && write_desc_issued && pipe_ready;
+
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      pipe_tvalid <= 1'b0;
+      pipe_tlast  <= 1'b0;
+    end else begin
+      if (pipe_ready) begin
+        pipe_tvalid <= in_valid;
+        pipe_tdata  <= c2h_tx_data_add16;
+        pipe_tlast  <= m_axis_h2c_tlast;
+        pipe_tkeep  <= m_axis_h2c_tkeep;
+        pipe_tuser  <= m_axis_h2c_tuser;
+      end
+    end
+  end
+
+  assign s_axis_c2h_tvalid  = pipe_tvalid;
+  assign s_axis_c2h_tdata   = pipe_tdata;
+  assign s_axis_c2h_tlast   = pipe_tlast;
+  assign s_axis_c2h_tkeep   = pipe_tkeep;
+  assign s_axis_c2h_tuser   = pipe_tuser;
   assign c2h_overhead_valid = 1'b0;
-  assign c2h_overhead_data = 64'h01_02_03_04_aa_bb_cc_dd;
+  assign c2h_overhead_data  = 64'h01_02_03_04_aa_bb_cc_dd;
 
 endmodule

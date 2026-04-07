@@ -3,7 +3,7 @@ module top (
     input pcie_rstn,
     input rst_n,
 
-    output [3:0] led,
+    output [5:0] led,
 
     output [13:0] ddr_addr,
     output [2:0] ddr_bank,
@@ -36,20 +36,27 @@ module top (
   /* synthesis syn_keep = 1 */
   wire ddr_clk;
   /* synthesis syn_keep = 1 */
-  wire div_clk;
-  wire tlp_clk;
-  wire pll_200m_clk, pll_400m_clk, o_pll_lock;
+  wire memory_clk;
+  /* synthesis syn_keep = 1 */
+  wire div_clk, tlp_clk;
+  wire pll_50m_clk, pll_200m_clk, pll_400m_clk;
+  wire pll_lock, pll_stop;
 
-  // CLOCK input
   Gowin_PLL u_pll (
-      .lock   (o_pll_lock),
-      .clkout0(pll_200m_clk),
-      .clkout1(pll_400m_clk),
-      .clkin  (sys_clk_p),
-      .init_clk(sys_clk_p)
+      .clkin(sys_clk_p),
+      .init_clk(sys_clk_p),
+      .clkout0(pll_50m_clk),
+      .clkout1(pll_200m_clk),
+      .clkout2(pll_400m_clk),
+      .enclk0(1'b1),
+      .enclk1(1'b1),
+      .enclk2(pll_stop),
+      .lock(pll_lock),
+      .reset(~rst_n)
   );
+  assign ddr_clk = pll_50m_clk;  //? recommend in ip core guide [maybe try]
   assign sys_clk = pll_200m_clk;
-  assign ddr_clk = pll_400m_clk;
+  assign memory_clk = pll_400m_clk;
 
   CLKDIV #(
       .DIV_MODE("2")
@@ -59,7 +66,6 @@ module top (
       sys_clk,
       'b1
   );
-
   assign cfg_clk = div_clk;
   assign tlp_clk = div_clk;
 
@@ -97,6 +103,9 @@ module top (
     else run_cnt <= run_cnt + 2'd1;
 
   wire pcie_linkup;
+  wire ddr_init_calib_complete;
+  wire h2c_run = 1'b0;  //? 1'b1
+  wire c2h_run = 1'b0;
   reg  pcie_linkup_r;
   /* synthesis syn_keep = 1 */
 
@@ -106,6 +115,8 @@ module top (
   assign led[1] = ~perst_cnt[PERST_DLY];
   assign led[2] = ~pcie_start;
   assign led[3] = ~pcie_linkup_r;
+  assign led[4] = ~ddr_init_calib_complete;
+  assign led[5] = ~h2c_run;
 
   /* PCIe IP */
   wire         pcie_tl_rx_sop;
@@ -158,8 +169,6 @@ module top (
   wire         c2h_overhead_valid;
   wire [ 63:0] c2h_overhead_data;
 
-  wire         h2c_run = 1'b1;
-  wire         c2h_run = 1'b1;
   //BAR2
   wire         user_cs;
   wire [ 63:0] user_address;
@@ -177,10 +186,8 @@ module top (
   localparam integer AXIIDWIDTH = 4;
   localparam integer AXILENWIDTH = 20;
 
-  wire                      ddr_pll_stop;
   wire                      ddr_clk_out;
   wire                      ddr_rst;
-  wire                      ddr_init_calib_complete;
   wire                      ddr_sr_ack;
   wire                      ddr_ref_ack;
 
@@ -530,8 +537,7 @@ module top (
       .lad_h2c_run(lad_h2c_run),
       .lad_c2h_run(lad_c2h_run),
       .lad_busy(lad_busy),
-      .lad_done(lad_done),
-      .ddr_ready(ddr_init_calib_complete)
+      .lad_done(lad_done)
   );
 
   //**************axi dma (pcie_sgdma)****************
@@ -895,9 +901,9 @@ module top (
   //**************ddr3 memory interface****************
   DDR3_Memory_Interface_Top u_ddr3 (
       .clk(tlp_clk),
-      .pll_stop(ddr_pll_stop),
-      .memory_clk(ddr_clk),
-      .pll_lock(1'b1),
+      .pll_stop(pll_stop),
+      .memory_clk(memory_clk),
+      .pll_lock(pll_lock),
       .rst_n(tlp_rst_n),
       .clk_out(ddr_clk_out),
       .ddr_rst(ddr_rst),
