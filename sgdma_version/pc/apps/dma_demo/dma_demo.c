@@ -118,13 +118,6 @@ int main(int argc, char *argv[]) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
-    uint32_t status_bar2 = gwbar2->status;
-    if ((status_bar2 & BAR2_STATUS_DDR) == 0) {
-        printf("Failed to calibrate DDR3\n");
-        dest_proc(proc);
-        return -1;
-    }
-
     for (int chunk = 0; chunk < loop; chunk++) {
         if (flag_exit) {
             break;
@@ -139,7 +132,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // Host PC -> FPGA DDR3
         // ====================
-        *poll_h2c = 0;
+        // *poll_h2c = 0;
 
         desc_h2c->flags = SET_FLAG;
         desc_h2c->length = length;
@@ -163,7 +156,7 @@ int main(int argc, char *argv[]) {
 
         gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
 
-        while (*poll_h2c == 0 && !flag_exit) {
+        while (!flag_exit) {
             uint32_t status_h2c = gwbar0->h2c[0].status0;
             if (status_h2c & (1 << 2)) {
                 printf("FPGA reports h2c DONE, but poll memory is 0.\n");
@@ -200,7 +193,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // FPGA DDR3 -> Host PC
         // ====================
-        *poll_c2h = 0;
+        // *poll_c2h = 0;
 
         desc_c2h->flags = SET_FLAG;
         desc_c2h->length = length;
@@ -224,8 +217,8 @@ int main(int argc, char *argv[]) {
 
         gwbar2->ctrl = BAR2_CTRL_PCIE_WR_START;
 
-        while (*poll_c2h == 0 && !flag_exit) {
-            uint32_t status_c2h = gwbar0->h2c[0].status0;
+        while (!flag_exit) {
+            uint32_t status_c2h = gwbar0->c2h[0].status0;
             if (status_c2h & (1 << 2)) {
                 printf("FPGA reports c2h DONE, but poll memory is 0.\n");
                 break;
