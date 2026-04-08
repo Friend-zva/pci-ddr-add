@@ -52,43 +52,25 @@ int main(int argc, char *argv[]) {
     }
 
     gwbar0->ctrl.ctrl_init = 1;
-    while ((gwbar0->ctrl.stat_init & MAXFF) != 0xaa009719) {
+    while ((gwbar0->ctrl.stat_init & MAXFF) != PCIE_READY) {
         if (flag_exit) {
             dest_proc(proc);
             return -1;
         }
     }
-
     if (DBG_INFO) {
-        printf("gwbar0->ctrl.ctrl_init passed.\n");
+        printf("PCIE_READY.\n");
         fflush(stdout);
     }
 
     struct gowin_ioctl_param param = {0};
     param.cfg_type = 2;
-    param.cfg_where = 0x90;
+    param.cfg_where = 0x90; // Link Status
     val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
     if (val) {
+        printf("LINK ERROR.\n");
         dest_proc(proc);
         return -1;
-    }
-
-    param.cfg_type = 2;
-    param.cfg_where = 0x88;
-    while (1) {
-        if (DBG_INFO) {
-            printf("waiting\n");
-        }
-        if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
-            param.cfg_dword != MAXFF) {
-            val = (param.cfg_dword & 0xFF1F) | (1 << 5); //? payload 256B?
-            break;
-        }
-    }
-
-    if (DBG_INFO) {
-        printf("start state checked.\n");
-        fflush(stdout);
     }
 
     //? volatile? for bar too?
@@ -104,6 +86,9 @@ int main(int argc, char *argv[]) {
     volatile uint8_t *dp = proc->mem_dst + 64;
     volatile uint64_t da = proc->dma_dst + 64;
 
+    uint32_t addr_ddr_h2c = 0x00000000;
+    uint32_t addr_ddr_c2h = 0x01000000;
+
     uint32_t cnt = 128; // 128 * 4 = 512B
     uint32_t length = cnt * 4;
     int size = DMA_SIZE / 2;
@@ -111,18 +96,8 @@ int main(int argc, char *argv[]) {
     int loop = size / length;
     uint32_t block_size = (length + 511) & (~511);
 
-    uint32_t ptr_h2c_ddr3 = 0x00000000;
-    uint32_t ptr_c2h_ddr3 = 0x01000000;
-
     for (int i = 0; i < size; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
-    }
-
-    uint32_t status_bar2 = gwbar2->status;
-    if ((status_bar2 & BAR2_STATUS_DDR) == 0) {
-        printf("Failed to calibrate DDR3\n");
-        dest_proc(proc);
-        return -1;
     }
 
     for (int chunk = 0; chunk < loop; chunk++) {
@@ -139,7 +114,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // Host PC -> FPGA DDR3
         // ====================
-        *poll_h2c = 0;
+        // *poll_h2c = 0;
 
         desc_h2c->flags = SET_FLAG;
         desc_h2c->length = length;
@@ -151,26 +126,19 @@ int main(int argc, char *argv[]) {
 
         gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
         gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
-        gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
-        gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
+        // gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
+        // gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
         gwbar0->h2c[0].num_desc_adj = 0;
 
-        gwbar2->addr_pcie_rd_lo = ptr_h2c_ddr3;
-        gwbar2->addr_pcie_rd_hi = 0;
-        gwbar2->length_pcie_rd = length;
+        gwbar2->addr_ddr_h2c_lo = addr_ddr_h2c;
+        gwbar2->addr_ddr_h2c_hi = 0;
+        gwbar2->leng_ddr_h2c = length;
 
-        gwbar2->ctrl = BAR2_CTRL_PCIE_RD_START;
+        gwbar2->ctrl = BAR2_PCIE_RD_START;
+        gwbar0->h2c[0].ctrl = SGDMA_START;
 
-        gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
-
-        while (*poll_h2c == 0 && !flag_exit) {
-            uint32_t status_h2c = gwbar0->h2c[0].status0;
-            if (status_h2c & (1 << 2)) {
-                printf("FPGA reports h2c DONE, but poll memory is 0.\n");
-                break;
-            }
-            printf("loop h2c\n");
-            usleep(1);
+        while (!(gwbar0->h2c[0].status0 & SGDMA_DONE) && !flag_exit) {
+            printf("loop h2c ");
         }
         gwbar0->h2c[0].ctrl = SGDMA_STOP;
         if (flag_exit) {
@@ -180,19 +148,18 @@ int main(int argc, char *argv[]) {
         // ==================================
         // Logic Adder: DDR3 -> Logic -> DDR3
         // ==================================
-        gwbar2->addr_lad_rd_lo = ptr_h2c_ddr3;
+        gwbar2->addr_lad_rd_lo = addr_ddr_h2c;
         gwbar2->addr_lad_rd_hi = 0;
-        gwbar2->addr_lad_wr_lo = ptr_c2h_ddr3;
+        gwbar2->addr_lad_wr_lo = addr_ddr_c2h;
         gwbar2->addr_lad_wr_hi = 0;
-        gwbar2->length_lad = length;
+        gwbar2->leng_lad = length;
 
-        gwbar2->ctrl = BAR2_CTRL_LAD_START;
+        gwbar2->ctrl = BAR2_LAD_START;
 
-        while ((gwbar2->status & BAR2_STATUS_LAD_DONE) == 0 && !flag_exit) {
-            printf("loop ddr\n");
-            usleep(1);
+        while (!(gwbar2->status & BAR2_LAD_DONE) && !flag_exit) {
+            printf("loop ddr ");
         }
-        gwbar2->ctrl = BAR2_CTRL_LAD_STOP;
+        gwbar2->ctrl = BAR2_LAD_STOP;
         if (flag_exit) {
             break;
         }
@@ -200,7 +167,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // FPGA DDR3 -> Host PC
         // ====================
-        *poll_c2h = 0;
+        // *poll_c2h = 0;
 
         desc_c2h->flags = SET_FLAG;
         desc_c2h->length = length;
@@ -212,26 +179,20 @@ int main(int argc, char *argv[]) {
 
         gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
         gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
-        gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
-        gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
+        // gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
+        // gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
         gwbar0->c2h[0].num_desc_adj = 0;
 
-        gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
+        gwbar0->c2h[0].ctrl = SGDMA_START;
 
-        gwbar2->addr_pcie_wr_lo = ptr_h2c_ddr3;
-        gwbar2->addr_pcie_wr_hi = 0;
-        gwbar2->length_pcie_wr = length;
+        gwbar2->addr_ddr_c2h_lo = addr_ddr_c2h;
+        gwbar2->addr_ddr_c2h_hi = 0;
+        gwbar2->leng_ddr_c2h = length;
 
-        gwbar2->ctrl = BAR2_CTRL_PCIE_WR_START;
+        gwbar2->ctrl = BAR2_PCIE_WR_START;
 
-        while (*poll_c2h == 0 && !flag_exit) {
-            uint32_t status_c2h = gwbar0->h2c[0].status0;
-            if (status_c2h & (1 << 2)) {
-                printf("FPGA reports c2h DONE, but poll memory is 0.\n");
-                break;
-            }
-            printf("loop c2h\n");
-            usleep(1);
+        while (!(gwbar0->c2h[0].status0 & SGDMA_DONE) && !flag_exit) {
+            printf("loop c2h ");
         }
         gwbar0->c2h[0].ctrl = SGDMA_STOP;
         if (flag_exit) {
@@ -244,8 +205,8 @@ int main(int argc, char *argv[]) {
         dp += block_size;
 
         //? Temp shift
-        ptr_h2c_ddr3 += block_size;
-        ptr_c2h_ddr3 += block_size;
+        addr_ddr_h2c += block_size;
+        addr_ddr_c2h += block_size;
 
         if (sa + block_size > proc->dma_src + DMA_SIZE) {
             sa = proc->dma_src + 64;
@@ -272,7 +233,8 @@ int main(int argc, char *argv[]) {
 
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
     gwbar0->c2h[0].ctrl = SGDMA_STOP;
-    gwbar2->ctrl = BAR2_CTRL_LAD_STOP;
+    gwbar2->ctrl = BAR2_LAD_STOP;
+
     dest_proc(proc);
     if (flag_exit) {
         return 1;
