@@ -1,5 +1,3 @@
-// All lengths in bytes.
-
 module logic_dma #(
     parameter integer AXIADDRWIDTH = 29,
     parameter integer AXILENWIDTH  = 20
@@ -37,6 +35,7 @@ module logic_dma #(
     input             lad_busy,
     input             lad_done
 );
+  //* All lengths in bytes.
 
   localparam integer RegCtrl = 8'h00;
   localparam integer RegStatus = 8'h04;
@@ -122,7 +121,7 @@ module logic_dma #(
             // bit0: start pcie write descriptor
             // bit1: start pcie read  descriptor
             // bit2: start logic_adder run
-            // bit3: stop logic_adder run
+            // bit3: stop  logic_adder run
             if (user_wr_data[0]) begin
               pcie_write_addr  <= pcie_wr_addr_lo[AXIADDRWIDTH-1:0];
               pcie_write_valid <= 1'b1;

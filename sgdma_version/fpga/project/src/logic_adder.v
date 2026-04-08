@@ -36,8 +36,7 @@ module logic_adder (
     output         c2h_overhead_valid,
     output [ 63:0] c2h_overhead_data,
 
-    input      h2c_run,
-    input      c2h_run,
+    input      run,
     output reg busy,
     output reg done
 );
@@ -51,7 +50,7 @@ module logic_adder (
   reg read_desc_issued;
   reg write_desc_issued;
 
-  assign stream_enable = h2c_run && c2h_run;
+  assign stream_enable = run;
   assign read_desc_fire = s_axis_read_desc_valid && s_axis_read_desc_ready;
   assign write_desc_fire = s_axis_write_desc_valid && s_axis_write_desc_ready;
   assign stream_fire = m_axis_h2c_tvalid && m_axis_h2c_tready;
