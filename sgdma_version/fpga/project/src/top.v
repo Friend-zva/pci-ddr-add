@@ -27,8 +27,6 @@ module top (
   localparam RUN_DLY = 23;
   localparam SYS_RST_DLY = 20;
 
-
-  /* Clocks & Reset */
   // Clocks
   wire sys_clk;
   /* synthesis syn_keep = 1 */
@@ -257,8 +255,7 @@ module top (
   wire [             3 : 0] lad_dma_write_status_error;
   wire                      lad_dma_write_status_valid;
 
-  wire                      lad_h2c_run;
-  wire                      lad_c2h_run;
+  wire                      lad_run;
   wire                      lad_busy;
   wire                      lad_done;
   wire [            63 : 0] lad_cfg_read_addr;
@@ -520,22 +517,18 @@ module top (
       .user_rd_be(user_rd_be),
       .user_rd_valid(user_rd_valid),
       .user_rd_data(user_rd_data),
-      .pcie_read_desc_addr(dma_write_desc_addr),
-      .pcie_read_desc_len(dma_write_desc_len),
-      .pcie_read_desc_tag(),
-      .pcie_read_desc_valid(dma_write_desc_valid),
-      .pcie_read_desc_ready(dma_write_desc_ready),
       .pcie_write_desc_addr(dma_read_desc_addr),
       .pcie_write_desc_len(dma_read_desc_len),
-      .pcie_write_desc_tag(),
       .pcie_write_desc_valid(dma_read_desc_valid),
       .pcie_write_desc_ready(dma_read_desc_ready),
+      .pcie_read_desc_addr(dma_write_desc_addr),
+      .pcie_read_desc_len(dma_write_desc_len),
+      .pcie_read_desc_valid(dma_write_desc_valid),
+      .pcie_read_desc_ready(dma_write_desc_ready),
       .lad_read_addr(lad_cfg_read_addr),
       .lad_write_addr(lad_cfg_write_addr),
-      .lad_byte_len(lad_cfg_byte_len),
-      .lad_desc_tag(lad_cfg_desc_tag),
-      .lad_h2c_run(lad_h2c_run),
-      .lad_c2h_run(lad_c2h_run),
+      .lad_len(lad_cfg_byte_len),
+      .lad_run(lad_run),
       .lad_busy(lad_busy),
       .lad_done(lad_done)
   );
@@ -961,4 +954,5 @@ module top (
 
   assign ic_m_axi_buser = 1'b0;
   assign ic_m_axi_ruser = 1'b0;
+
 endmodule

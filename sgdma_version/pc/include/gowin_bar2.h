@@ -6,8 +6,8 @@
 #define BAR2_SIZE (1024 * 2)
 
 // For control register (0x00)
-#define BAR2_PCIE_RD_START (1 << 0) // c2h
-#define BAR2_PCIE_WR_START (1 << 1) // h2c
+#define BAR2_PCIE_WR_START (1 << 0) // h2c
+#define BAR2_PCIE_RD_START (1 << 1) // c2h
 #define BAR2_LAD_START (1 << 2)
 #define BAR2_LAD_STOP (1 << 3)
 

@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
         gwbar2->addr_ddr_h2c_hi = 0;
         gwbar2->leng_ddr_h2c = length;
 
-        gwbar2->ctrl = BAR2_PCIE_RD_START;
+        gwbar2->ctrl = BAR2_PCIE_WR_START;
         gwbar0->h2c[0].ctrl = SGDMA_START;
 
         while (!(gwbar0->h2c[0].status0 & SGDMA_DONE) && !flag_exit) {
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
         gwbar2->addr_ddr_c2h_hi = 0;
         gwbar2->leng_ddr_c2h = length;
 
-        gwbar2->ctrl = BAR2_PCIE_WR_START;
+        gwbar2->ctrl = BAR2_PCIE_RD_START;
 
         while (!(gwbar0->c2h[0].status0 & SGDMA_DONE) && !flag_exit) {
             printf("loop c2h ");
