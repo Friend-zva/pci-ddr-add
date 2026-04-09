@@ -279,20 +279,20 @@ module top (
   /* Logic control BAR2 */
   localparam integer AXIADDRWIDTH = 29;
   localparam integer AXILENWIDTH = 20;
-  // h2c flow
-  wire [AXIADDRWIDTH-1:0] dma_read_desc_addr;
-  wire [ AXILENWIDTH-1:0] dma_read_desc_len;
-  wire                    dma_read_desc_ready;
-  wire                    dma_read_desc_valid;
-  // c2h flow
-  wire [AXIADDRWIDTH-1:0] dma_write_desc_addr;
-  wire [ AXILENWIDTH-1:0] dma_write_desc_len;
-  wire                    dma_write_desc_valid;
-  wire                    dma_write_desc_ready;
+  // h2c
+  wire [AXIADDRWIDTH-1:0] ddr_h2c_desc_addr;
+  wire [ AXILENWIDTH-1:0] ddr_h2c_desc_len;
+  wire                    ddr_h2c_desc_ready;
+  wire                    ddr_h2c_desc_valid;
+  // c2h
+  wire [AXIADDRWIDTH-1:0] ddr_c2h_desc_addr;
+  wire [ AXILENWIDTH-1:0] ddr_c2h_desc_len;
+  wire                    ddr_c2h_desc_valid;
+  wire                    ddr_c2h_desc_ready;
   // Logic Adder config
-  wire [          63 : 0] lad_cfg_read_addr;
-  wire [          63 : 0] lad_cfg_write_addr;
-  wire [          31 : 0] lad_cfg_byte_len;
+  wire [AXIADDRWIDTH-1:0] lad_cfg_read_addr;
+  wire [AXIADDRWIDTH-1:0] lad_cfg_write_addr;
+  wire [ AXILENWIDTH-1:0] lad_cfg_byte_len;
   wire                    lad_run;
   wire                    lad_busy;
   wire                    lad_done;
@@ -311,14 +311,14 @@ module top (
       .user_rd_be(user_rd_be),
       .user_rd_valid(user_rd_valid),
       .user_rd_data(user_rd_data),
-      .pcie_write_addr(dma_read_desc_addr),
-      .pcie_write_len(dma_read_desc_len),
-      .pcie_write_valid(dma_read_desc_valid),
-      .pcie_write_ready(dma_read_desc_ready),
-      .pcie_read_addr(dma_write_desc_addr),
-      .pcie_read_len(dma_write_desc_len),
-      .pcie_read_valid(dma_write_desc_valid),
-      .pcie_read_ready(dma_write_desc_ready),
+      .ddr_h2c_addr(ddr_h2c_desc_addr),
+      .ddr_h2c_len(ddr_h2c_desc_len),
+      .ddr_h2c_valid(ddr_h2c_desc_valid),
+      .ddr_h2c_ready(ddr_h2c_desc_ready),
+      .ddr_c2h_addr(ddr_c2h_desc_addr),
+      .ddr_c2h_len(ddr_c2h_desc_len),
+      .ddr_c2h_valid(ddr_c2h_desc_valid),
+      .ddr_c2h_ready(ddr_c2h_desc_ready),
       .lad_read_addr(lad_cfg_read_addr),
       .lad_write_addr(lad_cfg_write_addr),
       .lad_len(lad_cfg_byte_len),
@@ -331,23 +331,23 @@ module top (
   localparam integer AXIDATAWIDTH = 256;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
   localparam integer AXIIDWIDTH = 4;
-  // Read
-  wire [           7 : 0] dma_read_status_tag;
-  wire [           3 : 0] dma_read_status_error;
-  wire                    dma_read_status_valid;
-  wire [           7 : 0] dma_read_desc_tag;
-  wire [           7 : 0] dma_read_desc_id;
-  wire [           7 : 0] dma_read_desc_dest;
-  wire [          31 : 0] dma_read_desc_user;
-  // Write
-  wire [ AXILENWIDTH-1:0] dma_write_status_len;
-  wire [           7 : 0] dma_write_status_tag;
-  wire [           7 : 0] dma_write_status_id;
-  wire [           7 : 0] dma_write_status_dest;
-  wire [          31 : 0] dma_write_status_user;
-  wire [           3 : 0] dma_write_status_error;
-  wire                    dma_write_status_valid;
-  wire [           7 : 0] dma_write_desc_tag;
+  // h2c
+  wire [ AXILENWIDTH-1:0] ddr_h2c_status_len;
+  wire [           7 : 0] ddr_h2c_status_tag;
+  wire [           7 : 0] ddr_h2c_status_id;
+  wire [           7 : 0] ddr_h2c_status_dest;
+  wire [          31 : 0] ddr_h2c_status_user;
+  wire [           3 : 0] ddr_h2c_status_error;
+  wire                    ddr_h2c_status_valid;
+  wire [           7 : 0] ddr_h2c_desc_tag;
+  // c2h
+  wire [           7 : 0] ddr_c2h_status_tag;
+  wire [           3 : 0] ddr_c2h_status_error;
+  wire                    ddr_c2h_status_valid;
+  wire [           7 : 0] ddr_c2h_desc_tag;
+  wire [           7 : 0] ddr_c2h_desc_id;
+  wire [           7 : 0] ddr_c2h_desc_dest;
+  wire [          31 : 0] ddr_c2h_desc_user;
   // Config
   wire [  AXIIDWIDTH-1:0] dma_axi_awid;
   wire [AXIADDRWIDTH-1:0] dma_axi_awaddr;
@@ -401,24 +401,21 @@ module top (
       .AXIS_DEST_WIDTH(8),
       .AXIS_USER_ENABLE(1),
       .AXIS_USER_WIDTH(32),
-      .LEN_WIDTH(AXILENWIDTH),
-      .TAG_WIDTH(8),
-      .ENABLE_SG(0),
-      .ENABLE_UNALIGNED(0)
+      .LEN_WIDTH(AXILENWIDTH)
   ) u_axi_dma_pcie_sgdma (
       .clk(tlp_clk),
       .rst(tlp_rst),
-      .s_axis_read_desc_addr(dma_read_desc_addr),
-      .s_axis_read_desc_len(dma_read_desc_len),
-      .s_axis_read_desc_tag(dma_read_desc_tag),
-      .s_axis_read_desc_id(dma_read_desc_id),
-      .s_axis_read_desc_dest(dma_read_desc_dest),
-      .s_axis_read_desc_user(dma_read_desc_user),
-      .s_axis_read_desc_valid(dma_read_desc_valid),
-      .s_axis_read_desc_ready(dma_read_desc_ready),
-      .m_axis_read_desc_status_tag(dma_read_status_tag),
-      .m_axis_read_desc_status_error(dma_read_status_error),
-      .m_axis_read_desc_status_valid(dma_read_status_valid),
+      .s_axis_read_desc_addr(ddr_c2h_desc_addr),
+      .s_axis_read_desc_len(ddr_c2h_desc_len),
+      .s_axis_read_desc_tag(ddr_c2h_desc_tag),
+      .s_axis_read_desc_id(ddr_c2h_desc_id),
+      .s_axis_read_desc_dest(ddr_c2h_desc_dest),
+      .s_axis_read_desc_user(ddr_c2h_desc_user),
+      .s_axis_read_desc_valid(ddr_c2h_desc_valid),
+      .s_axis_read_desc_ready(ddr_c2h_desc_ready),
+      .m_axis_read_desc_status_tag(ddr_c2h_status_tag),
+      .m_axis_read_desc_status_error(ddr_c2h_status_error),
+      .m_axis_read_desc_status_valid(ddr_c2h_status_valid),
       .m_axis_read_data_tdata(s_axis_c2h_tdata),
       .m_axis_read_data_tkeep(s_axis_c2h_tkeep),
       .m_axis_read_data_tvalid(s_axis_c2h_tvalid),
@@ -427,18 +424,18 @@ module top (
       .m_axis_read_data_tid(),
       .m_axis_read_data_tdest(),
       .m_axis_read_data_tuser(s_axis_c2h_tuser),
-      .s_axis_write_desc_addr(dma_write_desc_addr),
-      .s_axis_write_desc_len(dma_write_desc_len),
-      .s_axis_write_desc_tag(dma_write_desc_tag),
-      .s_axis_write_desc_valid(dma_write_desc_valid),
-      .s_axis_write_desc_ready(dma_write_desc_ready),
-      .m_axis_write_desc_status_len(dma_write_status_len),
-      .m_axis_write_desc_status_tag(dma_write_status_tag),
-      .m_axis_write_desc_status_id(dma_write_status_id),
-      .m_axis_write_desc_status_dest(dma_write_status_dest),
-      .m_axis_write_desc_status_user(dma_write_status_user),
-      .m_axis_write_desc_status_error(dma_write_status_error),
-      .m_axis_write_desc_status_valid(dma_write_status_valid),
+      .s_axis_write_desc_addr(ddr_h2c_desc_addr),
+      .s_axis_write_desc_len(ddr_h2c_desc_len),
+      .s_axis_write_desc_tag(ddr_h2c_desc_tag),
+      .s_axis_write_desc_valid(ddr_h2c_desc_valid),
+      .s_axis_write_desc_ready(ddr_h2c_desc_ready),
+      .m_axis_write_desc_status_len(ddr_h2c_status_len),
+      .m_axis_write_desc_status_tag(ddr_h2c_status_tag),
+      .m_axis_write_desc_status_id(ddr_h2c_status_id),
+      .m_axis_write_desc_status_dest(ddr_h2c_status_dest),
+      .m_axis_write_desc_status_user(ddr_h2c_status_user),
+      .m_axis_write_desc_status_error(ddr_h2c_status_error),
+      .m_axis_write_desc_status_valid(ddr_h2c_status_valid),
       .s_axis_write_data_tdata(m_axis_h2c_tdata),
       .s_axis_write_data_tkeep(m_axis_h2c_tkeep),
       .s_axis_write_data_tvalid(m_axis_h2c_tvalid),
@@ -487,11 +484,11 @@ module top (
       .write_abort(1'b0)
   );
 
-  assign dma_read_desc_tag  = 8'd0;
-  assign dma_read_desc_id   = 8'd0;
-  assign dma_read_desc_dest = 8'd0;
-  assign dma_read_desc_user = 32'd0;
-  assign dma_write_desc_tag = 8'd0;
+  assign ddr_c2h_desc_tag  = 8'd0;
+  assign ddr_c2h_desc_id   = 8'd0;
+  assign ddr_c2h_desc_dest = 8'd0;
+  assign ddr_c2h_desc_user = 32'd0;
+  assign ddr_h2c_desc_tag  = 8'd0;
 
   // ==========
   // Logic Core
@@ -509,23 +506,20 @@ module top (
   wire [  7 : 0] lad_write_desc_tag;
   wire           lad_write_desc_valid;
   wire           lad_write_desc_ready;
-  // h2c
-  wire           lad_h2c_tready;
-  wire           lad_h2c_tvalid;
-  wire [255 : 0] lad_h2c_tdata;
-  wire           lad_h2c_tlast;
-  wire [ 31 : 0] lad_h2c_tuser;
-  wire [ 31 : 0] lad_h2c_tkeep;
-  wire [ 63 : 0] lad_h2c_overhead;
-  // c2h
-  wire           lad_c2h_tready;
-  wire           lad_c2h_tvalid;
-  wire           lad_c2h_tlast;
-  wire [255 : 0] lad_c2h_tdata;
-  wire [ 31 : 0] lad_c2h_tuser;
-  wire [ 31 : 0] lad_c2h_tkeep;
-  wire           lad_c2h_overhead_valid;
-  wire [ 63 : 0] lad_c2h_overhead_data;
+  // Receive
+  wire           lad_rx_tready;
+  wire           lad_rx_tvalid;
+  wire [255 : 0] lad_rx_tdata;
+  wire           lad_rx_tlast;
+  wire [ 31 : 0] lad_rx_tuser;
+  wire [ 31 : 0] lad_rx_tkeep;
+  // Transmit
+  wire           lad_tx_tready;
+  wire           lad_tx_tvalid;
+  wire           lad_tx_tlast;
+  wire [255 : 0] lad_tx_tdata;
+  wire [ 31 : 0] lad_tx_tuser;
+  wire [ 31 : 0] lad_tx_tkeep;
   // Config
   wire [  7 : 0] lad_cfg_desc_tag;
 
@@ -546,21 +540,18 @@ module top (
       .s_axis_write_desc_addr(lad_write_desc_addr),
       .s_axis_write_desc_len(lad_write_desc_len),
       .s_axis_write_desc_tag(lad_write_desc_tag),
-      .m_axis_h2c_tready(lad_h2c_tready),
-      .m_axis_h2c_tvalid(lad_h2c_tvalid),
-      .m_axis_h2c_tdata(lad_h2c_tdata),
-      .m_axis_h2c_tlast(lad_h2c_tlast),
-      .m_axis_h2c_tuser(lad_h2c_tuser),
-      .m_axis_h2c_tkeep(lad_h2c_tkeep),
-      .h2c_overhead(lad_h2c_overhead),
-      .s_axis_c2h_tready(lad_c2h_tready),
-      .s_axis_c2h_tvalid(lad_c2h_tvalid),
-      .s_axis_c2h_tlast(lad_c2h_tlast),
-      .s_axis_c2h_tdata(lad_c2h_tdata),
-      .s_axis_c2h_tuser(lad_c2h_tuser),
-      .s_axis_c2h_tkeep(lad_c2h_tkeep),
-      .c2h_overhead_valid(lad_c2h_overhead_valid),
-      .c2h_overhead_data(lad_c2h_overhead_data),
+      .m_axis_rx_tready(lad_rx_tready),
+      .m_axis_rx_tvalid(lad_rx_tvalid),
+      .m_axis_rx_tdata(lad_rx_tdata),
+      .m_axis_rx_tlast(lad_rx_tlast),
+      .m_axis_rx_tuser(lad_rx_tuser),
+      .m_axis_rx_tkeep(lad_rx_tkeep),
+      .s_axis_tx_tready(lad_tx_tready),
+      .s_axis_tx_tvalid(lad_tx_tvalid),
+      .s_axis_tx_tlast(lad_tx_tlast),
+      .s_axis_tx_tdata(lad_tx_tdata),
+      .s_axis_tx_tuser(lad_tx_tuser),
+      .s_axis_tx_tkeep(lad_tx_tkeep),
       .run(lad_run),
       .busy(lad_busy),
       .done(lad_done)
@@ -568,7 +559,7 @@ module top (
 
   assign c2h_overhead_valid = 1'b0;
   assign c2h_overhead_data  = 64'd0;
-  assign lad_h2c_overhead   = 64'd0;
+  assign lad_cfg_desc_tag   = 8'd0;
 
   /* AXI DMA */
   // Write
@@ -636,10 +627,7 @@ module top (
       .AXIS_DEST_WIDTH(8),
       .AXIS_USER_ENABLE(1),
       .AXIS_USER_WIDTH(32),
-      .LEN_WIDTH(AXILENWIDTH),
-      .TAG_WIDTH(8),
-      .ENABLE_SG(0),
-      .ENABLE_UNALIGNED(0)
+      .LEN_WIDTH(AXILENWIDTH)
   ) u_axi_dma_logic_adder (
       .clk(tlp_clk),
       .rst(tlp_rst),
@@ -654,14 +642,14 @@ module top (
       .m_axis_read_desc_status_tag(lad_dma_read_status_tag),
       .m_axis_read_desc_status_error(lad_dma_read_status_error),
       .m_axis_read_desc_status_valid(lad_dma_read_status_valid),
-      .m_axis_read_data_tdata(lad_h2c_tdata),
-      .m_axis_read_data_tkeep(lad_h2c_tkeep),
-      .m_axis_read_data_tvalid(lad_h2c_tvalid),
-      .m_axis_read_data_tready(lad_h2c_tready),
-      .m_axis_read_data_tlast(lad_h2c_tlast),
+      .m_axis_read_data_tdata(lad_rx_tdata),
+      .m_axis_read_data_tkeep(lad_rx_tkeep),
+      .m_axis_read_data_tvalid(lad_rx_tvalid),
+      .m_axis_read_data_tready(lad_rx_tready),
+      .m_axis_read_data_tlast(lad_rx_tlast),
       .m_axis_read_data_tid(),
       .m_axis_read_data_tdest(),
-      .m_axis_read_data_tuser(lad_h2c_tuser),
+      .m_axis_read_data_tuser(lad_rx_tuser),
       .s_axis_write_desc_addr(lad_write_desc_addr[AXIADDRWIDTH-1:0]),
       .s_axis_write_desc_len(lad_write_desc_len[AXILENWIDTH-1:0]),
       .s_axis_write_desc_tag(lad_write_desc_tag),
@@ -674,14 +662,14 @@ module top (
       .m_axis_write_desc_status_user(lad_dma_write_status_user),
       .m_axis_write_desc_status_error(lad_dma_write_status_error),
       .m_axis_write_desc_status_valid(lad_dma_write_status_valid),
-      .s_axis_write_data_tdata(lad_c2h_tdata),
-      .s_axis_write_data_tkeep(lad_c2h_tkeep),
-      .s_axis_write_data_tvalid(lad_c2h_tvalid),
-      .s_axis_write_data_tready(lad_c2h_tready),
-      .s_axis_write_data_tlast(lad_c2h_tlast),
+      .s_axis_write_data_tdata(lad_tx_tdata),
+      .s_axis_write_data_tkeep(lad_tx_tkeep),
+      .s_axis_write_data_tvalid(lad_tx_tvalid),
+      .s_axis_write_data_tready(lad_tx_tready),
+      .s_axis_write_data_tlast(lad_tx_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
-      .s_axis_write_data_tuser(lad_c2h_tuser),
+      .s_axis_write_data_tuser(lad_tx_tuser),
       .m_axi_awid(lad_dma_axi_awid),
       .m_axi_awaddr(lad_dma_axi_awaddr),
       .m_axi_awlen(lad_dma_axi_awlen),

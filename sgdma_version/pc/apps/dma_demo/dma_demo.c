@@ -130,8 +130,7 @@ int main(int argc, char *argv[]) {
         // gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
         gwbar0->h2c[0].num_desc_adj = 0;
 
-        gwbar2->addr_ddr_h2c_lo = addr_ddr_h2c;
-        gwbar2->addr_ddr_h2c_hi = 0;
+        gwbar2->addr_ddr_h2c = addr_ddr_h2c;
         gwbar2->leng_ddr_h2c = length;
 
         gwbar2->ctrl = BAR2_PCIE_WR_START;
@@ -148,10 +147,8 @@ int main(int argc, char *argv[]) {
         // ==================================
         // Logic Adder: DDR3 -> Logic -> DDR3
         // ==================================
-        gwbar2->addr_lad_rd_lo = addr_ddr_h2c;
-        gwbar2->addr_lad_rd_hi = 0;
-        gwbar2->addr_lad_wr_lo = addr_ddr_c2h;
-        gwbar2->addr_lad_wr_hi = 0;
+        gwbar2->addr_lad_rd = addr_ddr_h2c;
+        gwbar2->addr_lad_wr = addr_ddr_c2h;
         gwbar2->leng_lad = length;
 
         gwbar2->ctrl = BAR2_LAD_START;
@@ -185,8 +182,7 @@ int main(int argc, char *argv[]) {
 
         gwbar0->c2h[0].ctrl = SGDMA_START;
 
-        gwbar2->addr_ddr_c2h_lo = addr_ddr_c2h;
-        gwbar2->addr_ddr_c2h_hi = 0;
+        gwbar2->addr_ddr_c2h = addr_ddr_c2h;
         gwbar2->leng_ddr_c2h = length;
 
         gwbar2->ctrl = BAR2_PCIE_RD_START;
