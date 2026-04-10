@@ -127,9 +127,6 @@ module top (
   wire [255:0] pcie_tl_tx_data;
   wire [  7:0] pcie_tl_tx_valid;
   wire         pcie_tl_tx_wait;
-  wire [ 31:0] pcie_tl_tx_creditsp;
-  wire [ 31:0] pcie_tl_tx_creditsnp;
-  wire [ 31:0] pcie_tl_tx_creditscpl;
   wire         pcie_tl_drp_clk;
   wire [ 23:0] pcie_tl_drp_addr;
   wire         pcie_tl_drp_ready;
@@ -164,9 +161,6 @@ module top (
       .PCIE_Controller_Top_pcie_tl_tx_data_i(pcie_tl_tx_data),
       .PCIE_Controller_Top_pcie_tl_tx_valid_i(pcie_tl_tx_valid),
       .PCIE_Controller_Top_pcie_tl_tx_wait_o(pcie_tl_tx_wait),
-      .PCIE_Controller_Top_pcie_tl_tx_creditsp_o(pcie_tl_tx_creditsp),
-      .PCIE_Controller_Top_pcie_tl_tx_creditsnp_o(pcie_tl_tx_creditsnp),
-      .PCIE_Controller_Top_pcie_tl_tx_creditscpl_o(pcie_tl_tx_creditscpl),
       .PCIE_Controller_Top_pcie_tl_drp_clk_o(pcie_tl_drp_clk),
       .PCIE_Controller_Top_pcie_tl_drp_addr_i(pcie_tl_drp_addr),
       .PCIE_Controller_Top_pcie_tl_drp_ready_o(pcie_tl_drp_ready),
@@ -186,23 +180,20 @@ module top (
 
   /* PCIe SGDMA */
   // h2c AXI stream
-  wire         m_axis_h2c_tready;
-  wire         m_axis_h2c_tvalid;
-  wire [255:0] m_axis_h2c_tdata;
-  wire         m_axis_h2c_tlast;
-  wire [ 31:0] m_axis_h2c_tuser;
-  wire [ 31:0] m_axis_h2c_tkeep;
-  wire [ 63:0] h2c_overhead;
+  wire         axis_h2c_data_tready;
+  wire         axis_h2c_data_tvalid;
+  wire [255:0] axis_h2c_data_tdata;
+  wire         axis_h2c_data_tlast;
+  wire [ 31:0] axis_h2c_data_tuser;
+  wire [ 31:0] axis_h2c_data_tkeep;
   wire         h2c_run = 1'b0;  //? 1'b1
   // c2h AXI stream
-  wire         s_axis_c2h_tready;
-  wire         s_axis_c2h_tvalid;
-  wire         s_axis_c2h_tlast;
-  wire [255:0] s_axis_c2h_tdata;
-  wire [ 31:0] s_axis_c2h_tuser;
-  wire [ 31:0] s_axis_c2h_tkeep;
-  wire         c2h_overhead_valid;
-  wire [ 63:0] c2h_overhead_data;
+  wire         axis_c2h_data_tready;
+  wire         axis_c2h_data_tvalid;
+  wire         axis_c2h_data_tlast;
+  wire [255:0] axis_c2h_data_tdata;
+  wire [ 31:0] axis_c2h_data_tuser;
+  wire [ 31:0] axis_c2h_data_tkeep;
   wire         c2h_run = 1'b0;
   // BAR2
   wire         user_cs;
@@ -213,7 +204,6 @@ module top (
   wire [  3:0] user_rd_be;
   wire         user_rd_valid;
   wire [ 31:0] user_rd_data;
-  wire         user_zero_read;
 
   Pcie_Sgdma_Top u_pcie_sgdma (
       .pcie_rstn(rst_n),
@@ -248,21 +238,21 @@ module top (
       .pcie_ltssm(pcie_ltssm),
       .pcie_linkup(pcie_linkup),
       .pcie_tl_cfg_busdev(pcie_tl_cfg_busdev),
-      .m_axis_h2c_tready(m_axis_h2c_tready),
-      .m_axis_h2c_tvalid(m_axis_h2c_tvalid),
-      .m_axis_h2c_tdata(m_axis_h2c_tdata),
-      .m_axis_h2c_tlast(m_axis_h2c_tlast),
-      .m_axis_h2c_tuser(m_axis_h2c_tuser),
-      .m_axis_h2c_tkeep(m_axis_h2c_tkeep),
-      .h2c_overhead(h2c_overhead),
-      .s_axis_c2h_tready(s_axis_c2h_tready),
-      .s_axis_c2h_tvalid(s_axis_c2h_tvalid),
-      .s_axis_c2h_tlast(s_axis_c2h_tlast),
-      .s_axis_c2h_tdata(s_axis_c2h_tdata),
-      .s_axis_c2h_tuser(s_axis_c2h_tuser),
-      .s_axis_c2h_tkeep(s_axis_c2h_tkeep),
-      .c2h_overhead_valid(c2h_overhead_valid),
-      .c2h_overhead_data(c2h_overhead_data),
+      .m_axis_h2c_tready(axis_h2c_data_tready),
+      .m_axis_h2c_tvalid(axis_h2c_data_tvalid),
+      .m_axis_h2c_tdata(axis_h2c_data_tdata),
+      .m_axis_h2c_tlast(axis_h2c_data_tlast),
+      .m_axis_h2c_tuser(axis_h2c_data_tuser),
+      .m_axis_h2c_tkeep(axis_h2c_data_tkeep),
+      .h2c_overhead(),
+      .s_axis_c2h_tready(axis_c2h_data_tready),
+      .s_axis_c2h_tvalid(axis_c2h_data_tvalid),
+      .s_axis_c2h_tlast(axis_c2h_data_tlast),
+      .s_axis_c2h_tdata(axis_c2h_data_tdata),
+      .s_axis_c2h_tuser(axis_c2h_data_tuser),
+      .s_axis_c2h_tkeep(axis_c2h_data_tkeep),
+      .c2h_overhead_valid(1'b0),
+      .c2h_overhead_data(64'd0),
       .user_cs(user_cs),
       .user_address(user_address),
       .user_rw(user_rw),
@@ -271,28 +261,27 @@ module top (
       .user_rd_be(user_rd_be),
       .user_rd_valid(user_rd_valid),
       .user_rd_data(user_rd_data),
-      .user_zero_read(user_zero_read),
       .h2c_run(h2c_run),
       .c2h_run(c2h_run)
   );
 
-  /* Logic control BAR2 */
+  /* Logic control BAR2 (Descriptors for DDR3) */
   localparam integer AXIADDRWIDTH = 29;
   localparam integer AXILENWIDTH = 20;
   // h2c
-  wire [AXIADDRWIDTH-1:0] ddr_h2c_desc_addr;
-  wire [ AXILENWIDTH-1:0] ddr_h2c_desc_len;
-  wire                    ddr_h2c_desc_ready;
-  wire                    ddr_h2c_desc_valid;
+  wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
+  wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
+  wire                    axis_h2c_desc_ready;
+  wire                    axis_h2c_desc_valid;
   // c2h
-  wire [AXIADDRWIDTH-1:0] ddr_c2h_desc_addr;
-  wire [ AXILENWIDTH-1:0] ddr_c2h_desc_len;
-  wire                    ddr_c2h_desc_valid;
-  wire                    ddr_c2h_desc_ready;
+  wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
+  wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
+  wire                    axis_c2h_desc_valid;
+  wire                    axis_c2h_desc_ready;
   // Logic Adder config
   wire [AXIADDRWIDTH-1:0] lad_cfg_read_addr;
   wire [AXIADDRWIDTH-1:0] lad_cfg_write_addr;
-  wire [ AXILENWIDTH-1:0] lad_cfg_byte_len;
+  wire [ AXILENWIDTH-1:0] lad_cfg_len;
   wire                    lad_run;
   wire                    lad_busy;
   wire                    lad_done;
@@ -311,17 +300,17 @@ module top (
       .user_rd_be(user_rd_be),
       .user_rd_valid(user_rd_valid),
       .user_rd_data(user_rd_data),
-      .ddr_h2c_addr(ddr_h2c_desc_addr),
-      .ddr_h2c_len(ddr_h2c_desc_len),
-      .ddr_h2c_valid(ddr_h2c_desc_valid),
-      .ddr_h2c_ready(ddr_h2c_desc_ready),
-      .ddr_c2h_addr(ddr_c2h_desc_addr),
-      .ddr_c2h_len(ddr_c2h_desc_len),
-      .ddr_c2h_valid(ddr_c2h_desc_valid),
-      .ddr_c2h_ready(ddr_c2h_desc_ready),
+      .m_axis_h2c_desc_addr(axis_h2c_desc_addr),
+      .m_axis_h2c_desc_len(axis_h2c_desc_len),
+      .m_axis_h2c_desc_valid(axis_h2c_desc_valid),
+      .m_axis_h2c_desc_ready(axis_h2c_desc_ready),
+      .m_axis_c2h_desc_addr(axis_c2h_desc_addr),
+      .m_axis_c2h_desc_len(axis_c2h_desc_len),
+      .m_axis_c2h_desc_valid(axis_c2h_desc_valid),
+      .m_axis_c2h_desc_ready(axis_c2h_desc_ready),
       .lad_read_addr(lad_cfg_read_addr),
       .lad_write_addr(lad_cfg_write_addr),
-      .lad_len(lad_cfg_byte_len),
+      .lad_len(lad_cfg_len),
       .lad_run(lad_run),
       .lad_busy(lad_busy),
       .lad_done(lad_done)
@@ -331,65 +320,49 @@ module top (
   localparam integer AXIDATAWIDTH = 256;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
   localparam integer AXIIDWIDTH = 4;
-  // h2c
-  wire [ AXILENWIDTH-1:0] ddr_h2c_status_len;
-  wire [           7 : 0] ddr_h2c_status_tag;
-  wire [           7 : 0] ddr_h2c_status_id;
-  wire [           7 : 0] ddr_h2c_status_dest;
-  wire [          31 : 0] ddr_h2c_status_user;
-  wire [           3 : 0] ddr_h2c_status_error;
-  wire                    ddr_h2c_status_valid;
-  wire [           7 : 0] ddr_h2c_desc_tag;
-  // c2h
-  wire [           7 : 0] ddr_c2h_status_tag;
-  wire [           3 : 0] ddr_c2h_status_error;
-  wire                    ddr_c2h_status_valid;
-  wire [           7 : 0] ddr_c2h_desc_tag;
-  wire [           7 : 0] ddr_c2h_desc_id;
-  wire [           7 : 0] ddr_c2h_desc_dest;
-  wire [          31 : 0] ddr_c2h_desc_user;
-  // Config
-  wire [  AXIIDWIDTH-1:0] dma_axi_awid;
-  wire [AXIADDRWIDTH-1:0] dma_axi_awaddr;
-  wire [             7:0] dma_axi_awlen;
-  wire [             2:0] dma_axi_awsize;
-  wire [             1:0] dma_axi_awburst;
-  wire                    dma_axi_awlock;
-  wire [             3:0] dma_axi_awcache;
-  wire [             2:0] dma_axi_awprot;
-  wire                    dma_axi_awvalid;
-  wire                    dma_axi_awready;
-  wire [AXIDATAWIDTH-1:0] dma_axi_wdata;
-  wire [AXISTRBWIDTH-1:0] dma_axi_wstrb;
-  wire                    dma_axi_wlast;
-  wire                    dma_axi_wvalid;
-  wire                    dma_axi_wready;
-  wire [  AXIIDWIDTH-1:0] dma_axi_bid;
-  wire [             1:0] dma_axi_bresp;
-  wire                    dma_axi_bvalid;
-  wire                    dma_axi_bready;
-  wire [  AXIIDWIDTH-1:0] dma_axi_arid;
-  wire [AXIADDRWIDTH-1:0] dma_axi_araddr;
-  wire [             7:0] dma_axi_arlen;
-  wire [             2:0] dma_axi_arsize;
-  wire [             1:0] dma_axi_arburst;
-  wire                    dma_axi_arlock;
-  wire [             3:0] dma_axi_arcache;
-  wire [             2:0] dma_axi_arprot;
-  wire                    dma_axi_arvalid;
-  wire                    dma_axi_arready;
-  wire [  AXIIDWIDTH-1:0] dma_axi_rid;
-  wire [AXIDATAWIDTH-1:0] dma_axi_rdata;
-  wire [             1:0] dma_axi_rresp;
-  wire                    dma_axi_rlast;
-  wire                    dma_axi_rvalid;
-  wire                    dma_axi_rready;
+
+  wire [  AXIIDWIDTH-1:0] axi_pci_dma_awid;
+  wire [AXIADDRWIDTH-1:0] axi_pci_dma_awaddr;
+  wire [             7:0] axi_pci_dma_awlen;
+  wire [             2:0] axi_pci_dma_awsize;
+  wire [             1:0] axi_pci_dma_awburst;
+  wire                    axi_pci_dma_awlock;
+  wire [             3:0] axi_pci_dma_awcache;
+  wire [             2:0] axi_pci_dma_awprot;
+  wire                    axi_pci_dma_awvalid;
+  wire                    axi_pci_dma_awready;
+  wire [AXIDATAWIDTH-1:0] axi_pci_dma_wdata;
+  wire [AXISTRBWIDTH-1:0] axi_pci_dma_wstrb;
+  wire                    axi_pci_dma_wlast;
+  wire                    axi_pci_dma_wvalid;
+  wire                    axi_pci_dma_wready;
+  wire [  AXIIDWIDTH-1:0] axi_pci_dma_bid;
+  wire [             1:0] axi_pci_dma_bresp;
+  wire                    axi_pci_dma_bvalid;
+  wire                    axi_pci_dma_bready;
+  wire [  AXIIDWIDTH-1:0] axi_pci_dma_arid;
+  wire [AXIADDRWIDTH-1:0] axi_pci_dma_araddr;
+  wire [             7:0] axi_pci_dma_arlen;
+  wire [             2:0] axi_pci_dma_arsize;
+  wire [             1:0] axi_pci_dma_arburst;
+  wire                    axi_pci_dma_arlock;
+  wire [             3:0] axi_pci_dma_arcache;
+  wire [             2:0] axi_pci_dma_arprot;
+  wire                    axi_pci_dma_arvalid;
+  wire                    axi_pci_dma_arready;
+  wire [  AXIIDWIDTH-1:0] axi_pci_dma_rid;
+  wire [AXIDATAWIDTH-1:0] axi_pci_dma_rdata;
+  wire [             1:0] axi_pci_dma_rresp;
+  wire                    axi_pci_dma_rlast;
+  wire                    axi_pci_dma_rvalid;
+  wire                    axi_pci_dma_rready;
 
   axi_dma #(
       .AXI_DATA_WIDTH(AXIDATAWIDTH),
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
       .AXI_STRB_WIDTH(AXISTRBWIDTH),
       .AXI_ID_WIDTH(AXIIDWIDTH),
+      .LEN_WIDTH(AXILENWIDTH),
       .AXI_MAX_BURST_LEN(16),
       .AXIS_DATA_WIDTH(256),
       .AXIS_KEEP_ENABLE(1),
@@ -400,222 +373,185 @@ module top (
       .AXIS_DEST_ENABLE(0),
       .AXIS_DEST_WIDTH(8),
       .AXIS_USER_ENABLE(1),
-      .AXIS_USER_WIDTH(32),
-      .LEN_WIDTH(AXILENWIDTH)
+      .AXIS_USER_WIDTH(32)
   ) u_axi_dma_pcie_sgdma (
       .clk(tlp_clk),
       .rst(tlp_rst),
-      .s_axis_read_desc_addr(ddr_c2h_desc_addr),
-      .s_axis_read_desc_len(ddr_c2h_desc_len),
-      .s_axis_read_desc_tag(ddr_c2h_desc_tag),
-      .s_axis_read_desc_id(ddr_c2h_desc_id),
-      .s_axis_read_desc_dest(ddr_c2h_desc_dest),
-      .s_axis_read_desc_user(ddr_c2h_desc_user),
-      .s_axis_read_desc_valid(ddr_c2h_desc_valid),
-      .s_axis_read_desc_ready(ddr_c2h_desc_ready),
-      .m_axis_read_desc_status_tag(ddr_c2h_status_tag),
-      .m_axis_read_desc_status_error(ddr_c2h_status_error),
-      .m_axis_read_desc_status_valid(ddr_c2h_status_valid),
-      .m_axis_read_data_tdata(s_axis_c2h_tdata),
-      .m_axis_read_data_tkeep(s_axis_c2h_tkeep),
-      .m_axis_read_data_tvalid(s_axis_c2h_tvalid),
-      .m_axis_read_data_tready(s_axis_c2h_tready),
-      .m_axis_read_data_tlast(s_axis_c2h_tlast),
-      .m_axis_read_data_tid(),
-      .m_axis_read_data_tdest(),
-      .m_axis_read_data_tuser(s_axis_c2h_tuser),
-      .s_axis_write_desc_addr(ddr_h2c_desc_addr),
-      .s_axis_write_desc_len(ddr_h2c_desc_len),
-      .s_axis_write_desc_tag(ddr_h2c_desc_tag),
-      .s_axis_write_desc_valid(ddr_h2c_desc_valid),
-      .s_axis_write_desc_ready(ddr_h2c_desc_ready),
-      .m_axis_write_desc_status_len(ddr_h2c_status_len),
-      .m_axis_write_desc_status_tag(ddr_h2c_status_tag),
-      .m_axis_write_desc_status_id(ddr_h2c_status_id),
-      .m_axis_write_desc_status_dest(ddr_h2c_status_dest),
-      .m_axis_write_desc_status_user(ddr_h2c_status_user),
-      .m_axis_write_desc_status_error(ddr_h2c_status_error),
-      .m_axis_write_desc_status_valid(ddr_h2c_status_valid),
-      .s_axis_write_data_tdata(m_axis_h2c_tdata),
-      .s_axis_write_data_tkeep(m_axis_h2c_tkeep),
-      .s_axis_write_data_tvalid(m_axis_h2c_tvalid),
-      .s_axis_write_data_tready(m_axis_h2c_tready),
-      .s_axis_write_data_tlast(m_axis_h2c_tlast),
+      .s_axis_read_desc_addr(axis_c2h_desc_addr),
+      .s_axis_read_desc_len(axis_c2h_desc_len),
+      .s_axis_read_desc_tag(8'd0),
+      .s_axis_read_desc_id(8'd0),
+      .s_axis_read_desc_dest(8'd0),
+      .s_axis_read_desc_user(32'd0),
+      .s_axis_read_desc_valid(axis_c2h_desc_valid),
+      .s_axis_read_desc_ready(axis_c2h_desc_ready),
+      .m_axis_read_data_tdata(axis_c2h_data_tdata),
+      .m_axis_read_data_tkeep(axis_c2h_data_tkeep),
+      .m_axis_read_data_tvalid(axis_c2h_data_tvalid),
+      .m_axis_read_data_tready(axis_c2h_data_tready),
+      .m_axis_read_data_tlast(axis_c2h_data_tlast),
+      .m_axis_read_data_tuser(axis_c2h_data_tuser),
+      .s_axis_write_desc_addr(axis_h2c_desc_addr),
+      .s_axis_write_desc_len(axis_h2c_desc_len),
+      .s_axis_write_desc_tag(8'd0),
+      .s_axis_write_desc_valid(axis_h2c_desc_valid),
+      .s_axis_write_desc_ready(axis_h2c_desc_ready),
+      .s_axis_write_data_tdata(axis_h2c_data_tdata),
+      .s_axis_write_data_tkeep(axis_h2c_data_tkeep),
+      .s_axis_write_data_tvalid(axis_h2c_data_tvalid),
+      .s_axis_write_data_tready(axis_h2c_data_tready),
+      .s_axis_write_data_tlast(axis_h2c_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
-      .s_axis_write_data_tuser(m_axis_h2c_tuser),
-      .m_axi_awid(dma_axi_awid),
-      .m_axi_awaddr(dma_axi_awaddr),
-      .m_axi_awlen(dma_axi_awlen),
-      .m_axi_awsize(dma_axi_awsize),
-      .m_axi_awburst(dma_axi_awburst),
-      .m_axi_awlock(dma_axi_awlock),
-      .m_axi_awcache(dma_axi_awcache),
-      .m_axi_awprot(dma_axi_awprot),
-      .m_axi_awvalid(dma_axi_awvalid),
-      .m_axi_awready(dma_axi_awready),
-      .m_axi_wdata(dma_axi_wdata),
-      .m_axi_wstrb(dma_axi_wstrb),
-      .m_axi_wlast(dma_axi_wlast),
-      .m_axi_wvalid(dma_axi_wvalid),
-      .m_axi_wready(dma_axi_wready),
-      .m_axi_bid(dma_axi_bid),
-      .m_axi_bresp(dma_axi_bresp),
-      .m_axi_bvalid(dma_axi_bvalid),
-      .m_axi_bready(dma_axi_bready),
-      .m_axi_arid(dma_axi_arid),
-      .m_axi_araddr(dma_axi_araddr),
-      .m_axi_arlen(dma_axi_arlen),
-      .m_axi_arsize(dma_axi_arsize),
-      .m_axi_arburst(dma_axi_arburst),
-      .m_axi_arlock(dma_axi_arlock),
-      .m_axi_arcache(dma_axi_arcache),
-      .m_axi_arprot(dma_axi_arprot),
-      .m_axi_arvalid(dma_axi_arvalid),
-      .m_axi_arready(dma_axi_arready),
-      .m_axi_rid(dma_axi_rid),
-      .m_axi_rdata(dma_axi_rdata),
-      .m_axi_rresp(dma_axi_rresp),
-      .m_axi_rlast(dma_axi_rlast),
-      .m_axi_rvalid(dma_axi_rvalid),
-      .m_axi_rready(dma_axi_rready),
+      .s_axis_write_data_tuser(axis_h2c_data_tuser),
+      .m_axi_awid(axi_pci_dma_awid),
+      .m_axi_awaddr(axi_pci_dma_awaddr),
+      .m_axi_awlen(axi_pci_dma_awlen),
+      .m_axi_awsize(axi_pci_dma_awsize),
+      .m_axi_awburst(axi_pci_dma_awburst),
+      .m_axi_awlock(axi_pci_dma_awlock),
+      .m_axi_awcache(axi_pci_dma_awcache),
+      .m_axi_awprot(axi_pci_dma_awprot),
+      .m_axi_awvalid(axi_pci_dma_awvalid),
+      .m_axi_awready(axi_pci_dma_awready),
+      .m_axi_wdata(axi_pci_dma_wdata),
+      .m_axi_wstrb(axi_pci_dma_wstrb),
+      .m_axi_wlast(axi_pci_dma_wlast),
+      .m_axi_wvalid(axi_pci_dma_wvalid),
+      .m_axi_wready(axi_pci_dma_wready),
+      .m_axi_bid(axi_pci_dma_bid),
+      .m_axi_bresp(axi_pci_dma_bresp),
+      .m_axi_bvalid(axi_pci_dma_bvalid),
+      .m_axi_bready(axi_pci_dma_bready),
+      .m_axi_arid(axi_pci_dma_arid),
+      .m_axi_araddr(axi_pci_dma_araddr),
+      .m_axi_arlen(axi_pci_dma_arlen),
+      .m_axi_arsize(axi_pci_dma_arsize),
+      .m_axi_arburst(axi_pci_dma_arburst),
+      .m_axi_arlock(axi_pci_dma_arlock),
+      .m_axi_arcache(axi_pci_dma_arcache),
+      .m_axi_arprot(axi_pci_dma_arprot),
+      .m_axi_arvalid(axi_pci_dma_arvalid),
+      .m_axi_arready(axi_pci_dma_arready),
+      .m_axi_rid(axi_pci_dma_rid),
+      .m_axi_rdata(axi_pci_dma_rdata),
+      .m_axi_rresp(axi_pci_dma_rresp),
+      .m_axi_rlast(axi_pci_dma_rlast),
+      .m_axi_rvalid(axi_pci_dma_rvalid),
+      .m_axi_rready(axi_pci_dma_rready),
       .read_enable(1'b1),
       .write_enable(1'b1),
       .write_abort(1'b0)
   );
 
-  assign ddr_c2h_desc_tag  = 8'd0;
-  assign ddr_c2h_desc_id   = 8'd0;
-  assign ddr_c2h_desc_dest = 8'd0;
-  assign ddr_c2h_desc_user = 32'd0;
-  assign ddr_h2c_desc_tag  = 8'd0;
-
   // ==========
   // Logic Core
   // ==========
   /* Adder */
-  // Read
-  wire [ 63 : 0] lad_read_desc_addr;
-  wire [ 31 : 0] lad_read_desc_len;
-  wire [  7 : 0] lad_read_desc_tag;
-  wire           lad_read_desc_valid;
-  wire           lad_read_desc_ready;
-  // Write
-  wire [ 63 : 0] lad_write_desc_addr;
-  wire [ 31 : 0] lad_write_desc_len;
-  wire [  7 : 0] lad_write_desc_tag;
-  wire           lad_write_desc_valid;
-  wire           lad_write_desc_ready;
+  // Read descriptor
+  wire [ 63 : 0] axis_lad_rd_desc_addr;
+  wire [ 31 : 0] axis_lad_rd_desc_len;
+  wire [  7 : 0] axis_lad_rd_desc_tag;
+  wire           axis_lad_rd_desc_valid;
+  wire           axis_lad_rd_desc_ready;
+  // Write descriptor
+  wire [ 63 : 0] axis_lad_wr_desc_addr;
+  wire [ 31 : 0] axis_lad_wr_desc_len;
+  wire [  7 : 0] axis_lad_wr_desc_tag;
+  wire           axis_lad_wr_desc_valid;
+  wire           axis_lad_wr_desc_ready;
   // Receive
-  wire           lad_rx_tready;
-  wire           lad_rx_tvalid;
-  wire [255 : 0] lad_rx_tdata;
-  wire           lad_rx_tlast;
-  wire [ 31 : 0] lad_rx_tuser;
-  wire [ 31 : 0] lad_rx_tkeep;
+  wire           axis_lad_rx_data_tready;
+  wire           axis_lad_rx_data_tvalid;
+  wire [255 : 0] axis_lad_rx_data_tdata;
+  wire           axis_lad_rx_data_tlast;
+  wire [ 31 : 0] axis_lad_rx_data_tuser;
+  wire [ 31 : 0] axis_lad_rx_data_tkeep;
   // Transmit
-  wire           lad_tx_tready;
-  wire           lad_tx_tvalid;
-  wire           lad_tx_tlast;
-  wire [255 : 0] lad_tx_tdata;
-  wire [ 31 : 0] lad_tx_tuser;
-  wire [ 31 : 0] lad_tx_tkeep;
-  // Config
-  wire [  7 : 0] lad_cfg_desc_tag;
+  wire           axis_lad_tx_data_tready;
+  wire           axis_lad_tx_data_tvalid;
+  wire           axis_lad_tx_data_tlast;
+  wire [255 : 0] axis_lad_tx_data_tdata;
+  wire [ 31 : 0] axis_lad_tx_data_tuser;
+  wire [ 31 : 0] axis_lad_tx_data_tkeep;
 
   logic_adder u_logic_adder (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
       .cfg_read_addr(lad_cfg_read_addr),
       .cfg_write_addr(lad_cfg_write_addr),
-      .cfg_byte_len(lad_cfg_byte_len),
-      .cfg_desc_tag(lad_cfg_desc_tag),
-      .s_axis_read_desc_valid(lad_read_desc_valid),
-      .s_axis_read_desc_ready(lad_read_desc_ready),
-      .s_axis_read_desc_addr(lad_read_desc_addr),
-      .s_axis_read_desc_len(lad_read_desc_len),
-      .s_axis_read_desc_tag(lad_read_desc_tag),
-      .s_axis_write_desc_valid(lad_write_desc_valid),
-      .s_axis_write_desc_ready(lad_write_desc_ready),
-      .s_axis_write_desc_addr(lad_write_desc_addr),
-      .s_axis_write_desc_len(lad_write_desc_len),
-      .s_axis_write_desc_tag(lad_write_desc_tag),
-      .m_axis_rx_tready(lad_rx_tready),
-      .m_axis_rx_tvalid(lad_rx_tvalid),
-      .m_axis_rx_tdata(lad_rx_tdata),
-      .m_axis_rx_tlast(lad_rx_tlast),
-      .m_axis_rx_tuser(lad_rx_tuser),
-      .m_axis_rx_tkeep(lad_rx_tkeep),
-      .s_axis_tx_tready(lad_tx_tready),
-      .s_axis_tx_tvalid(lad_tx_tvalid),
-      .s_axis_tx_tlast(lad_tx_tlast),
-      .s_axis_tx_tdata(lad_tx_tdata),
-      .s_axis_tx_tuser(lad_tx_tuser),
-      .s_axis_tx_tkeep(lad_tx_tkeep),
+      .cfg_len(lad_cfg_len),
+      .cfg_desc_tag(8'd0),
+      .m_axis_read_desc_valid(axis_lad_rd_desc_valid),
+      .m_axis_read_desc_ready(axis_lad_rd_desc_ready),
+      .m_axis_read_desc_addr(axis_lad_rd_desc_addr),
+      .m_axis_read_desc_len(axis_lad_rd_desc_len),
+      .m_axis_read_desc_tag(axis_lad_rd_desc_tag),
+      .m_axis_write_desc_valid(axis_lad_wr_desc_valid),
+      .m_axis_write_desc_ready(axis_lad_wr_desc_ready),
+      .m_axis_write_desc_addr(axis_lad_wr_desc_addr),
+      .m_axis_write_desc_len(axis_lad_wr_desc_len),
+      .m_axis_write_desc_tag(axis_lad_wr_desc_tag),
+      .s_axis_rx_tready(axis_lad_rx_data_tready),
+      .s_axis_rx_tvalid(axis_lad_rx_data_tvalid),
+      .s_axis_rx_tdata(axis_lad_rx_data_tdata),
+      .s_axis_rx_tlast(axis_lad_rx_data_tlast),
+      .s_axis_rx_tuser(axis_lad_rx_data_tuser),
+      .s_axis_rx_tkeep(axis_lad_rx_data_tkeep),
+      .m_axis_tx_tready(axis_lad_tx_data_tready),
+      .m_axis_tx_tvalid(axis_lad_tx_data_tvalid),
+      .m_axis_tx_tlast(axis_lad_tx_data_tlast),
+      .m_axis_tx_tdata(axis_lad_tx_data_tdata),
+      .m_axis_tx_tuser(axis_lad_tx_data_tuser),
+      .m_axis_tx_tkeep(axis_lad_tx_data_tkeep),
       .run(lad_run),
       .busy(lad_busy),
       .done(lad_done)
   );
 
-  assign c2h_overhead_valid = 1'b0;
-  assign c2h_overhead_data  = 64'd0;
-  assign lad_cfg_desc_tag   = 8'd0;
-
   /* AXI DMA */
-  // Write
-  wire [ AXILENWIDTH-1:0] lad_dma_write_status_len;
-  wire [           7 : 0] lad_dma_write_status_tag;
-  wire [           7 : 0] lad_dma_write_status_id;
-  wire [           7 : 0] lad_dma_write_status_dest;
-  wire [          31 : 0] lad_dma_write_status_user;
-  wire [           3 : 0] lad_dma_write_status_error;
-  wire                    lad_dma_write_status_valid;
-  // Read
-  wire [           7 : 0] lad_dma_read_status_tag;
-  wire [           3 : 0] lad_dma_read_status_error;
-  wire                    lad_dma_read_status_valid;
-  // AXI
-  wire [  AXIIDWIDTH-1:0] lad_dma_axi_awid;
-  wire [AXIADDRWIDTH-1:0] lad_dma_axi_awaddr;
-  wire [             7:0] lad_dma_axi_awlen;
-  wire [             2:0] lad_dma_axi_awsize;
-  wire [             1:0] lad_dma_axi_awburst;
-  wire                    lad_dma_axi_awlock;
-  wire [             3:0] lad_dma_axi_awcache;
-  wire [             2:0] lad_dma_axi_awprot;
-  wire                    lad_dma_axi_awvalid;
-  wire                    lad_dma_axi_awready;
-  wire [AXIDATAWIDTH-1:0] lad_dma_axi_wdata;
-  wire [AXISTRBWIDTH-1:0] lad_dma_axi_wstrb;
-  wire                    lad_dma_axi_wlast;
-  wire                    lad_dma_axi_wvalid;
-  wire                    lad_dma_axi_wready;
-  wire [  AXIIDWIDTH-1:0] lad_dma_axi_bid;
-  wire [             1:0] lad_dma_axi_bresp;
-  wire                    lad_dma_axi_bvalid;
-  wire                    lad_dma_axi_bready;
-  wire [  AXIIDWIDTH-1:0] lad_dma_axi_arid;
-  wire [AXIADDRWIDTH-1:0] lad_dma_axi_araddr;
-  wire [             7:0] lad_dma_axi_arlen;
-  wire [             2:0] lad_dma_axi_arsize;
-  wire [             1:0] lad_dma_axi_arburst;
-  wire                    lad_dma_axi_arlock;
-  wire [             3:0] lad_dma_axi_arcache;
-  wire [             2:0] lad_dma_axi_arprot;
-  wire                    lad_dma_axi_arvalid;
-  wire                    lad_dma_axi_arready;
-  wire [  AXIIDWIDTH-1:0] lad_dma_axi_rid;
-  wire [AXIDATAWIDTH-1:0] lad_dma_axi_rdata;
-  wire [             1:0] lad_dma_axi_rresp;
-  wire                    lad_dma_axi_rlast;
-  wire                    lad_dma_axi_rvalid;
-  wire                    lad_dma_axi_rready;
+  wire [  AXIIDWIDTH-1:0] axi_lad_dma_awid;
+  wire [AXIADDRWIDTH-1:0] axi_lad_dma_awaddr;
+  wire [             7:0] axi_lad_dma_awlen;
+  wire [             2:0] axi_lad_dma_awsize;
+  wire [             1:0] axi_lad_dma_awburst;
+  wire                    axi_lad_dma_awlock;
+  wire [             3:0] axi_lad_dma_awcache;
+  wire [             2:0] axi_lad_dma_awprot;
+  wire                    axi_lad_dma_awvalid;
+  wire                    axi_lad_dma_awready;
+  wire [AXIDATAWIDTH-1:0] axi_lad_dma_wdata;
+  wire [AXISTRBWIDTH-1:0] axi_lad_dma_wstrb;
+  wire                    axi_lad_dma_wlast;
+  wire                    axi_lad_dma_wvalid;
+  wire                    axi_lad_dma_wready;
+  wire [  AXIIDWIDTH-1:0] axi_lad_dma_bid;
+  wire [             1:0] axi_lad_dma_bresp;
+  wire                    axi_lad_dma_bvalid;
+  wire                    axi_lad_dma_bready;
+  wire [  AXIIDWIDTH-1:0] axi_lad_dma_arid;
+  wire [AXIADDRWIDTH-1:0] axi_lad_dma_araddr;
+  wire [             7:0] axi_lad_dma_arlen;
+  wire [             2:0] axi_lad_dma_arsize;
+  wire [             1:0] axi_lad_dma_arburst;
+  wire                    axi_lad_dma_arlock;
+  wire [             3:0] axi_lad_dma_arcache;
+  wire [             2:0] axi_lad_dma_arprot;
+  wire                    axi_lad_dma_arvalid;
+  wire                    axi_lad_dma_arready;
+  wire [  AXIIDWIDTH-1:0] axi_lad_dma_rid;
+  wire [AXIDATAWIDTH-1:0] axi_lad_dma_rdata;
+  wire [             1:0] axi_lad_dma_rresp;
+  wire                    axi_lad_dma_rlast;
+  wire                    axi_lad_dma_rvalid;
+  wire                    axi_lad_dma_rready;
 
   axi_dma #(
       .AXI_DATA_WIDTH(AXIDATAWIDTH),
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
       .AXI_STRB_WIDTH(AXISTRBWIDTH),
       .AXI_ID_WIDTH(AXIIDWIDTH),
+      .LEN_WIDTH(AXILENWIDTH),
       .AXI_MAX_BURST_LEN(16),
       .AXIS_DATA_WIDTH(256),
       .AXIS_KEEP_ENABLE(1),
@@ -626,85 +562,72 @@ module top (
       .AXIS_DEST_ENABLE(0),
       .AXIS_DEST_WIDTH(8),
       .AXIS_USER_ENABLE(1),
-      .AXIS_USER_WIDTH(32),
-      .LEN_WIDTH(AXILENWIDTH)
-  ) u_axi_dma_logic_adder (
+      .AXIS_USER_WIDTH(32)
+  ) u_axi_pci_dma_logic_adder (
       .clk(tlp_clk),
       .rst(tlp_rst),
-      .s_axis_read_desc_addr(lad_read_desc_addr[AXIADDRWIDTH-1:0]),
-      .s_axis_read_desc_len(lad_read_desc_len[AXILENWIDTH-1:0]),
-      .s_axis_read_desc_tag(lad_read_desc_tag),
+      .s_axis_read_desc_addr(axis_lad_rd_desc_addr[AXIADDRWIDTH-1:0]),
+      .s_axis_read_desc_len(axis_lad_rd_desc_len[AXILENWIDTH-1:0]),
+      .s_axis_read_desc_tag(axis_lad_rd_desc_tag),
       .s_axis_read_desc_id(8'd0),
       .s_axis_read_desc_dest(8'd0),
       .s_axis_read_desc_user(32'd0),
-      .s_axis_read_desc_valid(lad_read_desc_valid),
-      .s_axis_read_desc_ready(lad_read_desc_ready),
-      .m_axis_read_desc_status_tag(lad_dma_read_status_tag),
-      .m_axis_read_desc_status_error(lad_dma_read_status_error),
-      .m_axis_read_desc_status_valid(lad_dma_read_status_valid),
-      .m_axis_read_data_tdata(lad_rx_tdata),
-      .m_axis_read_data_tkeep(lad_rx_tkeep),
-      .m_axis_read_data_tvalid(lad_rx_tvalid),
-      .m_axis_read_data_tready(lad_rx_tready),
-      .m_axis_read_data_tlast(lad_rx_tlast),
-      .m_axis_read_data_tid(),
-      .m_axis_read_data_tdest(),
-      .m_axis_read_data_tuser(lad_rx_tuser),
-      .s_axis_write_desc_addr(lad_write_desc_addr[AXIADDRWIDTH-1:0]),
-      .s_axis_write_desc_len(lad_write_desc_len[AXILENWIDTH-1:0]),
-      .s_axis_write_desc_tag(lad_write_desc_tag),
-      .s_axis_write_desc_valid(lad_write_desc_valid),
-      .s_axis_write_desc_ready(lad_write_desc_ready),
-      .m_axis_write_desc_status_len(lad_dma_write_status_len),
-      .m_axis_write_desc_status_tag(lad_dma_write_status_tag),
-      .m_axis_write_desc_status_id(lad_dma_write_status_id),
-      .m_axis_write_desc_status_dest(lad_dma_write_status_dest),
-      .m_axis_write_desc_status_user(lad_dma_write_status_user),
-      .m_axis_write_desc_status_error(lad_dma_write_status_error),
-      .m_axis_write_desc_status_valid(lad_dma_write_status_valid),
-      .s_axis_write_data_tdata(lad_tx_tdata),
-      .s_axis_write_data_tkeep(lad_tx_tkeep),
-      .s_axis_write_data_tvalid(lad_tx_tvalid),
-      .s_axis_write_data_tready(lad_tx_tready),
-      .s_axis_write_data_tlast(lad_tx_tlast),
+      .s_axis_read_desc_valid(axis_lad_rd_desc_valid),
+      .s_axis_read_desc_ready(axis_lad_rd_desc_ready),
+      .m_axis_read_data_tdata(axis_lad_rx_data_tdata),
+      .m_axis_read_data_tkeep(axis_lad_rx_data_tkeep),
+      .m_axis_read_data_tvalid(axis_lad_rx_data_tvalid),
+      .m_axis_read_data_tready(axis_lad_rx_data_tready),
+      .m_axis_read_data_tlast(axis_lad_rx_data_tlast),
+      .m_axis_read_data_tuser(axis_lad_rx_data_tuser),
+      .s_axis_write_desc_addr(axis_lad_wr_desc_addr[AXIADDRWIDTH-1:0]),
+      .s_axis_write_desc_len(axis_lad_wr_desc_len[AXILENWIDTH-1:0]),
+      .s_axis_write_desc_tag(axis_lad_wr_desc_tag),
+      .s_axis_write_desc_valid(axis_lad_wr_desc_valid),
+      .s_axis_write_desc_ready(axis_lad_wr_desc_ready),
+      .s_axis_write_data_tdata(axis_lad_tx_data_tdata),
+      .s_axis_write_data_tkeep(axis_lad_tx_data_tkeep),
+      .s_axis_write_data_tvalid(axis_lad_tx_data_tvalid),
+      .s_axis_write_data_tready(axis_lad_tx_data_tready),
+      .s_axis_write_data_tlast(axis_lad_tx_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
-      .s_axis_write_data_tuser(lad_tx_tuser),
-      .m_axi_awid(lad_dma_axi_awid),
-      .m_axi_awaddr(lad_dma_axi_awaddr),
-      .m_axi_awlen(lad_dma_axi_awlen),
-      .m_axi_awsize(lad_dma_axi_awsize),
-      .m_axi_awburst(lad_dma_axi_awburst),
-      .m_axi_awlock(lad_dma_axi_awlock),
-      .m_axi_awcache(lad_dma_axi_awcache),
-      .m_axi_awprot(lad_dma_axi_awprot),
-      .m_axi_awvalid(lad_dma_axi_awvalid),
-      .m_axi_awready(lad_dma_axi_awready),
-      .m_axi_wdata(lad_dma_axi_wdata),
-      .m_axi_wstrb(lad_dma_axi_wstrb),
-      .m_axi_wlast(lad_dma_axi_wlast),
-      .m_axi_wvalid(lad_dma_axi_wvalid),
-      .m_axi_wready(lad_dma_axi_wready),
-      .m_axi_bid(lad_dma_axi_bid),
-      .m_axi_bresp(lad_dma_axi_bresp),
-      .m_axi_bvalid(lad_dma_axi_bvalid),
-      .m_axi_bready(lad_dma_axi_bready),
-      .m_axi_arid(lad_dma_axi_arid),
-      .m_axi_araddr(lad_dma_axi_araddr),
-      .m_axi_arlen(lad_dma_axi_arlen),
-      .m_axi_arsize(lad_dma_axi_arsize),
-      .m_axi_arburst(lad_dma_axi_arburst),
-      .m_axi_arlock(lad_dma_axi_arlock),
-      .m_axi_arcache(lad_dma_axi_arcache),
-      .m_axi_arprot(lad_dma_axi_arprot),
-      .m_axi_arvalid(lad_dma_axi_arvalid),
-      .m_axi_arready(lad_dma_axi_arready),
-      .m_axi_rid(lad_dma_axi_rid),
-      .m_axi_rdata(lad_dma_axi_rdata),
-      .m_axi_rresp(lad_dma_axi_rresp),
-      .m_axi_rlast(lad_dma_axi_rlast),
-      .m_axi_rvalid(lad_dma_axi_rvalid),
-      .m_axi_rready(lad_dma_axi_rready),
+      .s_axis_write_data_tuser(axis_lad_tx_data_tuser),
+      .m_axi_awid(axi_lad_dma_awid),
+      .m_axi_awaddr(axi_lad_dma_awaddr),
+      .m_axi_awlen(axi_lad_dma_awlen),
+      .m_axi_awsize(axi_lad_dma_awsize),
+      .m_axi_awburst(axi_lad_dma_awburst),
+      .m_axi_awlock(axi_lad_dma_awlock),
+      .m_axi_awcache(axi_lad_dma_awcache),
+      .m_axi_awprot(axi_lad_dma_awprot),
+      .m_axi_awvalid(axi_lad_dma_awvalid),
+      .m_axi_awready(axi_lad_dma_awready),
+      .m_axi_wdata(axi_lad_dma_wdata),
+      .m_axi_wstrb(axi_lad_dma_wstrb),
+      .m_axi_wlast(axi_lad_dma_wlast),
+      .m_axi_wvalid(axi_lad_dma_wvalid),
+      .m_axi_wready(axi_lad_dma_wready),
+      .m_axi_bid(axi_lad_dma_bid),
+      .m_axi_bresp(axi_lad_dma_bresp),
+      .m_axi_bvalid(axi_lad_dma_bvalid),
+      .m_axi_bready(axi_lad_dma_bready),
+      .m_axi_arid(axi_lad_dma_arid),
+      .m_axi_araddr(axi_lad_dma_araddr),
+      .m_axi_arlen(axi_lad_dma_arlen),
+      .m_axi_arsize(axi_lad_dma_arsize),
+      .m_axi_arburst(axi_lad_dma_arburst),
+      .m_axi_arlock(axi_lad_dma_arlock),
+      .m_axi_arcache(axi_lad_dma_arcache),
+      .m_axi_arprot(axi_lad_dma_arprot),
+      .m_axi_arvalid(axi_lad_dma_arvalid),
+      .m_axi_arready(axi_lad_dma_arready),
+      .m_axi_rid(axi_lad_dma_rid),
+      .m_axi_rdata(axi_lad_dma_rdata),
+      .m_axi_rresp(axi_lad_dma_rresp),
+      .m_axi_rlast(axi_lad_dma_rlast),
+      .m_axi_rvalid(axi_lad_dma_rvalid),
+      .m_axi_rready(axi_lad_dma_rready),
       .read_enable(1'b1),
       .write_enable(1'b1),
       .write_abort(1'b0)
@@ -718,37 +641,37 @@ module top (
   wire                    ddr_rst;
   wire                    ddr_sr_ack;
   wire                    ddr_ref_ack;
-  wire                    ddr_init_calib_complete;
+  wire                    ddr_init;
   // AXI
-  wire [  AXIIDWIDTH-1:0] ic_m_axi_awid;
-  wire [AXIADDRWIDTH-1:0] ic_m_axi_awaddr;
-  wire [             7:0] ic_m_axi_awlen;
-  wire [             2:0] ic_m_axi_awsize;
-  wire [             1:0] ic_m_axi_awburst;
-  wire                    ic_m_axi_awvalid;
-  wire                    ic_m_axi_awready;
-  wire [AXIDATAWIDTH-1:0] ic_m_axi_wdata;
-  wire [AXISTRBWIDTH-1:0] ic_m_axi_wstrb;
-  wire                    ic_m_axi_wlast;
-  wire                    ic_m_axi_wvalid;
-  wire                    ic_m_axi_wready;
-  wire [  AXIIDWIDTH-1:0] ic_m_axi_bid;
-  wire [             1:0] ic_m_axi_bresp;
-  wire                    ic_m_axi_bvalid;
-  wire                    ic_m_axi_bready;
-  wire [  AXIIDWIDTH-1:0] ic_m_axi_arid;
-  wire [AXIADDRWIDTH-1:0] ic_m_axi_araddr;
-  wire [             7:0] ic_m_axi_arlen;
-  wire [             2:0] ic_m_axi_arsize;
-  wire [             1:0] ic_m_axi_arburst;
-  wire                    ic_m_axi_arvalid;
-  wire                    ic_m_axi_arready;
-  wire [  AXIIDWIDTH-1:0] ic_m_axi_rid;
-  wire [AXIDATAWIDTH-1:0] ic_m_axi_rdata;
-  wire [             1:0] ic_m_axi_rresp;
-  wire                    ic_m_axi_rvalid;
-  wire                    ic_m_axi_rready;
-  wire                    ic_m_axi_rlast;
+  wire [  AXIIDWIDTH-1:0] axi_ddr_awid;
+  wire [AXIADDRWIDTH-1:0] axi_ddr_awaddr;
+  wire [             7:0] axi_ddr_awlen;
+  wire [             2:0] axi_ddr_awsize;
+  wire [             1:0] axi_ddr_awburst;
+  wire                    axi_ddr_awvalid;
+  wire                    axi_ddr_awready;
+  wire [AXIDATAWIDTH-1:0] axi_ddr_wdata;
+  wire [AXISTRBWIDTH-1:0] axi_ddr_wstrb;
+  wire                    axi_ddr_wlast;
+  wire                    axi_ddr_wvalid;
+  wire                    axi_ddr_wready;
+  wire [  AXIIDWIDTH-1:0] axi_ddr_bid;
+  wire [             1:0] axi_ddr_bresp;
+  wire                    axi_ddr_bvalid;
+  wire                    axi_ddr_bready;
+  wire [  AXIIDWIDTH-1:0] axi_ddr_arid;
+  wire [AXIADDRWIDTH-1:0] axi_ddr_araddr;
+  wire [             7:0] axi_ddr_arlen;
+  wire [             2:0] axi_ddr_arsize;
+  wire [             1:0] axi_ddr_arburst;
+  wire                    axi_ddr_arvalid;
+  wire                    axi_ddr_arready;
+  wire [  AXIIDWIDTH-1:0] axi_ddr_rid;
+  wire [AXIDATAWIDTH-1:0] axi_ddr_rdata;
+  wire [             1:0] axi_ddr_rresp;
+  wire                    axi_ddr_rvalid;
+  wire                    axi_ddr_rready;
+  wire                    axi_ddr_rlast;
 
   DDR3_Memory_Interface_Top u_ddr3 (
       .clk(tlp_clk),
@@ -758,36 +681,36 @@ module top (
       .rst_n(tlp_rst_n),
       .clk_out(ddr_clk_out),
       .ddr_rst(ddr_rst),
-      .init_calib_complete(ddr_init_calib_complete),
-      .s_axi_awvalid(ic_m_axi_awvalid),
-      .s_axi_awready(ic_m_axi_awready),
-      .s_axi_awid(ic_m_axi_awid),
-      .s_axi_awaddr(ic_m_axi_awaddr),
-      .s_axi_awlen(ic_m_axi_awlen),
-      .s_axi_awsize(ic_m_axi_awsize),
-      .s_axi_awburst(ic_m_axi_awburst),
-      .s_axi_wvalid(ic_m_axi_wvalid),
-      .s_axi_wready(ic_m_axi_wready),
-      .s_axi_wdata(ic_m_axi_wdata),
-      .s_axi_wstrb(ic_m_axi_wstrb),
-      .s_axi_wlast(ic_m_axi_wlast),
-      .s_axi_bvalid(ic_m_axi_bvalid),
-      .s_axi_bready(ic_m_axi_bready),
-      .s_axi_bresp(ic_m_axi_bresp),
-      .s_axi_bid(ic_m_axi_bid),
-      .s_axi_arvalid(ic_m_axi_arvalid),
-      .s_axi_arready(ic_m_axi_arready),
-      .s_axi_arid(ic_m_axi_arid),
-      .s_axi_araddr(ic_m_axi_araddr),
-      .s_axi_arlen(ic_m_axi_arlen),
-      .s_axi_arsize(ic_m_axi_arsize),
-      .s_axi_arburst(ic_m_axi_arburst),
-      .s_axi_rvalid(ic_m_axi_rvalid),
-      .s_axi_rready(ic_m_axi_rready),
-      .s_axi_rdata(ic_m_axi_rdata),
-      .s_axi_rresp(ic_m_axi_rresp),
-      .s_axi_rid(ic_m_axi_rid),
-      .s_axi_rlast(ic_m_axi_rlast),
+      .init_calib_complete(ddr_init),
+      .s_axi_awvalid(axi_ddr_awvalid),
+      .s_axi_awready(axi_ddr_awready),
+      .s_axi_awid(axi_ddr_awid),
+      .s_axi_awaddr(axi_ddr_awaddr),
+      .s_axi_awlen(axi_ddr_awlen),
+      .s_axi_awsize(axi_ddr_awsize),
+      .s_axi_awburst(axi_ddr_awburst),
+      .s_axi_wvalid(axi_ddr_wvalid),
+      .s_axi_wready(axi_ddr_wready),
+      .s_axi_wdata(axi_ddr_wdata),
+      .s_axi_wstrb(axi_ddr_wstrb),
+      .s_axi_wlast(axi_ddr_wlast),
+      .s_axi_bvalid(axi_ddr_bvalid),
+      .s_axi_bready(axi_ddr_bready),
+      .s_axi_bresp(axi_ddr_bresp),
+      .s_axi_bid(axi_ddr_bid),
+      .s_axi_arvalid(axi_ddr_arvalid),
+      .s_axi_arready(axi_ddr_arready),
+      .s_axi_arid(axi_ddr_arid),
+      .s_axi_araddr(axi_ddr_araddr),
+      .s_axi_arlen(axi_ddr_arlen),
+      .s_axi_arsize(axi_ddr_arsize),
+      .s_axi_arburst(axi_ddr_arburst),
+      .s_axi_rvalid(axi_ddr_rvalid),
+      .s_axi_rready(axi_ddr_rready),
+      .s_axi_rdata(axi_ddr_rdata),
+      .s_axi_rresp(axi_ddr_rresp),
+      .s_axi_rid(axi_ddr_rid),
+      .s_axi_rlast(axi_ddr_rlast),
       .sr_req(1'b0),
       .ref_req(1'b0),
       .sr_ack(ddr_sr_ack),
@@ -813,35 +736,6 @@ module top (
   // ================
   // AXI Interconnect
   // ================
-  // Master
-  wire                      ic_m_axi_awlock;
-  wire [               3:0] ic_m_axi_awcache;
-  wire [               2:0] ic_m_axi_awprot;
-  wire [               3:0] ic_m_axi_awqos;
-  wire [               3:0] ic_m_axi_awregion;
-  wire                      ic_m_axi_awuser;
-  wire                      ic_m_axi_wuser;
-  wire                      ic_m_axi_buser;
-  wire                      ic_m_axi_arlock;
-  wire [               3:0] ic_m_axi_arcache;
-  wire [               2:0] ic_m_axi_arprot;
-  wire [               3:0] ic_m_axi_arqos;
-  wire [               3:0] ic_m_axi_arregion;
-  wire                      ic_m_axi_aruser;
-  wire                      ic_m_axi_ruser;
-  // Slave
-  wire [             2-1:0] ic_s_axi_awready;
-  wire [             2-1:0] ic_s_axi_wready;
-  wire [  2*AXIIDWIDTH-1:0] ic_s_axi_bid;
-  wire [           2*2-1:0] ic_s_axi_bresp;
-  wire [             2-1:0] ic_s_axi_bvalid;
-  wire [             2-1:0] ic_s_axi_arready;
-  wire [  2*AXIIDWIDTH-1:0] ic_s_axi_rid;
-  wire [2*AXIDATAWIDTH-1:0] ic_s_axi_rdata;
-  wire [           2*2-1:0] ic_s_axi_rresp;
-  wire [             2-1:0] ic_s_axi_rlast;
-  wire [             2-1:0] ic_s_axi_rvalid;
-
   axi_interconnect #(
       .S_COUNT(2),
       .M_COUNT(1),
@@ -854,108 +748,78 @@ module top (
   ) u_axi_interconnect (
       .clk(tlp_clk),
       .rst(tlp_rst),
-      .s_axi_awid({lad_dma_axi_awid, dma_axi_awid}),
-      .s_axi_awaddr({lad_dma_axi_awaddr, dma_axi_awaddr}),
-      .s_axi_awlen({lad_dma_axi_awlen, dma_axi_awlen}),
-      .s_axi_awsize({lad_dma_axi_awsize, dma_axi_awsize}),
-      .s_axi_awburst({lad_dma_axi_awburst, dma_axi_awburst}),
-      .s_axi_awlock({lad_dma_axi_awlock, dma_axi_awlock}),
-      .s_axi_awcache({lad_dma_axi_awcache, dma_axi_awcache}),
-      .s_axi_awprot({lad_dma_axi_awprot, dma_axi_awprot}),
+      .s_axi_awid({axi_lad_dma_awid, axi_pci_dma_awid}),
+      .s_axi_awaddr({axi_lad_dma_awaddr, axi_pci_dma_awaddr}),
+      .s_axi_awlen({axi_lad_dma_awlen, axi_pci_dma_awlen}),
+      .s_axi_awsize({axi_lad_dma_awsize, axi_pci_dma_awsize}),
+      .s_axi_awburst({axi_lad_dma_awburst, axi_pci_dma_awburst}),
+      .s_axi_awlock({axi_lad_dma_awlock, axi_pci_dma_awlock}),
+      .s_axi_awcache({axi_lad_dma_awcache, axi_pci_dma_awcache}),
+      .s_axi_awprot({axi_lad_dma_awprot, axi_pci_dma_awprot}),
       .s_axi_awqos({4'd0, 4'd0}),
       .s_axi_awuser(2'b00),
-      .s_axi_awvalid({lad_dma_axi_awvalid, dma_axi_awvalid}),
-      .s_axi_awready(ic_s_axi_awready),
-      .s_axi_wdata({lad_dma_axi_wdata, dma_axi_wdata}),
-      .s_axi_wstrb({lad_dma_axi_wstrb, dma_axi_wstrb}),
-      .s_axi_wlast({lad_dma_axi_wlast, dma_axi_wlast}),
+      .s_axi_awvalid({axi_lad_dma_awvalid, axi_pci_dma_awvalid}),
+      .s_axi_awready({axi_lad_dma_awready, axi_pci_dma_awready}),
+      .s_axi_wdata({axi_lad_dma_wdata, axi_pci_dma_wdata}),
+      .s_axi_wstrb({axi_lad_dma_wstrb, axi_pci_dma_wstrb}),
+      .s_axi_wlast({axi_lad_dma_wlast, axi_pci_dma_wlast}),
       .s_axi_wuser(2'b00),
-      .s_axi_wvalid({lad_dma_axi_wvalid, dma_axi_wvalid}),
-      .s_axi_wready(ic_s_axi_wready),
-      .s_axi_bid(ic_s_axi_bid),
-      .s_axi_bresp(ic_s_axi_bresp),
-      .s_axi_buser(),
-      .s_axi_bvalid(ic_s_axi_bvalid),
-      .s_axi_bready({lad_dma_axi_bready, dma_axi_bready}),
-      .s_axi_arid({lad_dma_axi_arid, dma_axi_arid}),
-      .s_axi_araddr({lad_dma_axi_araddr, dma_axi_araddr}),
-      .s_axi_arlen({lad_dma_axi_arlen, dma_axi_arlen}),
-      .s_axi_arsize({lad_dma_axi_arsize, dma_axi_arsize}),
-      .s_axi_arburst({lad_dma_axi_arburst, dma_axi_arburst}),
-      .s_axi_arlock({lad_dma_axi_arlock, dma_axi_arlock}),
-      .s_axi_arcache({lad_dma_axi_arcache, dma_axi_arcache}),
-      .s_axi_arprot({lad_dma_axi_arprot, dma_axi_arprot}),
+      .s_axi_wvalid({axi_lad_dma_wvalid, axi_pci_dma_wvalid}),
+      .s_axi_wready({axi_lad_dma_wready, axi_pci_dma_wready}),
+      .s_axi_bid({axi_lad_dma_bid, axi_pci_dma_bid}),
+      .s_axi_bresp({axi_lad_dma_bresp, axi_pci_dma_bresp}),
+      .s_axi_bvalid({axi_lad_dma_bvalid, axi_pci_dma_bvalid}),
+      .s_axi_bready({axi_lad_dma_bready, axi_pci_dma_bready}),
+      .s_axi_arid({axi_lad_dma_arid, axi_pci_dma_arid}),
+      .s_axi_araddr({axi_lad_dma_araddr, axi_pci_dma_araddr}),
+      .s_axi_arlen({axi_lad_dma_arlen, axi_pci_dma_arlen}),
+      .s_axi_arsize({axi_lad_dma_arsize, axi_pci_dma_arsize}),
+      .s_axi_arburst({axi_lad_dma_arburst, axi_pci_dma_arburst}),
+      .s_axi_arlock({axi_lad_dma_arlock, axi_pci_dma_arlock}),
+      .s_axi_arcache({axi_lad_dma_arcache, axi_pci_dma_arcache}),
+      .s_axi_arprot({axi_lad_dma_arprot, axi_pci_dma_arprot}),
       .s_axi_arqos({4'd0, 4'd0}),
       .s_axi_aruser(2'b00),
-      .s_axi_arvalid({lad_dma_axi_arvalid, dma_axi_arvalid}),
-      .s_axi_arready(ic_s_axi_arready),
-      .s_axi_rid(ic_s_axi_rid),
-      .s_axi_rdata(ic_s_axi_rdata),
-      .s_axi_rresp(ic_s_axi_rresp),
-      .s_axi_rlast(ic_s_axi_rlast),
-      .s_axi_ruser(),
-      .s_axi_rvalid(ic_s_axi_rvalid),
-      .s_axi_rready({lad_dma_axi_rready, dma_axi_rready}),
-      .m_axi_awid(ic_m_axi_awid),
-      .m_axi_awaddr(ic_m_axi_awaddr),
-      .m_axi_awlen(ic_m_axi_awlen),
-      .m_axi_awsize(ic_m_axi_awsize),
-      .m_axi_awburst(ic_m_axi_awburst),
-      .m_axi_awlock(ic_m_axi_awlock),
-      .m_axi_awcache(ic_m_axi_awcache),
-      .m_axi_awprot(ic_m_axi_awprot),
-      .m_axi_awqos(ic_m_axi_awqos),
-      .m_axi_awregion(ic_m_axi_awregion),
-      .m_axi_awuser(ic_m_axi_awuser),
-      .m_axi_awvalid(ic_m_axi_awvalid),
-      .m_axi_awready(ic_m_axi_awready),
-      .m_axi_wdata(ic_m_axi_wdata),
-      .m_axi_wstrb(ic_m_axi_wstrb),
-      .m_axi_wlast(ic_m_axi_wlast),
-      .m_axi_wuser(ic_m_axi_wuser),
-      .m_axi_wvalid(ic_m_axi_wvalid),
-      .m_axi_wready(ic_m_axi_wready),
-      .m_axi_bid(ic_m_axi_bid),
-      .m_axi_bresp(ic_m_axi_bresp),
-      .m_axi_buser(ic_m_axi_buser),
-      .m_axi_bvalid(ic_m_axi_bvalid),
-      .m_axi_bready(ic_m_axi_bready),
-      .m_axi_arid(ic_m_axi_arid),
-      .m_axi_araddr(ic_m_axi_araddr),
-      .m_axi_arlen(ic_m_axi_arlen),
-      .m_axi_arsize(ic_m_axi_arsize),
-      .m_axi_arburst(ic_m_axi_arburst),
-      .m_axi_arlock(ic_m_axi_arlock),
-      .m_axi_arcache(ic_m_axi_arcache),
-      .m_axi_arprot(ic_m_axi_arprot),
-      .m_axi_arqos(ic_m_axi_arqos),
-      .m_axi_arregion(ic_m_axi_arregion),
-      .m_axi_aruser(ic_m_axi_aruser),
-      .m_axi_arvalid(ic_m_axi_arvalid),
-      .m_axi_arready(ic_m_axi_arready),
-      .m_axi_rid(ic_m_axi_rid),
-      .m_axi_rdata(ic_m_axi_rdata),
-      .m_axi_rresp(ic_m_axi_rresp),
-      .m_axi_rlast(ic_m_axi_rlast),
-      .m_axi_ruser(ic_m_axi_ruser),
-      .m_axi_rvalid(ic_m_axi_rvalid),
-      .m_axi_rready(ic_m_axi_rready)
+      .s_axi_arvalid({axi_lad_dma_arvalid, axi_pci_dma_arvalid}),
+      .s_axi_arready({axi_lad_dma_arready, axi_pci_dma_arready}),
+      .s_axi_rid({axi_lad_dma_rid, axi_pci_dma_rid}),
+      .s_axi_rdata({axi_lad_dma_rdata, axi_pci_dma_rdata}),
+      .s_axi_rresp({axi_lad_dma_rresp, axi_pci_dma_rresp}),
+      .s_axi_rlast({axi_lad_dma_rlast, axi_pci_dma_rlast}),
+      .s_axi_rvalid({axi_lad_dma_rvalid, axi_pci_dma_rvalid}),
+      .s_axi_rready({axi_lad_dma_rready, axi_pci_dma_rready}),
+      .m_axi_awid(axi_ddr_awid),
+      .m_axi_awaddr(axi_ddr_awaddr),
+      .m_axi_awlen(axi_ddr_awlen),
+      .m_axi_awsize(axi_ddr_awsize),
+      .m_axi_awburst(axi_ddr_awburst),
+      .m_axi_awvalid(axi_ddr_awvalid),
+      .m_axi_awready(axi_ddr_awready),
+      .m_axi_wdata(axi_ddr_wdata),
+      .m_axi_wstrb(axi_ddr_wstrb),
+      .m_axi_wlast(axi_ddr_wlast),
+      .m_axi_wvalid(axi_ddr_wvalid),
+      .m_axi_wready(axi_ddr_wready),
+      .m_axi_bid(axi_ddr_bid),
+      .m_axi_bresp(axi_ddr_bresp),
+      .m_axi_buser(1'b0),
+      .m_axi_bvalid(axi_ddr_bvalid),
+      .m_axi_bready(axi_ddr_bready),
+      .m_axi_arid(axi_ddr_arid),
+      .m_axi_araddr(axi_ddr_araddr),
+      .m_axi_arlen(axi_ddr_arlen),
+      .m_axi_arsize(axi_ddr_arsize),
+      .m_axi_arburst(axi_ddr_arburst),
+      .m_axi_arvalid(axi_ddr_arvalid),
+      .m_axi_arready(axi_ddr_arready),
+      .m_axi_rid(axi_ddr_rid),
+      .m_axi_rdata(axi_ddr_rdata),
+      .m_axi_rresp(axi_ddr_rresp),
+      .m_axi_rlast(axi_ddr_rlast),
+      .m_axi_ruser(1'b0),
+      .m_axi_rvalid(axi_ddr_rvalid),
+      .m_axi_rready(axi_ddr_rready)
   );
-
-  assign {lad_dma_axi_awready, dma_axi_awready} = ic_s_axi_awready;
-  assign {lad_dma_axi_wready, dma_axi_wready} = ic_s_axi_wready;
-  assign {lad_dma_axi_bid, dma_axi_bid} = ic_s_axi_bid;
-  assign {lad_dma_axi_bresp, dma_axi_bresp} = ic_s_axi_bresp;
-  assign {lad_dma_axi_bvalid, dma_axi_bvalid} = ic_s_axi_bvalid;
-  assign {lad_dma_axi_arready, dma_axi_arready} = ic_s_axi_arready;
-  assign {lad_dma_axi_rid, dma_axi_rid} = ic_s_axi_rid;
-  assign {lad_dma_axi_rdata, dma_axi_rdata} = ic_s_axi_rdata;
-  assign {lad_dma_axi_rresp, dma_axi_rresp} = ic_s_axi_rresp;
-  assign {lad_dma_axi_rlast, dma_axi_rlast} = ic_s_axi_rlast;
-  assign {lad_dma_axi_rvalid, dma_axi_rvalid} = ic_s_axi_rvalid;
-
-  assign ic_m_axi_buser = 1'b0;
-  assign ic_m_axi_ruser = 1'b0;
 
   // ====
   // Leds
@@ -964,7 +828,7 @@ module top (
   assign led[1] = ~perst_cnt[PERST_DLY];
   assign led[2] = ~pcie_start;
   assign led[3] = ~pcie_linkup_r;
-  assign led[4] = ~ddr_init_calib_complete;
+  assign led[4] = ~ddr_init;
   assign led[5] = ~h2c_run;
 
 endmodule
