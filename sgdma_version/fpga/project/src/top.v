@@ -184,17 +184,15 @@ module top (
   wire         axis_h2c_data_tvalid;
   wire [255:0] axis_h2c_data_tdata;
   wire         axis_h2c_data_tlast;
-  wire [ 31:0] axis_h2c_data_tuser;
   wire [ 31:0] axis_h2c_data_tkeep;
-  wire         h2c_run = 1'b0;  //? 1'b1
+  wire         h2c_run;
   // c2h AXI stream
   wire         axis_c2h_data_tready;
   wire         axis_c2h_data_tvalid;
   wire         axis_c2h_data_tlast;
   wire [255:0] axis_c2h_data_tdata;
-  wire [ 31:0] axis_c2h_data_tuser;
   wire [ 31:0] axis_c2h_data_tkeep;
-  wire         c2h_run = 1'b0;
+  wire         c2h_run;
   // BAR2
   wire         user_cs;
   wire [ 63:0] user_address;
@@ -242,14 +240,12 @@ module top (
       .m_axis_h2c_tvalid(axis_h2c_data_tvalid),
       .m_axis_h2c_tdata(axis_h2c_data_tdata),
       .m_axis_h2c_tlast(axis_h2c_data_tlast),
-      .m_axis_h2c_tuser(axis_h2c_data_tuser),
       .m_axis_h2c_tkeep(axis_h2c_data_tkeep),
       .h2c_overhead(),
       .s_axis_c2h_tready(axis_c2h_data_tready),
       .s_axis_c2h_tvalid(axis_c2h_data_tvalid),
       .s_axis_c2h_tlast(axis_c2h_data_tlast),
       .s_axis_c2h_tdata(axis_c2h_data_tdata),
-      .s_axis_c2h_tuser(axis_c2h_data_tuser),
       .s_axis_c2h_tkeep(axis_c2h_data_tkeep),
       .c2h_overhead_valid(1'b0),
       .c2h_overhead_data(64'd0),
@@ -372,7 +368,7 @@ module top (
       .AXIS_ID_WIDTH(8),
       .AXIS_DEST_ENABLE(0),
       .AXIS_DEST_WIDTH(8),
-      .AXIS_USER_ENABLE(1),
+      .AXIS_USER_ENABLE(0),
       .AXIS_USER_WIDTH(32)
   ) u_axi_dma_pcie_sgdma (
       .clk(tlp_clk),
@@ -390,7 +386,6 @@ module top (
       .m_axis_read_data_tvalid(axis_c2h_data_tvalid),
       .m_axis_read_data_tready(axis_c2h_data_tready),
       .m_axis_read_data_tlast(axis_c2h_data_tlast),
-      .m_axis_read_data_tuser(axis_c2h_data_tuser),
       .s_axis_write_desc_addr(axis_h2c_desc_addr),
       .s_axis_write_desc_len(axis_h2c_desc_len),
       .s_axis_write_desc_tag(8'd0),
@@ -403,7 +398,6 @@ module top (
       .s_axis_write_data_tlast(axis_h2c_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
-      .s_axis_write_data_tuser(axis_h2c_data_tuser),
       .m_axi_awid(axi_pci_dma_awid),
       .m_axi_awaddr(axi_pci_dma_awaddr),
       .m_axi_awlen(axi_pci_dma_awlen),
@@ -465,14 +459,12 @@ module top (
   wire           axis_lad_rx_data_tvalid;
   wire [255 : 0] axis_lad_rx_data_tdata;
   wire           axis_lad_rx_data_tlast;
-  wire [ 31 : 0] axis_lad_rx_data_tuser;
   wire [ 31 : 0] axis_lad_rx_data_tkeep;
   // Transmit
   wire           axis_lad_tx_data_tready;
   wire           axis_lad_tx_data_tvalid;
   wire           axis_lad_tx_data_tlast;
   wire [255 : 0] axis_lad_tx_data_tdata;
-  wire [ 31 : 0] axis_lad_tx_data_tuser;
   wire [ 31 : 0] axis_lad_tx_data_tkeep;
 
   logic_adder u_logic_adder (
@@ -496,13 +488,11 @@ module top (
       .s_axis_rx_tvalid(axis_lad_rx_data_tvalid),
       .s_axis_rx_tdata(axis_lad_rx_data_tdata),
       .s_axis_rx_tlast(axis_lad_rx_data_tlast),
-      .s_axis_rx_tuser(axis_lad_rx_data_tuser),
       .s_axis_rx_tkeep(axis_lad_rx_data_tkeep),
       .m_axis_tx_tready(axis_lad_tx_data_tready),
       .m_axis_tx_tvalid(axis_lad_tx_data_tvalid),
       .m_axis_tx_tlast(axis_lad_tx_data_tlast),
       .m_axis_tx_tdata(axis_lad_tx_data_tdata),
-      .m_axis_tx_tuser(axis_lad_tx_data_tuser),
       .m_axis_tx_tkeep(axis_lad_tx_data_tkeep),
       .run(lad_run),
       .busy(lad_busy),
@@ -561,7 +551,7 @@ module top (
       .AXIS_ID_WIDTH(8),
       .AXIS_DEST_ENABLE(0),
       .AXIS_DEST_WIDTH(8),
-      .AXIS_USER_ENABLE(1),
+      .AXIS_USER_ENABLE(0),
       .AXIS_USER_WIDTH(32)
   ) u_axi_pci_dma_logic_adder (
       .clk(tlp_clk),
@@ -579,7 +569,6 @@ module top (
       .m_axis_read_data_tvalid(axis_lad_rx_data_tvalid),
       .m_axis_read_data_tready(axis_lad_rx_data_tready),
       .m_axis_read_data_tlast(axis_lad_rx_data_tlast),
-      .m_axis_read_data_tuser(axis_lad_rx_data_tuser),
       .s_axis_write_desc_addr(axis_lad_wr_desc_addr[AXIADDRWIDTH-1:0]),
       .s_axis_write_desc_len(axis_lad_wr_desc_len[AXILENWIDTH-1:0]),
       .s_axis_write_desc_tag(axis_lad_wr_desc_tag),
@@ -592,7 +581,6 @@ module top (
       .s_axis_write_data_tlast(axis_lad_tx_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
-      .s_axis_write_data_tuser(axis_lad_tx_data_tuser),
       .m_axi_awid(axi_lad_dma_awid),
       .m_axi_awaddr(axi_lad_dma_awaddr),
       .m_axi_awlen(axi_lad_dma_awlen),

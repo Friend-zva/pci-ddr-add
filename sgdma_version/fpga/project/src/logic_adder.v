@@ -27,14 +27,12 @@ module logic_adder (
     input          s_axis_rx_tvalid,
     input  [255:0] s_axis_rx_tdata,
     input          s_axis_rx_tlast,
-    input  [ 31:0] s_axis_rx_tuser,
     input  [ 31:0] s_axis_rx_tkeep,
     // Transmit
     input          m_axis_tx_tready,
     output         m_axis_tx_tvalid,
     output         m_axis_tx_tlast,
     output [255:0] m_axis_tx_tdata,
-    output [ 31:0] m_axis_tx_tuser,
     output [ 31:0] m_axis_tx_tkeep,
 
     input      run,
@@ -129,7 +127,6 @@ module logic_adder (
   reg pipe_tvalid;
   reg pipe_tlast;
   reg [31:0] pipe_tkeep;
-  reg [31:0] pipe_tuser;
 
   wire pipe_ready = m_axis_tx_tready || !pipe_tvalid;
   wire in_valid = stream_enable && read_desc_issued && write_desc_issued && s_axis_rx_tvalid;
@@ -146,7 +143,6 @@ module logic_adder (
         pipe_tdata  <= tx_data_add16;
         pipe_tlast  <= s_axis_rx_tlast;
         pipe_tkeep  <= s_axis_rx_tkeep;
-        pipe_tuser  <= s_axis_rx_tuser;
       end
     end
   end
@@ -155,6 +151,5 @@ module logic_adder (
   assign m_axis_tx_tdata   = pipe_tdata;
   assign m_axis_tx_tlast   = pipe_tlast;
   assign m_axis_tx_tkeep   = pipe_tkeep;
-  assign m_axis_tx_tuser   = pipe_tuser;
 
 endmodule
