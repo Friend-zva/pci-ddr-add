@@ -86,8 +86,8 @@ int main(int argc, char *argv[]) {
     volatile uint8_t *dp = proc->mem_dst + 64;
     volatile uint64_t da = proc->dma_dst + 64;
 
-    uint32_t addr_ddr_h2c = 0x00000000;
-    uint32_t addr_ddr_c2h = 0x01000000;
+    uint32_t addr_ddr_h2c = 0x0000;
+    uint32_t addr_ddr_c2h = 0x4000; // DMA_SIZE
 
     uint32_t cnt = 128; // 128 * 4 = 512B
     uint32_t length = cnt * 4;

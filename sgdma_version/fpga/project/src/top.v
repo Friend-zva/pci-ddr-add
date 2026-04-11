@@ -179,14 +179,14 @@ module top (
   );
 
   /* PCIe SGDMA */
-  // h2c AXI stream
+  // h2c AXI stream data
   wire         axis_h2c_data_tready;
   wire         axis_h2c_data_tvalid;
   wire [255:0] axis_h2c_data_tdata;
   wire         axis_h2c_data_tlast;
   wire [ 31:0] axis_h2c_data_tkeep;
   wire         h2c_run;
-  // c2h AXI stream
+  // c2h AXI stream data
   wire         axis_c2h_data_tready;
   wire         axis_c2h_data_tvalid;
   wire         axis_c2h_data_tlast;
@@ -264,12 +264,12 @@ module top (
   /* Logic control BAR2 (Descriptors for DDR3) */
   localparam integer AXIADDRWIDTH = 29;
   localparam integer AXILENWIDTH = 20;
-  // h2c
+  // h2c AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
-  // c2h
+  // c2h AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
   wire                    axis_c2h_desc_valid;
@@ -454,13 +454,13 @@ module top (
   wire [  7 : 0] axis_lad_wr_desc_tag;
   wire           axis_lad_wr_desc_valid;
   wire           axis_lad_wr_desc_ready;
-  // Receive
+  // Receive data
   wire           axis_lad_rx_data_tready;
   wire           axis_lad_rx_data_tvalid;
   wire [255 : 0] axis_lad_rx_data_tdata;
   wire           axis_lad_rx_data_tlast;
   wire [ 31 : 0] axis_lad_rx_data_tkeep;
-  // Transmit
+  // Transmit data
   wire           axis_lad_tx_data_tready;
   wire           axis_lad_tx_data_tvalid;
   wire           axis_lad_tx_data_tlast;
