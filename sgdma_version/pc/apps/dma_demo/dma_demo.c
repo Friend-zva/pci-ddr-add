@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // Host PC -> FPGA DDR3
         // ====================
-        // *poll_h2c = 0;
+        *poll_h2c = 0;
 
         desc_h2c->flags = SET_FLAG;
         desc_h2c->length = length;
@@ -126,20 +126,20 @@ int main(int argc, char *argv[]) {
 
         gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
         gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
-        // gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
-        // gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
+        gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
+        gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
         gwbar0->h2c[0].num_desc_adj = 0;
 
         gwbar2->addr_ddr_h2c = addr_ddr_h2c;
         gwbar2->leng_ddr_h2c = length;
 
         gwbar2->ctrl = BAR2_PCIE_WR_START;
-        gwbar0->h2c[0].ctrl = SGDMA_START;
+        gwbar0->h2c[0].ctrl_w1s = SGDMA_POLL_START;
 
-        while (!(gwbar0->h2c[0].status0 & SGDMA_DONE) && !flag_exit) {
-            printf("loop h2c ");
+        while (!(*poll_h2c) && !flag_exit) {
+            // waiting
         }
-        gwbar0->h2c[0].ctrl = SGDMA_STOP;
+        gwbar0->h2c[0].ctrl_w1s = SGDMA_STOP;
         if (flag_exit) {
             break;
         }
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // FPGA DDR3 -> Host PC
         // ====================
-        // *poll_c2h = 0;
+        *poll_c2h = 0;
 
         desc_c2h->flags = SET_FLAG;
         desc_c2h->length = length;
@@ -176,21 +176,21 @@ int main(int argc, char *argv[]) {
 
         gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
         gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
-        // gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
-        // gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
+        gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
+        gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
         gwbar0->c2h[0].num_desc_adj = 0;
 
-        gwbar0->c2h[0].ctrl = SGDMA_START;
+        gwbar0->c2h[0].ctrl_w1s = SGDMA_POLL_START;
 
         gwbar2->addr_ddr_c2h = addr_ddr_c2h;
         gwbar2->leng_ddr_c2h = length;
 
         gwbar2->ctrl = BAR2_PCIE_RD_START;
 
-        while (!(gwbar0->c2h[0].status0 & SGDMA_DONE) && !flag_exit) {
-            printf("loop c2h ");
+        while (!(*poll_c2h) && !flag_exit) {
+            // waiting
         }
-        gwbar0->c2h[0].ctrl = SGDMA_STOP;
+        gwbar0->c2h[0].ctrl_w1s = SGDMA_STOP;
         if (flag_exit) {
             break;
         }

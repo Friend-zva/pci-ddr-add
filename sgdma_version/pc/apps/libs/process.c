@@ -41,12 +41,12 @@ Process *init_proc() {
 
     proc->fd = fd;
 
-    uint32_t *bar0 = mmap_bar(fd, 0, BAR0_SIZE);
+    uint64_t *bar0 = mmap_bar(fd, 0, BAR0_SIZE);
     if (bar0 == NULL) {
         return NULL;
     }
     proc->gwbar0 = (GowinBar0 *)bar0;
-    uint32_t *bar2 = mmap_bar(fd, 1, BAR2_SIZE); //? index = 2
+    uint64_t *bar2 = mmap_bar(fd, 2, BAR2_SIZE);
     if (bar2 == NULL) {
         return NULL;
     }

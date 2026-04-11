@@ -868,7 +868,7 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
 
     if (data->mem_select == 0) {
         /*! resource length*/
-        psize = pci_resource_len(data->pdev, data->cur_bar);
+        psize = PAGE_ALIGN(pci_resource_len(data->pdev, data->cur_bar));
         if (psize == 0) {
             dev_err(dev, "BAR #%d not available.\n", data->cur_bar);
             return -ENXIO;
