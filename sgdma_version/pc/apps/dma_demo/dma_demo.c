@@ -20,7 +20,8 @@
 #include "../libs/gowin_utils.h"
 #include "../libs/process.h"
 
-#define MAXFF 0xFFFFFFFF
+#define MAXFF (0xFFFFFFFF)
+#define TIMEOUT_POLL (100000000);
 
 volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
@@ -123,6 +124,8 @@ int main(int argc, char *argv[]) {
         // overhead data
         desc_h2c->addr_dst_lo = 0;
         desc_h2c->addr_dst_hi = 0;
+        desc_h2c->next_lo = 0;
+        desc_h2c->next_hi = 0;
 
         gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
         gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
@@ -136,8 +139,15 @@ int main(int argc, char *argv[]) {
         gwbar2->ctrl = BAR2_PCIE_WR_START;
         gwbar0->h2c[0].ctrl_w1s = SGDMA_POLL_START;
 
-        while (!(*poll_h2c) && !flag_exit) {
-            // waiting
+        int timeout_h2c = TIMEOUT_POLL;
+        while (!(*poll_h2c) && !flag_exit && --timeout_h2c > 0) {
+            if (desc_h2c->flags & IS_COMPLETED) {
+                printf("h2c: completed, but didn't write to poll address.\n");
+                break;
+            }
+        }
+        if (timeout_h2c <= 0) {
+            printf("h2c: timeout, but didn't write to poll address.\n");
         }
         gwbar0->h2c[0].ctrl_w1s = SGDMA_STOP;
         if (flag_exit) {
@@ -153,8 +163,14 @@ int main(int argc, char *argv[]) {
 
         gwbar2->ctrl = BAR2_LAD_START;
 
-        while (!(gwbar2->status & BAR2_LAD_DONE) && !flag_exit) {
-            printf("loop ddr ");
+        int timeout_lad = TIMEOUT_POLL;
+        while (!flag_exit && --timeout_lad > 0) {
+            if (gwbar2->status & BAR2_LAD_DONE) {
+                break;
+            }
+        }
+        if (timeout_lad <= 0) {
+            printf("h2c: timeout, but didn't do logic adder.\n");
         }
         gwbar2->ctrl = BAR2_LAD_STOP;
         if (flag_exit) {
@@ -173,6 +189,8 @@ int main(int argc, char *argv[]) {
         // write-back
         desc_c2h->addr_src_lo = (proc->dma_dst + 36) & MAXFF;
         desc_c2h->addr_src_hi = ((proc->dma_dst + 36) >> 32) & MAXFF;
+        desc_c2h->next_lo = 0;
+        desc_c2h->next_hi = 0;
 
         gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
         gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
@@ -187,8 +205,15 @@ int main(int argc, char *argv[]) {
 
         gwbar2->ctrl = BAR2_PCIE_RD_START;
 
-        while (!(*poll_c2h) && !flag_exit) {
-            // waiting
+        int timeout_c2h = TIMEOUT_POLL;
+        while (!(*poll_c2h) && !flag_exit && --timeout_c2h > 0) {
+            if (desc_c2h->flags & IS_COMPLETED) {
+                printf("c2h: completed, but didn't write to poll address.\n");
+                break;
+            }
+        }
+        if (timeout_c2h <= 0) {
+            printf("c2h: timeout, but didn't write to poll address.\n");
         }
         gwbar0->c2h[0].ctrl_w1s = SGDMA_STOP;
         if (flag_exit) {
