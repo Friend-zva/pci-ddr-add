@@ -732,7 +732,7 @@ module top (
       .STRB_WIDTH(AXISTRBWIDTH),
       .ID_WIDTH(AXIIDWIDTH),
       .M_REGIONS(1),
-      .M_ADDR_WIDTH(32'd29)
+      .M_ADDR_WIDTH(AXIADDRWIDTH)
   ) u_axi_interconnect (
       .clk(tlp_clk),
       .rst(tlp_rst),

@@ -1197,7 +1197,7 @@ static struct pci_driver gowin_bar_driver = {
 
 module_pci_driver(gowin_bar_driver);
 
-MODULE_DESCRIPTION("GoWin-PCIe BAR Ctrl Driver");
-MODULE_AUTHOR("Huang Mingtao <mingtao@gowinsemi.com>");
+MODULE_DESCRIPTION("PCIe BAR Ctrl Driver");
+MODULE_AUTHOR("Vladimir Zaikin <friend.zva@yandex.ru>");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRIVER_VERSION);
