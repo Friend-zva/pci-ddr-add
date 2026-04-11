@@ -3,7 +3,8 @@
 #ifndef GOWIN_DESCRIPTOR_H
 #define GOWIN_DESCRIPTOR_H
 
-#define SET_FLAG ((1 << 0) | (1 << 1)) // Stop=1, Eop=1, Completed=0, Adj=0
+#define SET_FLAG_EOP (1 << 1)
+#define SET_FLAG_STOP_EOP ((1 << 0) | (1 << 1))
 #define IS_COMPLETED (1 << 2)
 
 typedef struct {

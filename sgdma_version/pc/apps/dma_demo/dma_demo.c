@@ -21,7 +21,7 @@
 #include "../libs/process.h"
 
 #define MAXFF (0xFFFFFFFF)
-#define TIMEOUT_POLL (100000000);
+#define TIMEOUT_POLL (100000000)
 
 volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
@@ -43,12 +43,12 @@ int main(int argc, char *argv[]) {
 
     if (DBG_INFO) {
         val = gwbar0->rsv[0];
-        printf("gwbar0 alive.\n");
+        printf("gwbar0 alive\n");
         fflush(stdout);
     }
     if (DBG_INFO) {
         val = gwbar2->rsv_28[0];
-        printf("gwbar2 alive.\n");
+        printf("gwbar2 alive\n");
         fflush(stdout);
     }
 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
         }
     }
     if (DBG_INFO) {
-        printf("PCIE_READY.\n");
+        printf("pcie ready\n");
         fflush(stdout);
     }
 
@@ -69,20 +69,28 @@ int main(int argc, char *argv[]) {
     param.cfg_where = 0x90; // Link Status
     val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
     if (val) {
-        printf("LINK ERROR.\n");
+        printf("Failed to check link status\n");
         dest_proc(proc);
         return -1;
     }
 
+    param.cfg_type = 2;
+    param.cfg_where = 0x88; // Device Status
+    while (1) {
+        if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
+            param.cfg_dword != 0xFFFFFFFF) {
+            val = (param.cfg_dword & 0xFF1F) | (1 << 5);
+            printf("payload: %i\n", val);
+            break;
+        }
+    }
+
     //? volatile? for bar too?
     volatile GowinDescriptor *desc_h2c = (volatile GowinDescriptor *)proc->mem_src;
-    volatile uint32_t *poll_h2c = (volatile uint32_t *)(proc->mem_src + 32);
+    volatile GowinDescriptor *desc_c2h = (volatile GowinDescriptor *)proc->mem_dst;
 
     volatile uint8_t *sp = proc->mem_src + 64;
     volatile uint64_t sa = proc->dma_src + 64;
-
-    volatile GowinDescriptor *desc_c2h = (volatile GowinDescriptor *)proc->mem_dst;
-    volatile uint32_t *poll_c2h = (volatile uint32_t *)(proc->mem_dst + 32);
 
     volatile uint8_t *dp = proc->mem_dst + 64;
     volatile uint64_t da = proc->dma_dst + 64;
@@ -90,6 +98,7 @@ int main(int argc, char *argv[]) {
     uint32_t addr_ddr_h2c = 0x0000;
     uint32_t addr_ddr_c2h = 0x4000; // DMA_SIZE
 
+    //? use payload here? current = 128.
     uint32_t cnt = 128; // 128 * 4 = 512B
     uint32_t length = cnt * 4;
     int size = DMA_SIZE / 2;
@@ -100,13 +109,13 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < size; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
+    if (DUMP_INFO) {
+        dump_source((uint8_t *)sp, size_dump);
+    }
 
     for (int chunk = 0; chunk < loop; chunk++) {
         if (flag_exit) {
             break;
-        }
-        if (DUMP_INFO) {
-            dump_source((uint8_t *)sp, size_dump);
         }
         if (DBG_INFO) {
             printf("*** Chunk %i/%i ***\n", chunk + 1, loop);
@@ -115,9 +124,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // Host PC -> FPGA DDR3
         // ====================
-        *poll_h2c = 0;
-
-        desc_h2c->flags = SET_FLAG;
+        desc_h2c->flags = SET_FLAG_STOP_EOP;
         desc_h2c->length = length;
         desc_h2c->addr_src_lo = sa & MAXFF;
         desc_h2c->addr_src_hi = (sa >> 32) & MAXFF;
@@ -137,19 +144,19 @@ int main(int argc, char *argv[]) {
         gwbar2->leng_ddr_h2c = length;
 
         gwbar2->ctrl = BAR2_PCIE_WR_START;
-        gwbar0->h2c[0].ctrl_w1s = SGDMA_POLL_START;
+        gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
 
         int timeout_h2c = TIMEOUT_POLL;
-        while (!(*poll_h2c) && !flag_exit && --timeout_h2c > 0) {
+        while (!flag_exit && --timeout_h2c > 0) {
             if (desc_h2c->flags & IS_COMPLETED) {
-                printf("h2c: completed, but didn't write to poll address.\n");
+                printf("h2c: completed\n");
                 break;
             }
         }
         if (timeout_h2c <= 0) {
-            printf("h2c: timeout, but didn't write to poll address.\n");
+            printf("h2c: timeout\n");
         }
-        gwbar0->h2c[0].ctrl_w1s = SGDMA_STOP;
+        gwbar0->h2c[0].ctrl = SGDMA_STOP;
         if (flag_exit) {
             break;
         }
@@ -170,7 +177,7 @@ int main(int argc, char *argv[]) {
             }
         }
         if (timeout_lad <= 0) {
-            printf("h2c: timeout, but didn't do logic adder.\n");
+            printf("lad: timeout\n");
         }
         gwbar2->ctrl = BAR2_LAD_STOP;
         if (flag_exit) {
@@ -180,9 +187,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // FPGA DDR3 -> Host PC
         // ====================
-        *poll_c2h = 0;
-
-        desc_c2h->flags = SET_FLAG;
+        desc_c2h->flags = SET_FLAG_STOP_EOP;
         desc_c2h->length = length;
         desc_c2h->addr_dst_lo = da & MAXFF;
         desc_c2h->addr_dst_hi = (da >> 32) & MAXFF;
@@ -198,7 +203,7 @@ int main(int argc, char *argv[]) {
         gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
         gwbar0->c2h[0].num_desc_adj = 0;
 
-        gwbar0->c2h[0].ctrl_w1s = SGDMA_POLL_START;
+        gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
 
         gwbar2->addr_ddr_c2h = addr_ddr_c2h;
         gwbar2->leng_ddr_c2h = length;
@@ -206,16 +211,16 @@ int main(int argc, char *argv[]) {
         gwbar2->ctrl = BAR2_PCIE_RD_START;
 
         int timeout_c2h = TIMEOUT_POLL;
-        while (!(*poll_c2h) && !flag_exit && --timeout_c2h > 0) {
+        while (!flag_exit && --timeout_c2h > 0) {
             if (desc_c2h->flags & IS_COMPLETED) {
-                printf("c2h: completed, but didn't write to poll address.\n");
+                printf("c2h: completed\n");
                 break;
             }
         }
         if (timeout_c2h <= 0) {
-            printf("c2h: timeout, but didn't write to poll address.\n");
+            printf("c2h: timeout\n");
         }
-        gwbar0->c2h[0].ctrl_w1s = SGDMA_STOP;
+        gwbar0->c2h[0].ctrl = SGDMA_STOP;
         if (flag_exit) {
             break;
         }
