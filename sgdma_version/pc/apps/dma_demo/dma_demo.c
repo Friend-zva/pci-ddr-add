@@ -91,35 +91,35 @@ int main(int argc, char *argv[]) {
     //? use payload here? current = 128.
     uint32_t cnt = 32; // 32 * 4 = 128B
     uint32_t length = cnt * 4;
-    int size_data = DMA_SIZE / 2;
-    int size_dump = 32;
-    int num_descs = size_data / length;
-    int num_desc_adj = num_descs - 1;
     uint32_t block_size = (length + 127) & (~127);
 
-    uint32_t size_descs = ((num_descs + 1) * SIZE_DESC + 32 + 127) & (~127);
-    if (size_descs + size_data > DMA_SIZE) {
+    int size_dump = 32;
+
+    int size_data = DMA_SIZE / 2;
+    int num_descs = size_data / length;
+    int num_desc_adj = num_descs - 1;
+
+    uint32_t offset_poll = num_descs * SIZE_DESC + 32;
+    uint32_t offset_wb = offset_poll + 32;
+    uint32_t offset_data = (offset_wb + 127) & (~127);
+    if (offset_data + size_data > DMA_SIZE) {
         printf("Failed to distributed dma area\n");
         dest_proc(proc);
         return -1;
     }
 
     volatile GowinDescriptor *descs_h2c = (volatile GowinDescriptor *)proc->mem_src;
-    volatile uint32_t *poll_h2c =
-        (volatile uint32_t *)(proc->mem_src + num_descs * SIZE_DESC);
+    volatile uint32_t *poll_h2c = (volatile uint32_t *)(proc->mem_src + offset_poll);
 
-    volatile uint8_t *sp = proc->mem_src + size_descs;
-    volatile uint64_t sa = proc->dma_src + size_descs;
+    volatile uint8_t *sp = proc->mem_src + offset_data;
+    volatile uint64_t sa = proc->dma_src + offset_data;
 
     volatile GowinDescriptor *descs_c2h = (volatile GowinDescriptor *)proc->mem_dst;
-    volatile uint32_t *poll_c2h =
-        (volatile uint32_t *)(proc->mem_dst + num_descs * SIZE_DESC);
+    volatile uint32_t *poll_c2h = (volatile uint32_t *)(proc->mem_dst + offset_poll);
+    volatile uint32_t *write_back = proc->mem_dst + offset_wb;
 
-    volatile uint8_t *dp = proc->mem_dst + size_descs;
-    volatile uint64_t da = proc->dma_dst + size_descs;
-
-    volatile uint8_t *write_back_p = proc->mem_dst + num_descs * SIZE_DESC + 32;
-    volatile uint64_t write_back = proc->dma_dst + num_descs * SIZE_DESC + 32;
+    volatile uint8_t *dp = proc->mem_dst + offset_data;
+    volatile uint64_t da = proc->dma_dst + offset_data;
 
     for (int i = 0; i < size_data; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
@@ -132,18 +132,18 @@ int main(int argc, char *argv[]) {
         printf("*** Init: %i descriptors ***\n", num_descs);
     }
 
+    //! test stuck
+    if (1) {
+        dest_proc(proc);
+        return -1;
+    }
+
     if (DBG_INFO) {
         printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
                gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
                gwbar0->h2c[0].ctrl);
         fflush(stdout);
-    }
-
-    //! test stuck
-    if (1) {
-        dest_proc(proc);
-        return -1;
     }
 
     // ====================
@@ -182,9 +182,8 @@ int main(int argc, char *argv[]) {
 
     gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
     gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
-    gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + num_descs * SIZE_DESC) & MAXFF;
-    gwbar0->h2c[0].addr_poll_hi =
-        ((proc->dma_src + num_descs * SIZE_DESC) >> 32) & MAXFF;
+    gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + offset_poll) & MAXFF;
+    gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + offset_poll) >> 32) & MAXFF;
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
 
     if (DBG_INFO) {
@@ -233,7 +232,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (DBG_INFO) {
-        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back_p));
+        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back));
     }
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
 
@@ -272,8 +271,8 @@ int main(int argc, char *argv[]) {
         descs_c2h[i].addr_dst_lo = da & MAXFF;
         descs_c2h[i].addr_dst_hi = (da >> 32) & MAXFF;
         // write-back
-        descs_c2h[i].addr_src_lo = write_back & MAXFF;
-        descs_c2h[i].addr_src_hi = (write_back >> 32) & MAXFF;
+        descs_c2h[i].addr_src_lo = (proc->dma_dst + offset_wb) & MAXFF;
+        descs_c2h[i].addr_src_hi = ((proc->dma_dst + offset_wb) >> 32) & MAXFF;
 
         if (i == num_desc_adj) {
             descs_c2h[i].flags = SET_FLAG_STOP_EOP_COMP;
@@ -290,9 +289,8 @@ int main(int argc, char *argv[]) {
 
     gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
     gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
-    gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + num_descs * SIZE_DESC) & MAXFF;
-    gwbar0->c2h[0].addr_poll_hi =
-        ((proc->dma_dst + num_descs * SIZE_DESC) >> 32) & MAXFF;
+    gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + offset_poll) & MAXFF;
+    gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + offset_poll) >> 32) & MAXFF;
     gwbar0->c2h[0].num_desc_adj = num_desc_adj;
 
     gwbar2->addr_ddr_c2h = addr_ddr_c2h;
@@ -309,7 +307,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (DBG_INFO) {
-        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back_p));
+        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back));
     }
     gwbar0->c2h[0].ctrl = SGDMA_STOP;
 
