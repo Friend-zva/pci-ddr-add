@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 
     int size_dump = 32;
 
-    int size_data = DMA_SIZE / 2;
+    int size_data = DMA_SIZE / 4;
     int num_descs = size_data / length;
     int num_desc_adj = num_descs - 1;
 
@@ -116,12 +116,12 @@ int main(int argc, char *argv[]) {
 
     volatile GowinDescriptor *descs_c2h = (volatile GowinDescriptor *)proc->mem_dst;
     volatile uint32_t *poll_c2h = (volatile uint32_t *)(proc->mem_dst + offset_poll);
-    volatile uint32_t *write_back = proc->mem_dst + offset_wb;
+    volatile uint32_t *write_back = (volatile uint32_t *)(proc->mem_dst + offset_wb);
 
     volatile uint8_t *dp = proc->mem_dst + offset_data;
     volatile uint64_t da = proc->dma_dst + offset_data;
 
-    for (int i = 0; i < size_data; i++) {
+    for (int i = 0; i < size_data / 2; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
@@ -132,17 +132,14 @@ int main(int argc, char *argv[]) {
         printf("*** Init: %i descriptors ***\n", num_descs);
     }
 
-    //! test stuck
-    if (1) {
-        dest_proc(proc);
-        return -1;
-    }
-
     if (DBG_INFO) {
-        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
-               gwbar0->h2c[0].ctrl);
+        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
+               "0x%08x\n",
+               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
+               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
+               gwbar0->h2c[num_desc_adj].status0,
+               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
+               gwbar0->h2c[num_desc_adj].ctrl);
         fflush(stdout);
     }
 
@@ -172,27 +169,11 @@ int main(int argc, char *argv[]) {
         sa += block_size;
     }
 
-    if (DBG_INFO) {
-        printf("Status1: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
-               gwbar0->h2c[0].ctrl);
-        fflush(stdout);
-    }
-
     gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
     gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
     gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + offset_poll) & MAXFF;
     gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + offset_poll) >> 32) & MAXFF;
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
-
-    if (DBG_INFO) {
-        printf("Status2: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
-               gwbar0->h2c[0].ctrl);
-        fflush(stdout);
-    }
 
     gwbar2->addr_ddr_h2c = addr_ddr_h2c;
     gwbar2->leng_ddr_h2c = size_data;
@@ -200,20 +181,25 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_PCIE_WR_START;
 
     if (DBG_INFO) {
-        printf("Status3: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
-               gwbar0->h2c[0].ctrl);
+        printf("Status1: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
+               "0x%08x\n",
+               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
+               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
+               gwbar0->h2c[num_desc_adj].status0,
+               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
+               gwbar0->h2c[num_desc_adj].ctrl);
         fflush(stdout);
     }
-
     gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
 
     if (DBG_INFO) {
-        printf("Status4: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
-               gwbar0->h2c[0].ctrl);
+        printf("Status2: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
+               "0x%08x\n",
+               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
+               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
+               gwbar0->h2c[num_desc_adj].status0,
+               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
+               gwbar0->h2c[num_desc_adj].ctrl);
         fflush(stdout);
     }
 
@@ -224,10 +210,13 @@ int main(int argc, char *argv[]) {
         printf("h2c: timeout\n");
     }
     if (DBG_INFO) {
-        printf("Status5: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
-               gwbar0->h2c[0].ctrl);
+        printf("Status3: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
+               "0x%08x\n",
+               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
+               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
+               gwbar0->h2c[num_desc_adj].status0,
+               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
+               gwbar0->h2c[num_desc_adj].ctrl);
         fflush(stdout);
     }
 
@@ -235,6 +224,17 @@ int main(int argc, char *argv[]) {
         printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back));
     }
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
+
+    if (DBG_INFO) {
+        printf("Status4: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
+               "0x%08x\n",
+               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
+               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
+               gwbar0->h2c[num_desc_adj].status0,
+               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
+               gwbar0->h2c[num_desc_adj].ctrl);
+        fflush(stdout);
+    }
 
     if (flag_exit) {
         dest_proc(proc);
@@ -306,9 +306,6 @@ int main(int argc, char *argv[]) {
         printf("c2h: timeout\n");
     }
 
-    if (DBG_INFO) {
-        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back));
-    }
     gwbar0->c2h[0].ctrl = SGDMA_STOP;
 
     if (flag_exit) {
