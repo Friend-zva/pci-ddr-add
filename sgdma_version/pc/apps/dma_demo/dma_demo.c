@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
         gwbar2->leng_ddr_h2c = length;
 
         gwbar2->ctrl = BAR2_PCIE_WR_START;
-        gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
+        gwbar0->h2c[0].ctrl = SGDMA_START;
 
         int timeout_h2c = TIMEOUT_POLL;
         while (!flag_exit && --timeout_h2c > 0) {

@@ -52,7 +52,7 @@ Process *init_proc() {
     }
     proc->gwbar2 = (GowinBar2 *)bar2;
 
-    printf("init_proc() passed.\n");
+    printf("init_proc() passed\n");
     fflush(stdout);
 
     return proc;
