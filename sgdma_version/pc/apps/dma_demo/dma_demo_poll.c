@@ -29,12 +29,6 @@ void handle_sigint(int sig) { flag_exit = 1; }
 int DBG_INFO = 1;
 int DUMP_INFO = 1;
 
-static void dump_sgdma_ch(const char *tag, volatile GowinDMAChannel *ch) {
-    printf("%s ctrl=0x%08x desc_count=%u status0=0x%08x status1=0x%08x\n", tag,
-           ch->ctrl, ch->desc_count, ch->status0, ch->status1);
-    fflush(stdout);
-}
-
 int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     volatile int val;
@@ -124,6 +118,8 @@ int main(int argc, char *argv[]) {
     volatile uint8_t *dp = proc->mem_dst + size_descs;
     volatile uint64_t da = proc->dma_dst + size_descs;
 
+    volatile uint8_t *write_back_p =
+        proc->mem_dst + num_descs * sizeof(GowinDescriptor) + 32;
     volatile uint64_t write_back =
         proc->dma_dst + num_descs * sizeof(GowinDescriptor) + 32;
 
@@ -152,11 +148,11 @@ int main(int argc, char *argv[]) {
         descs_h2c[i].addr_dst_hi = 0;
 
         if (i == num_descs - 1) {
-            descs_h2c[i].flags = SET_FLAG_STOP_EOP;
+            descs_h2c[i].flags = 0x5;
             descs_h2c[i].next_lo = 0;
             descs_h2c[i].next_hi = 0;
         } else {
-            descs_h2c[i].flags = SET_FLAG_EOP;
+            descs_h2c[i].flags = 0x1 | (num_descs - 1 - i);
             uint64_t desc_next = proc->dma_src + (i + 1) * sizeof(GowinDescriptor);
             descs_h2c[i].next_lo = desc_next & MAXFF;
             descs_h2c[i].next_hi = (desc_next >> 32) & MAXFF;
@@ -178,42 +174,17 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_PCIE_WR_START;
     gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
 
-    if (DBG_INFO) {
-        dump_sgdma_ch("h2c:start", &gwbar0->h2c[0]);
-    }
-
     int timeout_h2c = TIMEOUT_POLL;
-    volatile uint32_t prev_h2c_desc_count = gwbar0->h2c[0].desc_count;
-    volatile uint32_t prev_h2c_status0 = gwbar0->h2c[0].status0;
-    volatile uint32_t prev_h2c_status1 = gwbar0->h2c[0].status1;
-
     while (!(*poll_h2c) && !flag_exit && --timeout_h2c > 0) {
-        if (descs_h2c[0].flags & IS_COMPLETED) {
-            printf("h2c: completed\n");
-            break;
-        }
-
-        if ((timeout_h2c & ((1u << 20) - 1)) == 0) {
-            uint32_t dc = gwbar0->h2c[0].desc_count;
-            uint32_t s0 = gwbar0->h2c[0].status0;
-            uint32_t s1 = gwbar0->h2c[0].status1;
-            if (dc != prev_h2c_desc_count || s0 != prev_h2c_status0 ||
-                s1 != prev_h2c_status1) {
-                dump_sgdma_ch("h2c:run ", &gwbar0->h2c[0]);
-                prev_h2c_desc_count = dc;
-                prev_h2c_status0 = s0;
-                prev_h2c_status1 = s1;
-            }
-        }
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
     }
-    gwbar0->h2c[0].ctrl = SGDMA_STOP;
 
     if (DBG_INFO) {
-        dump_sgdma_ch("h2c:stop ", &gwbar0->h2c[0]);
+        printf("0x%08x ", *(uint32_t *)(&write_back_p));
     }
+    gwbar0->h2c[0].ctrl = SGDMA_STOP;
 
     if (flag_exit) {
         dest_proc(proc);
@@ -244,7 +215,6 @@ int main(int argc, char *argv[]) {
     // FPGA DDR3 -> Host PC
     // ====================
     *poll_c2h = 0;
-    uint64_t current_sa_c2h = proc->dma_dst + size_descs;
 
     for (int i = 0; i < num_descs; i++) {
         descs_c2h[i].length = length;
@@ -255,11 +225,11 @@ int main(int argc, char *argv[]) {
         descs_c2h[i].addr_src_hi = (write_back >> 32) & MAXFF;
 
         if (i == num_descs - 1) {
-            descs_c2h[i].flags = SET_FLAG_STOP_EOP;
+            descs_c2h[i].flags = 0x5;
             descs_c2h[i].next_lo = 0;
             descs_c2h[i].next_hi = 0;
         } else {
-            descs_c2h[i].flags = SET_FLAG_EOP;
+            descs_c2h[i].flags = 0x1 | (num_descs - 1 - i);
             uint64_t desc_next = proc->dma_dst + (i + 1) * sizeof(GowinDescriptor);
             descs_c2h[i].next_lo = desc_next & MAXFF;
             descs_c2h[i].next_hi = (desc_next >> 32) & MAXFF;
@@ -282,42 +252,17 @@ int main(int argc, char *argv[]) {
 
     gwbar2->ctrl = BAR2_PCIE_RD_START;
 
-    if (DBG_INFO) {
-        dump_sgdma_ch("c2h:start", &gwbar0->c2h[0]);
-    }
-
     int timeout_c2h = TIMEOUT_POLL;
-    volatile uint32_t prev_c2h_desc_count = gwbar0->c2h[0].desc_count;
-    volatile uint32_t prev_c2h_status0 = gwbar0->c2h[0].status0;
-    volatile uint32_t prev_c2h_status1 = gwbar0->c2h[0].status1;
-
     while (!(*poll_c2h) && !flag_exit && --timeout_c2h > 0) {
-        if (descs_c2h[0].flags & IS_COMPLETED) {
-            printf("c2h: completed\n");
-            break;
-        }
-
-        if ((timeout_c2h & ((1u << 20) - 1)) == 0) {
-            uint32_t dc = gwbar0->c2h[0].desc_count;
-            uint32_t s0 = gwbar0->c2h[0].status0;
-            uint32_t s1 = gwbar0->c2h[0].status1;
-            if (dc != prev_c2h_desc_count || s0 != prev_c2h_status0 ||
-                s1 != prev_c2h_status1) {
-                dump_sgdma_ch("c2h:run ", &gwbar0->c2h[0]);
-                prev_c2h_desc_count = dc;
-                prev_c2h_status0 = s0;
-                prev_c2h_status1 = s1;
-            }
-        }
     }
     if (timeout_c2h <= 0) {
         printf("c2h: timeout\n");
     }
-    gwbar0->c2h[0].ctrl = SGDMA_STOP;
 
     if (DBG_INFO) {
-        dump_sgdma_ch("c2h:stop ", &gwbar0->c2h[0]);
+        printf("0x%08x ", *(uint32_t *)(&write_back_p));
     }
+    gwbar0->c2h[0].ctrl = SGDMA_STOP;
 
     if (flag_exit) {
         dest_proc(proc);
