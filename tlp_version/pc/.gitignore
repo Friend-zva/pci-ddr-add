@@ -1,8 +1,0 @@
-*.cmd
-*.o
-*.ko
-*.mod*
-bin/dma_demo
-driver/Module.*
-driver/modules.*
-apps/dma_demo/dma_demo
