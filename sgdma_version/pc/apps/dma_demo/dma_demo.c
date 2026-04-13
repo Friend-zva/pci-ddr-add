@@ -85,167 +85,241 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //? volatile? for bar too?
-    volatile GowinDescriptor *desc_h2c = (volatile GowinDescriptor *)proc->mem_src;
-    volatile GowinDescriptor *desc_c2h = (volatile GowinDescriptor *)proc->mem_dst;
-
-    volatile uint8_t *sp = proc->mem_src + 64;
-    volatile uint64_t sa = proc->dma_src + 64;
-
-    volatile uint8_t *dp = proc->mem_dst + 64;
-    volatile uint64_t da = proc->dma_dst + 64;
-
     uint32_t addr_ddr_h2c = 0x0000;
     uint32_t addr_ddr_c2h = 0x4000; // DMA_SIZE
 
     //? use payload here? current = 128.
-    uint32_t cnt = 128; // 128 * 4 = 512B
+    uint32_t cnt = 32; // 32 * 4 = 128B
     uint32_t length = cnt * 4;
-    int size = DMA_SIZE / 2;
+    int size_data = DMA_SIZE / 2;
     int size_dump = 32;
-    int loop = size / length;
-    uint32_t block_size = (length + 511) & (~511);
+    int num_descs = size_data / length;
+    int num_desc_adj = num_descs - 1;
+    uint32_t block_size = (length + 127) & (~127);
 
-    for (int i = 0; i < size; i++) {
+    uint32_t size_descs = ((num_descs + 1) * SIZE_DESC + 32 + 127) & (~127);
+    if (size_descs + size_data > DMA_SIZE) {
+        printf("Failed to distributed dma area\n");
+        dest_proc(proc);
+        return -1;
+    }
+
+    volatile GowinDescriptor *descs_h2c = (volatile GowinDescriptor *)proc->mem_src;
+    volatile uint32_t *poll_h2c =
+        (volatile uint32_t *)(proc->mem_src + num_descs * SIZE_DESC);
+
+    volatile uint8_t *sp = proc->mem_src + size_descs;
+    volatile uint64_t sa = proc->dma_src + size_descs;
+
+    volatile GowinDescriptor *descs_c2h = (volatile GowinDescriptor *)proc->mem_dst;
+    volatile uint32_t *poll_c2h =
+        (volatile uint32_t *)(proc->mem_dst + num_descs * SIZE_DESC);
+
+    volatile uint8_t *dp = proc->mem_dst + size_descs;
+    volatile uint64_t da = proc->dma_dst + size_descs;
+
+    volatile uint8_t *write_back_p = proc->mem_dst + num_descs * SIZE_DESC + 32;
+    volatile uint64_t write_back = proc->dma_dst + num_descs * SIZE_DESC + 32;
+
+    for (int i = 0; i < size_data; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
+
     if (DUMP_INFO) {
         dump_source((uint8_t *)sp, size_dump);
     }
+    if (DBG_INFO) {
+        printf("*** Init: %i descriptors ***\n", num_descs);
+    }
 
-    for (int chunk = 0; chunk < loop; chunk++) {
-        if (flag_exit) {
-            break;
+    if (DBG_INFO) {
+        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
+               gwbar0->h2c[0].ctrl);
+        fflush(stdout);
+    }
+
+    //! test stuck
+    if (1) {
+        dest_proc(proc);
+        return -1;
+    }
+
+    // ====================
+    // Host PC -> FPGA DDR3
+    // ====================
+    *poll_h2c = 0;
+
+    for (int i = 0; i < num_descs; i++) {
+        descs_h2c[i].length = length;
+        descs_h2c[i].addr_src_lo = sa & MAXFF;
+        descs_h2c[i].addr_src_hi = (sa >> 32) & MAXFF;
+        // overhead
+        descs_h2c[i].addr_dst_lo = 0;
+        descs_h2c[i].addr_dst_hi = 0;
+
+        if (i == num_desc_adj) {
+            descs_h2c[i].flags = SET_FLAG_STOP_EOP_COMP;
+            descs_h2c[i].next_lo = 0;
+            descs_h2c[i].next_hi = 0;
+        } else {
+            descs_h2c[i].flags = SET_FLAG_NUM_DESC(num_desc_adj - i);
+            uint64_t desc_next = proc->dma_src + (i + 1) * SIZE_DESC;
+            descs_h2c[i].next_lo = desc_next & MAXFF;
+            descs_h2c[i].next_hi = (desc_next >> 32) & MAXFF;
         }
-        if (DBG_INFO) {
-            printf("*** Chunk %i/%i ***\n", chunk + 1, loop);
-        }
-
-        // ====================
-        // Host PC -> FPGA DDR3
-        // ====================
-        desc_h2c->flags = SET_FLAG_STOP_EOP;
-        desc_h2c->length = length;
-        desc_h2c->addr_src_lo = sa & MAXFF;
-        desc_h2c->addr_src_hi = (sa >> 32) & MAXFF;
-        // overhead data
-        desc_h2c->addr_dst_lo = 0;
-        desc_h2c->addr_dst_hi = 0;
-        desc_h2c->next_lo = 0;
-        desc_h2c->next_hi = 0;
-
-        gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
-        gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
-        gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + 32) & MAXFF;
-        gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + 32) >> 32) & MAXFF;
-        gwbar0->h2c[0].num_desc_adj = 0;
-
-        gwbar2->addr_ddr_h2c = addr_ddr_h2c;
-        gwbar2->leng_ddr_h2c = length;
-
-        gwbar2->ctrl = BAR2_PCIE_WR_START;
-        gwbar0->h2c[0].ctrl = SGDMA_START;
-
-        int timeout_h2c = TIMEOUT_POLL;
-        while (!flag_exit && --timeout_h2c > 0) {
-            if (desc_h2c->flags & IS_COMPLETED) {
-                printf("h2c: completed\n");
-                break;
-            }
-        }
-        if (timeout_h2c <= 0) {
-            printf("h2c: timeout\n");
-        }
-        gwbar0->h2c[0].ctrl = SGDMA_STOP;
-        if (flag_exit) {
-            break;
-        }
-
-        // ==================================
-        // Logic Adder: DDR3 -> Logic -> DDR3
-        // ==================================
-        gwbar2->addr_lad_rd = addr_ddr_h2c;
-        gwbar2->addr_lad_wr = addr_ddr_c2h;
-        gwbar2->leng_lad = length;
-
-        gwbar2->ctrl = BAR2_LAD_START;
-
-        int timeout_lad = TIMEOUT_POLL;
-        while (!flag_exit && --timeout_lad > 0) {
-            if (gwbar2->status & BAR2_LAD_DONE) {
-                break;
-            }
-        }
-        if (timeout_lad <= 0) {
-            printf("lad: timeout\n");
-        }
-        gwbar2->ctrl = BAR2_LAD_STOP;
-        if (flag_exit) {
-            break;
-        }
-
-        // ====================
-        // FPGA DDR3 -> Host PC
-        // ====================
-        desc_c2h->flags = SET_FLAG_STOP_EOP;
-        desc_c2h->length = length;
-        desc_c2h->addr_dst_lo = da & MAXFF;
-        desc_c2h->addr_dst_hi = (da >> 32) & MAXFF;
-        // write-back
-        desc_c2h->addr_src_lo = (proc->dma_dst + 36) & MAXFF;
-        desc_c2h->addr_src_hi = ((proc->dma_dst + 36) >> 32) & MAXFF;
-        desc_c2h->next_lo = 0;
-        desc_c2h->next_hi = 0;
-
-        gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
-        gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
-        gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + 32) & MAXFF;
-        gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
-        gwbar0->c2h[0].num_desc_adj = 0;
-
-        gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
-
-        gwbar2->addr_ddr_c2h = addr_ddr_c2h;
-        gwbar2->leng_ddr_c2h = length;
-
-        gwbar2->ctrl = BAR2_PCIE_RD_START;
-
-        int timeout_c2h = TIMEOUT_POLL;
-        while (!flag_exit && --timeout_c2h > 0) {
-            if (desc_c2h->flags & IS_COMPLETED) {
-                printf("c2h: completed\n");
-                break;
-            }
-        }
-        if (timeout_c2h <= 0) {
-            printf("c2h: timeout\n");
-        }
-        gwbar0->c2h[0].ctrl = SGDMA_STOP;
-        if (flag_exit) {
-            break;
-        }
-
         sa += block_size;
-        sp += block_size;
+    }
+
+    if (DBG_INFO) {
+        printf("Status1: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
+               gwbar0->h2c[0].ctrl);
+        fflush(stdout);
+    }
+
+    gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
+    gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
+    gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + num_descs * SIZE_DESC) & MAXFF;
+    gwbar0->h2c[0].addr_poll_hi =
+        ((proc->dma_src + num_descs * SIZE_DESC) >> 32) & MAXFF;
+    gwbar0->h2c[0].num_desc_adj = num_desc_adj;
+
+    if (DBG_INFO) {
+        printf("Status2: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
+               gwbar0->h2c[0].ctrl);
+        fflush(stdout);
+    }
+
+    gwbar2->addr_ddr_h2c = addr_ddr_h2c;
+    gwbar2->leng_ddr_h2c = size_data;
+
+    gwbar2->ctrl = BAR2_PCIE_WR_START;
+
+    if (DBG_INFO) {
+        printf("Status3: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
+               gwbar0->h2c[0].ctrl);
+        fflush(stdout);
+    }
+
+    gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
+
+    if (DBG_INFO) {
+        printf("Status4: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
+               gwbar0->h2c[0].ctrl);
+        fflush(stdout);
+    }
+
+    int timeout_h2c = TIMEOUT_POLL;
+    while (!(*poll_h2c) && !flag_exit && --timeout_h2c > 0) {
+    }
+    if (timeout_h2c <= 0) {
+        printf("h2c: timeout\n");
+    }
+    if (DBG_INFO) {
+        printf("Status5: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               gwbar0->ctrl.stat_init, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, *poll_h2c, descs_h2c[0].flags,
+               gwbar0->h2c[0].ctrl);
+        fflush(stdout);
+    }
+
+    if (DBG_INFO) {
+        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back_p));
+    }
+    gwbar0->h2c[0].ctrl = SGDMA_STOP;
+
+    if (flag_exit) {
+        dest_proc(proc);
+        return 1;
+    }
+
+    // ==================================
+    // Logic Adder: DDR3 -> Logic -> DDR3
+    // ==================================
+    gwbar2->addr_lad_rd = addr_ddr_h2c;
+    gwbar2->addr_lad_wr = addr_ddr_c2h;
+    gwbar2->leng_lad = size_data;
+
+    gwbar2->ctrl = BAR2_LAD_START;
+
+    int timeout_lad = TIMEOUT_POLL;
+    while (!flag_exit && --timeout_lad > 0) {
+        if (gwbar2->status & BAR2_LAD_DONE) {
+            break;
+        }
+    }
+    if (timeout_lad <= 0) {
+        printf("lad: timeout\n");
+    }
+    gwbar2->ctrl = BAR2_LAD_STOP;
+
+    // ====================
+    // FPGA DDR3 -> Host PC
+    // ====================
+    *poll_c2h = 0;
+
+    for (int i = 0; i < num_descs; i++) {
+        descs_c2h[i].length = length;
+        descs_c2h[i].addr_dst_lo = da & MAXFF;
+        descs_c2h[i].addr_dst_hi = (da >> 32) & MAXFF;
+        // write-back
+        descs_c2h[i].addr_src_lo = write_back & MAXFF;
+        descs_c2h[i].addr_src_hi = (write_back >> 32) & MAXFF;
+
+        if (i == num_desc_adj) {
+            descs_c2h[i].flags = SET_FLAG_STOP_EOP_COMP;
+            descs_c2h[i].next_lo = 0;
+            descs_c2h[i].next_hi = 0;
+        } else {
+            descs_c2h[i].flags = SET_FLAG_NUM_DESC(num_desc_adj - i);
+            uint64_t desc_next = proc->dma_dst + (i + 1) * SIZE_DESC;
+            descs_c2h[i].next_lo = desc_next & MAXFF;
+            descs_c2h[i].next_hi = (desc_next >> 32) & MAXFF;
+        }
         da += block_size;
-        dp += block_size;
+    }
 
-        //? Temp shift
-        addr_ddr_h2c += block_size;
-        addr_ddr_c2h += block_size;
+    gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
+    gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
+    gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + num_descs * SIZE_DESC) & MAXFF;
+    gwbar0->c2h[0].addr_poll_hi =
+        ((proc->dma_dst + num_descs * SIZE_DESC) >> 32) & MAXFF;
+    gwbar0->c2h[0].num_desc_adj = num_desc_adj;
 
-        if (sa + block_size > proc->dma_src + DMA_SIZE) {
-            sa = proc->dma_src + 64;
-            sp = proc->mem_src + 64;
-        }
-        if (da + block_size > proc->dma_dst + DMA_SIZE) {
-            da = proc->dma_dst + 64;
-            dp = proc->mem_dst + 64;
-        }
+    gwbar2->addr_ddr_c2h = addr_ddr_c2h;
+    gwbar2->leng_ddr_c2h = size_data;
 
-        if (DUMP_INFO) {
-            dump_destination((uint8_t *)dp, size_dump);
-        }
+    gwbar2->ctrl = BAR2_PCIE_RD_START;
+    gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
+
+    int timeout_c2h = TIMEOUT_POLL;
+    while (!(*poll_c2h) && !flag_exit && --timeout_c2h > 0) {
+    }
+    if (timeout_c2h <= 0) {
+        printf("c2h: timeout\n");
+    }
+
+    if (DBG_INFO) {
+        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back_p));
+    }
+    gwbar0->c2h[0].ctrl = SGDMA_STOP;
+
+    if (flag_exit) {
+        dest_proc(proc);
+        return 1;
+    }
+
+    if (DUMP_INFO) {
+        dump_destination((uint8_t *)dp, size_dump);
     }
 
     for (int i = 0; i < size_dump; i++) {

@@ -13,7 +13,7 @@
 #define SGDMA_STOP (0x0000)
 #define SGDMA_DONE (1 << 2)
 
-typedef struct {
+typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t id;       //* 0x00 - Channel Identifier (RO)
     volatile uint32_t ctrl;     //* 0x04 - Channel Control (RW)
     volatile uint32_t ctrl_w1s; //* 0x08 - Channel Control (W1S)
@@ -38,14 +38,14 @@ typedef struct {
     volatile uint32_t rsv_50[44]; //* 0x50-0xFF - Reserved
 } GowinDMAChannel;
 
-typedef struct {
+typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t id;         //* 0x00 - Control Identifier (RO)
     volatile uint32_t ctrl_init;  //* 0x04 - Initial Control (WO)
     volatile uint32_t stat_init;  //* 0x08 - Initial Status (RO)
     volatile uint32_t rsv_0c[61]; //* 0x0C-0xFF - Reserved
 } GowinControl;
 
-typedef struct {
+typedef struct __attribute__((packed, aligned(32))) {
     GowinDMAChannel h2c[16];            //* 0x0000 - 0x0FFF (1 channel only)
     GowinDMAChannel c2h[16];            //* 0x1000 - 0x1FFF (1 channel only)
     volatile uint32_t rsv_ctrl_pre[64]; //* 0x2000 - 0x20FF (skip ID:0000)
@@ -53,7 +53,7 @@ typedef struct {
     GowinControl ctrl;                    //* 0x2100 - 0x21FF (ID:0001)
     volatile uint32_t rsv_ctrl_post[896]; //* 0x2200 - 0x2FFF (skip ID:0010-1111)
 
-    volatile uint32_t rsv[1024]; //* 0x3000 - 0x3FFF
+    volatile uint32_t rsv[1024]; //* 0x3000-0x3FFF - Reserved
 } GowinBar0;
 
 #endif // GOWIN_BAR0_H

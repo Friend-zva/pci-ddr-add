@@ -14,7 +14,7 @@
 #define BAR2_LAD_DONE (1 << 7)
 #define BAR2_DDR_STATE (1 << 8)
 
-typedef struct {
+typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t ctrl;      //* 0x00 - Control (RW)
     volatile uint32_t status;    //* 0x04 - Status (RO)
     volatile uint32_t rsv_08[2]; //* 0x08-0x0F - Reserved
