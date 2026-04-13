@@ -24,11 +24,6 @@
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="src/fpga_project.cst" type="file.cst" enable="1"/>
         <File path="src/fpga_project.sdc" type="file.sdc" enable="1"/>
-        <File path="src/gao/ddr_in.rao" type="file.gao" enable="0"/>
-        <File path="src/gao/sgdma_dma_h2c_data.rao" type="file.gao" enable="0"/>
-        <File path="src/gao/sgdma_dma_h2c_desc.rao" type="file.gao" enable="0"/>
-        <File path="src/gao/sgdma_h2c.rao" type="file.gao" enable="0"/>
-        <File path="src/gao/sgdma_wr.rao" type="file.gao" enable="1"/>
-        <File path="src/gao/test.rao" type="file.gao" enable="0"/>
+        <File path="src/gao/main.rao" type="file.gao" enable="1"/>
     </FileList>
 </Project>
