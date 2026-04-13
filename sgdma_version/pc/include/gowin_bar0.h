@@ -8,9 +8,10 @@
 #define PCIE_READY (0xaa009719)
 
 // For control register (0x04)
-#define SGDMA_POLL_START (0x0003) // Bit:0 = 1 (Start), Bit:1 = 1 (Poll mode)
-#define SGDMA_START (0x0001)
 #define SGDMA_STOP (0x0000)
+#define SGDMA_START ((1 << 0))
+#define SGDMA_START_POLL ((1 << 0) | (1 << 1))
+#define SGDMA_START_POLL_DUPL ((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3))
 #define SGDMA_DONE (1 << 2)
 
 typedef struct __attribute__((packed, aligned(32))) {

@@ -95,20 +95,28 @@ module logic_dma #(
         case (reg_addr)
           RegCtrl: begin
             // bit0: start pcie write descriptor
-            // bit1: start pcie read  descriptor
-            // bit2: start logic_adder run
-            // bit3: stop  logic_adder run
+            // bit1: stop  pcie write descriptor
+            // bit2: start pcie read  descriptor
+            // bit3: stop  pcie read  descriptor
+            // bit4: start logic adder
+            // bit5: stop  logic adder
             if (user_wr_data[0]) begin
               m_axis_h2c_desc_valid <= 1'b1;
             end
             if (user_wr_data[1]) begin
-              m_axis_c2h_desc_valid <= 1'b1;
+              m_axis_h2c_desc_valid <= 1'b0;
             end
             if (user_wr_data[2]) begin
+              m_axis_c2h_desc_valid <= 1'b1;
+            end
+            if (user_wr_data[3]) begin
+              m_axis_c2h_desc_valid <= 1'b0;
+            end
+            if (user_wr_data[4]) begin
               lad_run <= 1'b1;
               lad_done_latched <= 1'b0;
             end
-            if (user_wr_data[3]) begin
+            if (user_wr_data[5]) begin
               lad_run <= 1'b0;
             end
           end

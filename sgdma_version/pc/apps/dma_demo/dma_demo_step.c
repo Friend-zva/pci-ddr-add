@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
 
         int timeout_h2c = TIMEOUT_POLL;
         while (!flag_exit && --timeout_h2c > 0) {
-            if (desc_h2c->flags & IS_COMPLETED) {
+            if (desc_h2c->flags & DESC_COMPLETED) {
                 printf("h2c: completed\n");
                 break;
             }
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
         gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + 32) >> 32) & MAXFF;
         gwbar0->c2h[0].num_desc_adj = 0;
 
-        gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
+        gwbar0->c2h[0].ctrl = SGDMA_START;
 
         gwbar2->addr_ddr_c2h = addr_ddr_c2h;
         gwbar2->leng_ddr_c2h = length;
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
 
         int timeout_c2h = TIMEOUT_POLL;
         while (!flag_exit && --timeout_c2h > 0) {
-            if (desc_c2h->flags & IS_COMPLETED) {
+            if (desc_c2h->flags & DESC_COMPLETED) {
                 printf("c2h: completed\n");
                 break;
             }

@@ -20,14 +20,18 @@
 #include "../libs/gowin_utils.h"
 #include "../libs/process.h"
 
-#define MAXFF (0xFFFFFFFF)
-#define TIMEOUT_POLL (100000000)
+#define PP_ADDR_LO(addr) ((addr) & 0xFFFFFFFF)
+#define PP_ADDR_HI(addr) ((addr >> 32) & 0xFFFFFFFF)
 
-volatile sig_atomic_t flag_exit = 0;
+static const int TIMEOUT_POLL = 10000000;
+
+static volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
 
-int DBG_INFO = 1;
-int DUMP_INFO = 1;
+static int DBG_INFO = 1;
+static int DUMP_INFO = 1;
+static int FILL_INFO = 0;
+static int FILL_INFO_F = 1;
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
@@ -53,7 +57,7 @@ int main(int argc, char *argv[]) {
     }
 
     gwbar0->ctrl.ctrl_init = 1;
-    while ((gwbar0->ctrl.stat_init & MAXFF) != PCIE_READY) {
+    while (gwbar0->ctrl.stat_init != PCIE_READY) {
         if (flag_exit) {
             dest_proc(proc);
             return -1;
@@ -85,41 +89,42 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    uint32_t addr_ddr_h2c = 0x0000;
-    uint32_t addr_ddr_c2h = 0x4000; // DMA_SIZE
+    uint32_t addr_ddr_h2c = 0x1000;
+    uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
 
-    //? use payload here? current = 128.
-    uint32_t cnt = 32; // 32 * 4 = 128B
-    uint32_t length = cnt * 4;
+    uint32_t cnt_dword = 32;
+    uint32_t length = cnt_dword * 4;
     uint32_t block_size = (length + 127) & (~127);
 
     int size_dump = 32;
 
-    int size_data = DMA_SIZE / 4;
+    int size_data = DMA_SIZE / 2;
     int num_descs = size_data / length;
     int num_desc_adj = num_descs - 1;
 
     uint32_t offset_poll = num_descs * SIZE_DESC + 32;
-    uint32_t offset_wb = offset_poll + 32;
-    uint32_t offset_data = (offset_wb + 127) & (~127);
+    uint32_t offset_oh_wb = offset_poll + 32;
+    uint32_t offset_data = (offset_oh_wb + 127) & (~127);
     if (offset_data + size_data > DMA_SIZE) {
         printf("Failed to distributed dma area\n");
         dest_proc(proc);
         return -1;
     }
 
-    volatile GowinDescriptor *descs_h2c = (volatile GowinDescriptor *)proc->mem_src;
-    volatile uint32_t *poll_h2c = (volatile uint32_t *)(proc->mem_src + offset_poll);
+    // h2c
+
+    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mem_src;
+    uint64_t desc_h2c_a = proc->dma_src;
+
+    volatile uint8_t *poll_h2c_p = proc->mem_src + offset_poll;
+    *poll_h2c_p = 0;
+    uint64_t poll_h2c_a = proc->dma_src + offset_poll;
+
+    volatile uint8_t *overhead_p = proc->mem_src + offset_oh_wb;
+    uint64_t overhead_a = proc->dma_src + offset_oh_wb;
 
     volatile uint8_t *sp = proc->mem_src + offset_data;
-    volatile uint64_t sa = proc->dma_src + offset_data;
-
-    volatile GowinDescriptor *descs_c2h = (volatile GowinDescriptor *)proc->mem_dst;
-    volatile uint32_t *poll_c2h = (volatile uint32_t *)(proc->mem_dst + offset_poll);
-    volatile uint32_t *write_back = (volatile uint32_t *)(proc->mem_dst + offset_wb);
-
-    volatile uint8_t *dp = proc->mem_dst + offset_data;
-    volatile uint64_t da = proc->dma_dst + offset_data;
+    uint64_t sa = proc->dma_src + offset_data;
 
     for (int i = 0; i < size_data / 2; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
@@ -128,193 +133,173 @@ int main(int argc, char *argv[]) {
     if (DUMP_INFO) {
         dump_source((uint8_t *)sp, size_dump);
     }
+
+    // c2h
+
+    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mem_dst;
+    uint64_t desc_c2h_a = proc->dma_dst;
+
+    volatile uint8_t *poll_c2h_p = proc->mem_dst + offset_poll;
+    *poll_c2h_p = 0;
+    uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
+
+    volatile uint8_t *write_back_p = proc->mem_dst + offset_oh_wb;
+    uint64_t write_back_a = proc->dma_dst + offset_oh_wb;
+
+    volatile uint8_t *dp = proc->mem_dst + offset_data;
+    uint64_t da = proc->dma_dst + offset_data;
+
     if (DBG_INFO) {
         printf("*** Init: %i descriptors ***\n", num_descs);
     }
 
     if (DBG_INFO) {
-        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
-               "0x%08x\n",
-               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
-               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
-               gwbar0->h2c[num_desc_adj].status0,
-               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
-               gwbar0->h2c[num_desc_adj].ctrl);
+        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
+               gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
+               desc_h2c_p[num_desc_adj].flags);
         fflush(stdout);
     }
 
     // ====================
     // Host PC -> FPGA DDR3
     // ====================
-    *poll_h2c = 0;
+    for (int i = 0; i < num_descs - 1; i++) {
+        desc_h2c_p->flags = FILL_INFO ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
+        desc_h2c_p->length = length;
+        desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
+        desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
+        desc_h2c_p->addr_dst_lo = 0x0;
+        desc_h2c_p->addr_dst_hi = 0x0;
 
-    for (int i = 0; i < num_descs; i++) {
-        descs_h2c[i].length = length;
-        descs_h2c[i].addr_src_lo = sa & MAXFF;
-        descs_h2c[i].addr_src_hi = (sa >> 32) & MAXFF;
-        // overhead
-        descs_h2c[i].addr_dst_lo = 0;
-        descs_h2c[i].addr_dst_hi = 0;
+        uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
+        desc_h2c_p->next_lo = FILL_INFO ? PP_ADDR_LO(desc_next_a) : 0x0;
+        desc_h2c_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
 
-        if (i == num_desc_adj) {
-            descs_h2c[i].flags = SET_FLAG_STOP_EOP_COMP;
-            descs_h2c[i].next_lo = 0;
-            descs_h2c[i].next_hi = 0;
-        } else {
-            descs_h2c[i].flags = SET_FLAG_NUM_DESC(num_desc_adj - i);
-            uint64_t desc_next = proc->dma_src + (i + 1) * SIZE_DESC;
-            descs_h2c[i].next_lo = desc_next & MAXFF;
-            descs_h2c[i].next_hi = (desc_next >> 32) & MAXFF;
-        }
+        desc_h2c_p += 1;
         sa += block_size;
     }
 
-    gwbar0->h2c[0].addr_desc_lo = proc->dma_src & MAXFF;
-    gwbar0->h2c[0].addr_desc_hi = (proc->dma_src >> 32) & MAXFF;
-    gwbar0->h2c[0].addr_poll_lo = (proc->dma_src + offset_poll) & MAXFF;
-    gwbar0->h2c[0].addr_poll_hi = ((proc->dma_src + offset_poll) >> 32) & MAXFF;
+    desc_h2c_p->flags = FILL_INFO_F ? SET_FLAG_STOP_EOP_COMP : 0x0;
+    desc_h2c_p->length = length;
+    desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
+    desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
+    desc_h2c_p->addr_dst_lo = PP_ADDR_LO(overhead_a);
+    desc_h2c_p->addr_dst_hi = PP_ADDR_HI(overhead_a);
+    desc_h2c_p->next_lo = 0x0;
+    desc_h2c_p->next_hi = 0x0;
+
+    gwbar0->h2c[0].addr_desc_lo = PP_ADDR_LO(desc_h2c_a);
+    gwbar0->h2c[0].addr_desc_hi = PP_ADDR_HI(desc_h2c_a);
+    gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
+    gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
 
-    gwbar2->addr_ddr_h2c = addr_ddr_h2c;
+    gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
-
     gwbar2->ctrl = BAR2_PCIE_WR_START;
-
-    if (DBG_INFO) {
-        printf("Status1: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
-               "0x%08x\n",
-               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
-               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
-               gwbar0->h2c[num_desc_adj].status0,
-               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
-               gwbar0->h2c[num_desc_adj].ctrl);
-        fflush(stdout);
-    }
-    gwbar0->h2c[0].ctrl = SGDMA_POLL_START;
-
-    if (DBG_INFO) {
-        printf("Status2: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
-               "0x%08x\n",
-               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
-               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
-               gwbar0->h2c[num_desc_adj].status0,
-               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
-               gwbar0->h2c[num_desc_adj].ctrl);
-        fflush(stdout);
-    }
+    gwbar0->h2c[0].ctrl = SGDMA_START_POLL_DUPL;
 
     int timeout_h2c = TIMEOUT_POLL;
-    while (!(*poll_h2c) && !flag_exit && --timeout_h2c > 0) {
+    while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
+        if (DBG_INFO) {
+            printf("Status: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+                   *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
+                   gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
+                   desc_h2c_p[num_desc_adj].flags);
+            fflush(stdout);
+        }
+        usleep(1);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
     }
-    if (DBG_INFO) {
-        printf("Status3: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
-               "0x%08x\n",
-               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
-               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
-               gwbar0->h2c[num_desc_adj].status0,
-               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
-               gwbar0->h2c[num_desc_adj].ctrl);
-        fflush(stdout);
-    }
 
-    if (DBG_INFO) {
-        printf("write_back: 0x%08x\n", *(uint32_t *)(&write_back));
-    }
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
-
-    if (DBG_INFO) {
-        printf("Status4: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
-               "0x%08x\n",
-               *poll_h2c, gwbar0->h2c[0].status0, gwbar0->h2c[0].desc_count,
-               descs_h2c[0].flags, gwbar0->h2c[0].ctrl,
-               gwbar0->h2c[num_desc_adj].status0,
-               gwbar0->h2c[num_desc_adj].desc_count, descs_h2c[num_desc_adj].flags,
-               gwbar0->h2c[num_desc_adj].ctrl);
-        fflush(stdout);
-    }
+    gwbar2->ctrl = BAR2_PCIE_WR_STOP;
 
     if (flag_exit) {
         dest_proc(proc);
         return 1;
     }
 
-    // ==================================
-    // Logic Adder: DDR3 -> Logic -> DDR3
-    // ==================================
-    gwbar2->addr_lad_rd = addr_ddr_h2c;
-    gwbar2->addr_lad_wr = addr_ddr_c2h;
+    // ============================
+    // Logic: DDR3 -> Adder -> DDR3
+    // ============================
+    gwbar2->addr_lad_rd = PP_ADDR_LO(addr_ddr_h2c);
+    gwbar2->addr_lad_wr = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_lad = size_data;
 
     gwbar2->ctrl = BAR2_LAD_START;
 
     int timeout_lad = TIMEOUT_POLL;
-    while (!flag_exit && --timeout_lad > 0) {
-        if (gwbar2->status & BAR2_LAD_DONE) {
-            break;
-        }
+    while (!(gwbar2->status & BAR2_LAD_DONE) && --timeout_lad > 0 && !flag_exit) {
+        usleep(1);
     }
     if (timeout_lad <= 0) {
         printf("lad: timeout\n");
     }
+
     gwbar2->ctrl = BAR2_LAD_STOP;
+
+    if (flag_exit) {
+        dest_proc(proc);
+        return 1;
+    }
 
     // ====================
     // FPGA DDR3 -> Host PC
     // ====================
-    *poll_c2h = 0;
+    for (int i = 0; i < num_descs - 1; i++) {
+        desc_c2h_p->flags = FILL_INFO ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
+        desc_c2h_p->length = length;
+        desc_c2h_p->addr_src_lo = PP_ADDR_LO(da);
+        desc_c2h_p->addr_src_hi = PP_ADDR_HI(da);
+        desc_c2h_p->addr_dst_lo = 0x0;
+        desc_c2h_p->addr_dst_hi = 0x0;
 
-    for (int i = 0; i < num_descs; i++) {
-        descs_c2h[i].length = length;
-        descs_c2h[i].addr_dst_lo = da & MAXFF;
-        descs_c2h[i].addr_dst_hi = (da >> 32) & MAXFF;
-        // write-back
-        descs_c2h[i].addr_src_lo = (proc->dma_dst + offset_wb) & MAXFF;
-        descs_c2h[i].addr_src_hi = ((proc->dma_dst + offset_wb) >> 32) & MAXFF;
+        uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
+        desc_c2h_p->next_lo = FILL_INFO ? PP_ADDR_LO(desc_next_a) : 0x0;
+        desc_c2h_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
 
-        if (i == num_desc_adj) {
-            descs_c2h[i].flags = SET_FLAG_STOP_EOP_COMP;
-            descs_c2h[i].next_lo = 0;
-            descs_c2h[i].next_hi = 0;
-        } else {
-            descs_c2h[i].flags = SET_FLAG_NUM_DESC(num_desc_adj - i);
-            uint64_t desc_next = proc->dma_dst + (i + 1) * SIZE_DESC;
-            descs_c2h[i].next_lo = desc_next & MAXFF;
-            descs_c2h[i].next_hi = (desc_next >> 32) & MAXFF;
-        }
+        desc_c2h_p += 1;
         da += block_size;
     }
 
-    gwbar0->c2h[0].addr_desc_lo = proc->dma_dst & MAXFF;
-    gwbar0->c2h[0].addr_desc_hi = (proc->dma_dst >> 32) & MAXFF;
-    gwbar0->c2h[0].addr_poll_lo = (proc->dma_dst + offset_poll) & MAXFF;
-    gwbar0->c2h[0].addr_poll_hi = ((proc->dma_dst + offset_poll) >> 32) & MAXFF;
+    desc_c2h_p->flags = FILL_INFO_F ? SET_FLAG_STOP_EOP_COMP : 0x0;
+    desc_c2h_p->length = length;
+    desc_c2h_p->addr_src_lo = PP_ADDR_LO(da);
+    desc_c2h_p->addr_src_hi = PP_ADDR_HI(da);
+    desc_c2h_p->addr_dst_lo = PP_ADDR_LO(write_back_a);
+    desc_c2h_p->addr_dst_hi = PP_ADDR_HI(write_back_a);
+    desc_c2h_p->next_lo = 0x0;
+    desc_c2h_p->next_hi = 0x0;
+
+    gwbar0->c2h[0].addr_desc_lo = PP_ADDR_LO(desc_c2h_a);
+    gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(desc_c2h_a);
+    gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
+    gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
     gwbar0->c2h[0].num_desc_adj = num_desc_adj;
 
-    gwbar2->addr_ddr_c2h = addr_ddr_c2h;
+    gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
-
     gwbar2->ctrl = BAR2_PCIE_RD_START;
-    gwbar0->c2h[0].ctrl = SGDMA_POLL_START;
+    gwbar0->c2h[0].ctrl = SGDMA_START_POLL_DUPL;
 
     int timeout_c2h = TIMEOUT_POLL;
-    while (!(*poll_c2h) && !flag_exit && --timeout_c2h > 0) {
+    while (!(*poll_c2h_p) && --timeout_c2h > 0 && !flag_exit) {
+        usleep(1);
     }
     if (timeout_c2h <= 0) {
         printf("c2h: timeout\n");
     }
 
     gwbar0->c2h[0].ctrl = SGDMA_STOP;
+    gwbar2->ctrl = BAR2_PCIE_RD_STOP;
 
     if (flag_exit) {
         dest_proc(proc);
         return 1;
-    }
-
-    if (DUMP_INFO) {
-        dump_destination((uint8_t *)dp, size_dump);
     }
 
     for (int i = 0; i < size_dump; i++) {
@@ -326,9 +311,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    gwbar0->h2c[0].ctrl = SGDMA_STOP;
-    gwbar0->c2h[0].ctrl = SGDMA_STOP;
-    gwbar2->ctrl = BAR2_LAD_STOP;
+    if (DUMP_INFO) {
+        dump_destination((uint8_t *)dp, size_dump);
+    }
 
     dest_proc(proc);
     if (flag_exit) {

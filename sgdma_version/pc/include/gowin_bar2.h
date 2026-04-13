@@ -7,9 +7,11 @@
 
 // For control register (0x00)
 #define BAR2_PCIE_WR_START (1 << 0) // h2c
-#define BAR2_PCIE_RD_START (1 << 1) // c2h
-#define BAR2_LAD_START (1 << 2)
-#define BAR2_LAD_STOP (1 << 3)
+#define BAR2_PCIE_WR_STOP (1 << 1)
+#define BAR2_PCIE_RD_START (1 << 2) // c2h
+#define BAR2_PCIE_RD_STOP (1 << 3)
+#define BAR2_LAD_START (1 << 4) // adder
+#define BAR2_LAD_STOP (1 << 5)
 
 #define BAR2_LAD_DONE (1 << 7)
 #define BAR2_DDR_STATE (1 << 8)
