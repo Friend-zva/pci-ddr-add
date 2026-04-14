@@ -12,9 +12,7 @@
 #define BAR2_PCIE_RD_STOP (1 << 3)
 #define BAR2_LAD_START (1 << 4) // adder
 #define BAR2_LAD_STOP (1 << 5)
-
-#define BAR2_LAD_DONE (1 << 7)
-#define BAR2_DDR_STATE (1 << 8)
+#define BAR2_LAD_DONE (1 << 6)
 
 typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t ctrl;      //* 0x000 - Control (RW)
