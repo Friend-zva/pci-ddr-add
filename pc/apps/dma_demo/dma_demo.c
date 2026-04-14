@@ -79,33 +79,20 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    param.cfg_type = 2;
-    param.cfg_where = 0x88; // Device Status
-    while (1) {
-        if (!ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param) &&
-            param.cfg_dword != 0xFFFFFFFF) {
-            val = (param.cfg_dword & 0xFF1F) | (1 << 5);
-            printf("payload: %i\n", val);
-            break;
-        }
-    }
-
     uint32_t addr_ddr_h2c = 0x1000;
     uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
 
-    uint32_t cnt_dword = 32;
+    uint32_t cnt_dword = 256;
     uint32_t length = cnt_dword * 4;
-    uint32_t block_size = (length + 127) & (~127);
-
-    int size_dump = 32;
 
     int size_data = DMA_SIZE / 2;
     int num_descs = size_data / length;
     int num_desc_adj = num_descs - 1;
 
-    uint32_t offset_poll = num_descs * SIZE_DESC + 32;
-    uint32_t offset_oh_wb = offset_poll + 32;
-    uint32_t offset_data = (offset_oh_wb + 127) & (~127);
+    uint32_t offset_safe = 32;
+    uint32_t offset_poll = num_descs * SIZE_DESC + offset_safe;
+    uint32_t offset_oh_wb = offset_poll + offset_safe;
+    uint32_t offset_data = offset_oh_wb + 2 * offset_safe;
     if (offset_data + size_data > DMA_SIZE) {
         printf("Failed to distributed dma area\n");
         dest_proc(proc);
@@ -132,7 +119,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (DUMP_INFO) {
-        dump_source((uint8_t *)sp, size_dump);
+        dump_source(sp);
     }
 
     // c2h
@@ -179,7 +166,7 @@ int main(int argc, char *argv[]) {
         desc_h2c_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
 
         desc_h2c_p += 1;
-        sa += block_size;
+        sa += length;
     }
 
     desc_h2c_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
@@ -272,7 +259,7 @@ int main(int argc, char *argv[]) {
         desc_c2h_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
 
         desc_c2h_p += 1;
-        da += block_size;
+        da += length;
     }
 
     desc_c2h_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
@@ -323,7 +310,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    for (int i = 0; i < size_dump; i++) {
+    for (int i = 0; i < size_data / 2; i++) {
         uint32_t d = ((uint32_t *)dp)[i];
         uint32_t s = ((uint16_t *)sp)[i * 2] + ((uint16_t *)sp)[i * 2 + 1];
         if (d != s) {
@@ -333,7 +320,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (DUMP_INFO) {
-        dump_destination((uint8_t *)dp, size_dump);
+        dump_destination(dp);
     }
 
     dest_proc(proc);

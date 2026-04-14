@@ -889,6 +889,7 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
     printk(KERN_DEBUG "vma->vm_pgoff:%ld, vsize: %ld, psize:%ld\n", vma->vm_pgoff,
            vsize, psize);
     if (vsize > psize || psize <= 0) {
+        dev_err(dev, "gowin_bar_mmap() failed. (maybe dma psize)\n");
         return -EINVAL;
     }
 
@@ -915,8 +916,11 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
                                  vma->vm_page_prot);
     } else {
         // set_memory_uc(vir, vsize / PAGE_SIZE);
-        ret = remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
-                              vma->vm_page_prot);
+        // ret = remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
+        //   vma->vm_page_prot);
+        ret = dma_mmap_coherent(dev, vma, data->dma_ctx[data->cur_dma].vir,
+                                data->dma_ctx[data->cur_dma].phy,
+                                data->dma_ctx[data->cur_dma].len);
     }
     if (ret)
         return -EAGAIN;
