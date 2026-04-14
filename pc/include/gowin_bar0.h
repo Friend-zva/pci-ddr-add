@@ -26,10 +26,10 @@ typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t addr_poll_hi; //* 0x1C - Poll High Address (RW)
 
     volatile uint32_t desc_count; //* 0x20 - Completed Descriptor Count (RO)
-    volatile uint32_t rsv_24;     //* 0x24 - Reserved
+    volatile uint32_t rsv_24;     //* 0x24-0x27 - Reserved
 
     volatile uint32_t num_desc_adj; //* 0x28 - Descriptor Adjacent Number (RW)
-    volatile uint32_t rsv_2c;       //* 0x2C - Reserved
+    volatile uint32_t rsv_2c;       //* 0x2C-2F - Reserved
 
     volatile uint32_t status0;   //* 0x30 - Status (RW1C/RO)
     volatile uint32_t status1;   //* 0x34 - Status (RC)

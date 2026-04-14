@@ -1,6 +1,6 @@
-# pciddradd - PCIe SGDMA + DDR3 + Adder Demo for Sipeed Tang MEGA 138K Pro
+# PCIe SGDMA + DDR3 + Adder Demo for Sipeed Tang Mega 138K Pro
 
-This project is a demonstration of SerDes, PCIe SGDMA, and DDR3 memory on the GOWIN GW5AST-138K (Sipeed [Tang MEGA 138K Pro](https://wiki.sipeed.com/hardware/en/tang/tang-mega-138k/mega-138k-pro.html) board).
+This project is a demonstration of SerDes, PCIe SGDMA, and DDR3 memory on the GOWIN GW5AST-138K (Sipeed [Tang Mega 138K Pro](https://wiki.sipeed.com/hardware/en/tang/tang-mega-138k/mega-138k-pro.html) board).
 
 ## Main Features
 
@@ -80,7 +80,7 @@ Status indication on the Dock board (LED0 is on the far right):
 ## Links
 
 - [Tang MEGA 138K Pro Wiki](https://wiki.sipeed.com/hardware/en/tang/tang-mega-138k/mega-138k-pro.html)
-- [PCIe IP User Guide](https://www.gowinsemi.com/upload/database_doc/2490/document/669a3b1d64272.pdf) & [pci demo](https://github.com/sipeed/TangMega-138KPro-example/tree/main/pcie_dma_demo)
-- [DDR3 IP User Guide](https://www.gowinsemi.com/upload/database_doc/2009/document/696a8c052f84e.pdf) & [ddr demo](https://github.com/sipeed/TangMega-138KPro-example/tree/main/ddr_test)
+- [Gowin PCIe IP User Guide](https://www.gowinsemi.com/upload/database_doc/2490/document/669a3b1d64272.pdf) & [pci demo](https://github.com/sipeed/TangMega-138KPro-example/tree/main/pcie_dma_demo)
+- [Gowin DDR3 IP User Guide](https://www.gowinsemi.com/upload/database_doc/2009/document/696a8c052f84e.pdf) & [ddr demo](https://github.com/sipeed/TangMega-138KPro-example/tree/main/ddr_test)
 - [Gowin SGDMA IP User Guide](https://www.gowinsemi.com/upload/database_doc/3345/document/69810ed812355.pdf)
 - [Verilog-AXI (Alex Forencich)](https://github.com/alexforencich/verilog-axi)

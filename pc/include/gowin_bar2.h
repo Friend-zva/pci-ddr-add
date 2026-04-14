@@ -17,21 +17,23 @@
 #define BAR2_DDR_STATE (1 << 8)
 
 typedef struct __attribute__((packed, aligned(32))) {
-    volatile uint32_t ctrl;      //* 0x00 - Control (RW)
-    volatile uint32_t status;    //* 0x04 - Status (RO)
-    volatile uint32_t rsv_08[2]; //* 0x08-0x0F - Reserved
+    volatile uint32_t ctrl;      //* 0x000 - Control (RW)
+    volatile uint32_t status;    //* 0x004 - Status (RO)
+    volatile uint32_t rsv_08[2]; //* 0x008-0x00F - Reserved
 
-    volatile uint32_t addr_ddr_h2c; //* 0x10 - PCIe Write Address
-    volatile uint32_t leng_ddr_h2c; //* 0x14 - PCIe Write Length
-    volatile uint32_t rsv_18[2];    //* 0x18-0x1F - Reserved
+    volatile uint32_t addr_ddr_h2c; //* 0x010 - PCIe Write Address (RW)
+    volatile uint32_t leng_ddr_h2c; //* 0x014 - PCIe Write Length (RW)
+    volatile uint32_t rsv_18[2];    //* 0x018-0x01F - Reserved
 
-    volatile uint32_t addr_ddr_c2h; //* 0x20 - PCIe Read Address
-    volatile uint32_t leng_ddr_c2h; //* 0x24 - PCIe Read Length
-    volatile uint32_t rsv_28[2];    //* 0x28-0x2F - Reserved
+    volatile uint32_t addr_ddr_c2h; //* 0x020 - PCIe Read Address (RW)
+    volatile uint32_t leng_ddr_c2h; //* 0x024 - PCIe Read Length (RW)
+    volatile uint32_t rsv_28[2];    //* 0x028-0x02F - Reserved
 
-    volatile uint32_t addr_lad_rd; //* 0x30 - Logic Adder Read  Address
-    volatile uint32_t addr_lad_wr; //* 0x34 - Logic Adder Write Address
-    volatile uint32_t leng_lad;    //* 0x38 - Logic Adder Length
+    volatile uint32_t addr_lad_rd; //* 0x030 - Logic Adder Read  Address (RW)
+    volatile uint32_t addr_lad_wr; //* 0x034 - Logic Adder Write Address (RW)
+    volatile uint32_t leng_lad;    //* 0x038 - Logic Adder Length (RW)
+
+    volatile uint32_t rsv_3c[497]; //* 0x03C-0x7FF - Reserved
 } GowinBar2;
 
 #endif // GOWIN_BAR2_H
