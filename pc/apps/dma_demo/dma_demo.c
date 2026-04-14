@@ -30,8 +30,8 @@ void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
 static int DUMP_INFO = 1;
-static int FILL_INFO = 0;
-static int FILL_INFO_F = 1;
+static int FILL_INFO_ALL = 0;
+static int FILL_INFO_LAST = 1;
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
@@ -164,8 +164,9 @@ int main(int argc, char *argv[]) {
     // ====================
     // Host PC -> FPGA DDR3
     // ====================
-    for (int i = 0; i < num_descs - 1; i++) {
-        desc_h2c_p->flags = FILL_INFO ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
+    for (int i = 0; i < num_desc_adj; i++) {
+        desc_h2c_p->flags =
+            FILL_INFO_ALL ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
         desc_h2c_p->length = length;
         desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
         desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
@@ -173,19 +174,19 @@ int main(int argc, char *argv[]) {
         desc_h2c_p->addr_dst_hi = 0x0;
 
         uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
-        desc_h2c_p->next_lo = FILL_INFO ? PP_ADDR_LO(desc_next_a) : 0x0;
-        desc_h2c_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
+        desc_h2c_p->next_lo = FILL_INFO_ALL ? PP_ADDR_LO(desc_next_a) : 0x0;
+        desc_h2c_p->next_hi = FILL_INFO_ALL ? PP_ADDR_HI(desc_next_a) : 0x0;
 
         desc_h2c_p += 1;
         sa += block_size;
     }
 
-    desc_h2c_p->flags = FILL_INFO_F ? SET_FLAG_STOP_EOP_COMP : 0x0;
+    desc_h2c_p->flags = FILL_INFO_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
     desc_h2c_p->length = length;
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
     desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
-    desc_h2c_p->addr_dst_lo = PP_ADDR_LO(overhead_a);
-    desc_h2c_p->addr_dst_hi = PP_ADDR_HI(overhead_a);
+    desc_h2c_p->addr_dst_lo = FILL_INFO_ALL ? PP_ADDR_LO(overhead_a) : 0x0;
+    desc_h2c_p->addr_dst_hi = FILL_INFO_ALL ? PP_ADDR_HI(overhead_a) : 0x0;
     desc_h2c_p->next_lo = 0x0;
     desc_h2c_p->next_hi = 0x0;
 
@@ -205,9 +206,13 @@ int main(int argc, char *argv[]) {
         if (DBG_INFO) {
             printf("Status: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
-                   gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
-                   desc_h2c_p[num_desc_adj].flags);
+                   gwbar0->h2c[0].desc_count, (desc_h2c_p - num_desc_adj)->flags,
+                   desc_h2c_p->flags);
             fflush(stdout);
+        }
+        if (gwbar0->h2c[0].desc_count == num_descs) {
+            printf("h2c: count\n");
+            break;
         }
         usleep(1);
     }
@@ -250,8 +255,9 @@ int main(int argc, char *argv[]) {
     // ====================
     // FPGA DDR3 -> Host PC
     // ====================
-    for (int i = 0; i < num_descs - 1; i++) {
-        desc_c2h_p->flags = FILL_INFO ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
+    for (int i = 0; i < num_desc_adj; i++) {
+        desc_c2h_p->flags =
+            FILL_INFO_ALL ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
         desc_c2h_p->length = length;
         desc_c2h_p->addr_src_lo = PP_ADDR_LO(da);
         desc_c2h_p->addr_src_hi = PP_ADDR_HI(da);
@@ -259,14 +265,14 @@ int main(int argc, char *argv[]) {
         desc_c2h_p->addr_dst_hi = 0x0;
 
         uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
-        desc_c2h_p->next_lo = FILL_INFO ? PP_ADDR_LO(desc_next_a) : 0x0;
-        desc_c2h_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
+        desc_c2h_p->next_lo = FILL_INFO_ALL ? PP_ADDR_LO(desc_next_a) : 0x0;
+        desc_c2h_p->next_hi = FILL_INFO_ALL ? PP_ADDR_HI(desc_next_a) : 0x0;
 
         desc_c2h_p += 1;
         da += block_size;
     }
 
-    desc_c2h_p->flags = FILL_INFO_F ? SET_FLAG_STOP_EOP_COMP : 0x0;
+    desc_c2h_p->flags = FILL_INFO_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
     desc_c2h_p->length = length;
     desc_c2h_p->addr_src_lo = PP_ADDR_LO(da);
     desc_c2h_p->addr_src_hi = PP_ADDR_HI(da);
