@@ -443,31 +443,36 @@ module top (
   // ==========
   /* Adder */
   // Read descriptor
-  wire [ 63 : 0] axis_lad_rd_desc_addr;
-  wire [ 31 : 0] axis_lad_rd_desc_len;
-  wire [  7 : 0] axis_lad_rd_desc_tag;
-  wire           axis_lad_rd_desc_valid;
-  wire           axis_lad_rd_desc_ready;
+  wire [AXIADDRWIDTH-1:0] axis_lad_rd_desc_addr;
+  wire [ AXILENWIDTH-1:0] axis_lad_rd_desc_len;
+  wire [             7:0] axis_lad_rd_desc_tag;
+  wire                    axis_lad_rd_desc_valid;
+  wire                    axis_lad_rd_desc_ready;
   // Write descriptor
-  wire [ 63 : 0] axis_lad_wr_desc_addr;
-  wire [ 31 : 0] axis_lad_wr_desc_len;
-  wire [  7 : 0] axis_lad_wr_desc_tag;
-  wire           axis_lad_wr_desc_valid;
-  wire           axis_lad_wr_desc_ready;
+  wire [AXIADDRWIDTH-1:0] axis_lad_wr_desc_addr;
+  wire [ AXILENWIDTH-1:0] axis_lad_wr_desc_len;
+  wire [             7:0] axis_lad_wr_desc_tag;
+  wire                    axis_lad_wr_desc_valid;
+  wire                    axis_lad_wr_desc_ready;
   // Receive data
-  wire           axis_lad_rx_data_tready;
-  wire           axis_lad_rx_data_tvalid;
-  wire [255 : 0] axis_lad_rx_data_tdata;
-  wire           axis_lad_rx_data_tlast;
-  wire [ 31 : 0] axis_lad_rx_data_tkeep;
+  wire                    axis_lad_rx_data_tready;
+  wire                    axis_lad_rx_data_tvalid;
+  wire [AXIDATAWIDTH-1:0] axis_lad_rx_data_tdata;
+  wire                    axis_lad_rx_data_tlast;
+  wire [AXISTRBWIDTH-1:0] axis_lad_rx_data_tkeep;
   // Transmit data
-  wire           axis_lad_tx_data_tready;
-  wire           axis_lad_tx_data_tvalid;
-  wire           axis_lad_tx_data_tlast;
-  wire [255 : 0] axis_lad_tx_data_tdata;
-  wire [ 31 : 0] axis_lad_tx_data_tkeep;
+  wire                    axis_lad_tx_data_tready;
+  wire                    axis_lad_tx_data_tvalid;
+  wire                    axis_lad_tx_data_tlast;
+  wire [AXIDATAWIDTH-1:0] axis_lad_tx_data_tdata;
+  wire [AXISTRBWIDTH-1:0] axis_lad_tx_data_tkeep;
 
-  logic_adder u_logic_adder (
+  logic_adder #(
+      .AXIADDRWIDTH(AXIADDRWIDTH),
+      .AXILENWIDTH (AXILENWIDTH),
+      .AXIDATAWIDTH(AXIDATAWIDTH),
+      .AXISTRBWIDTH(AXISTRBWIDTH)
+  ) u_logic_adder (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
       .cfg_read_addr(lad_cfg_read_addr),
@@ -556,8 +561,8 @@ module top (
   ) u_axi_pci_dma_logic_adder (
       .clk(tlp_clk),
       .rst(tlp_rst),
-      .s_axis_read_desc_addr(axis_lad_rd_desc_addr[AXIADDRWIDTH-1:0]),
-      .s_axis_read_desc_len(axis_lad_rd_desc_len[AXILENWIDTH-1:0]),
+      .s_axis_read_desc_addr(axis_lad_rd_desc_addr),
+      .s_axis_read_desc_len(axis_lad_rd_desc_len),
       .s_axis_read_desc_tag(axis_lad_rd_desc_tag),
       .s_axis_read_desc_id(8'd0),
       .s_axis_read_desc_dest(8'd0),
@@ -569,8 +574,8 @@ module top (
       .m_axis_read_data_tvalid(axis_lad_rx_data_tvalid),
       .m_axis_read_data_tready(axis_lad_rx_data_tready),
       .m_axis_read_data_tlast(axis_lad_rx_data_tlast),
-      .s_axis_write_desc_addr(axis_lad_wr_desc_addr[AXIADDRWIDTH-1:0]),
-      .s_axis_write_desc_len(axis_lad_wr_desc_len[AXILENWIDTH-1:0]),
+      .s_axis_write_desc_addr(axis_lad_wr_desc_addr),
+      .s_axis_write_desc_len(axis_lad_wr_desc_len),
       .s_axis_write_desc_tag(axis_lad_wr_desc_tag),
       .s_axis_write_desc_valid(axis_lad_wr_desc_valid),
       .s_axis_write_desc_ready(axis_lad_wr_desc_ready),
