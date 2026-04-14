@@ -23,14 +23,14 @@
 #define PP_ADDR_LO(addr) ((addr) & 0xFFFFFFFF)
 #define PP_ADDR_HI(addr) ((addr >> 32) & 0xFFFFFFFF)
 
-static const int TIMEOUT_POLL = 10000000;
+static const int TIMEOUT_POLL = 1000000;
 
 static volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
 static int DUMP_INFO = 1;
-static int FILL_INFO_ALL = 0;
+static int FILL_INFO_ALL = 1;
 static int FILL_INFO_LAST = 1;
 
 int main(int argc, char *argv[]) {
@@ -116,11 +116,11 @@ int main(int argc, char *argv[]) {
     volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mem_src;
     uint64_t desc_h2c_a = proc->dma_src;
 
-    volatile uint8_t *poll_h2c_p = proc->mem_src + offset_poll;
+    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mem_src + offset_poll);
     *poll_h2c_p = 0;
     uint64_t poll_h2c_a = proc->dma_src + offset_poll;
 
-    volatile uint8_t *overhead_p = proc->mem_src + offset_oh_wb;
+    volatile uint32_t *overhead_p = (uint32_t *)(proc->mem_src + offset_oh_wb);
     uint64_t overhead_a = proc->dma_src + offset_oh_wb;
 
     volatile uint8_t *sp = proc->mem_src + offset_data;
@@ -139,11 +139,11 @@ int main(int argc, char *argv[]) {
     volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mem_dst;
     uint64_t desc_c2h_a = proc->dma_dst;
 
-    volatile uint8_t *poll_c2h_p = proc->mem_dst + offset_poll;
+    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mem_dst + offset_poll);
     *poll_c2h_p = 0;
     uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
 
-    volatile uint8_t *write_back_p = proc->mem_dst + offset_oh_wb;
+    volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_oh_wb);
     uint64_t write_back_a = proc->dma_dst + offset_oh_wb;
 
     volatile uint8_t *dp = proc->mem_dst + offset_data;
@@ -259,10 +259,10 @@ int main(int argc, char *argv[]) {
         desc_c2h_p->flags =
             FILL_INFO_ALL ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
         desc_c2h_p->length = length;
-        desc_c2h_p->addr_src_lo = PP_ADDR_LO(da);
-        desc_c2h_p->addr_src_hi = PP_ADDR_HI(da);
-        desc_c2h_p->addr_dst_lo = 0x0;
-        desc_c2h_p->addr_dst_hi = 0x0;
+        desc_c2h_p->addr_src_lo = 0x0;
+        desc_c2h_p->addr_src_hi = 0x0;
+        desc_c2h_p->addr_dst_lo = PP_ADDR_LO(da);
+        desc_c2h_p->addr_dst_hi = PP_ADDR_HI(da);
 
         uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
         desc_c2h_p->next_lo = FILL_INFO_ALL ? PP_ADDR_LO(desc_next_a) : 0x0;
@@ -274,10 +274,10 @@ int main(int argc, char *argv[]) {
 
     desc_c2h_p->flags = FILL_INFO_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
     desc_c2h_p->length = length;
-    desc_c2h_p->addr_src_lo = PP_ADDR_LO(da);
-    desc_c2h_p->addr_src_hi = PP_ADDR_HI(da);
-    desc_c2h_p->addr_dst_lo = PP_ADDR_LO(write_back_a);
-    desc_c2h_p->addr_dst_hi = PP_ADDR_HI(write_back_a);
+    desc_c2h_p->addr_src_lo = PP_ADDR_LO(write_back_a);
+    desc_c2h_p->addr_src_hi = PP_ADDR_HI(write_back_a);
+    desc_c2h_p->addr_dst_lo = PP_ADDR_LO(da);
+    desc_c2h_p->addr_dst_hi = PP_ADDR_HI(da);
     desc_c2h_p->next_lo = 0x0;
     desc_c2h_p->next_hi = 0x0;
 
@@ -294,7 +294,17 @@ int main(int argc, char *argv[]) {
 
     int timeout_c2h = TIMEOUT_POLL;
     while (!(*poll_c2h_p) && --timeout_c2h > 0 && !flag_exit) {
-        usleep(1);
+        if (DBG_INFO) {
+            printf("Status: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+                   *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
+                   gwbar0->c2h[0].desc_count, (desc_c2h_p - num_desc_adj)->flags,
+                   desc_c2h_p->flags);
+            usleep(1);
+        }
+        if (gwbar0->c2h[0].desc_count == num_descs) {
+            printf("c2h: count\n");
+            break;
+        }
     }
     if (timeout_c2h <= 0) {
         printf("c2h: timeout\n");
