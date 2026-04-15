@@ -23,7 +23,6 @@
 #include <linux/pci.h>
 #include <linux/spinlock.h>
 #include <linux/version.h>
-#include <linux/wait.h>
 
 #include "../include/gowin_pcie_bar_drv_uapi.h"
 
@@ -33,8 +32,6 @@
 // #ifndef WDMA_CH_NUM
 // #define WDMA_CH_NUM         2
 // #endif
-
-#define GW_IRQ_NUM (RDMA_CH_NUM + WDMA_CH_NUM)
 
 #define MAX_DMA_CTX_NUM 256
 
@@ -76,10 +73,6 @@ struct gowin_bar_data {
     int cur_bar;
     int cur_dma;
 
-    int irq_number[GW_IRQ_NUM];
-    atomic64_t irq_count[GW_IRQ_NUM];
-    wait_queue_head_t irq_wait[GW_IRQ_NUM];
-
     /*! mutex to protect the ioctl */
     struct mutex mutex;
 
@@ -88,7 +81,6 @@ struct gowin_bar_data {
     struct gowin_ioctl_param *test;
 };
 
-static int msi_number = 1;
 static int drvOccupied = 0;
 
 /*!
@@ -191,59 +183,6 @@ static inline void gowin_writeb(struct gowin_bar_data *data, u32 bar, u32 offset
     } else {
         writeb(value, data->iomap[bar] + offset);
     }
-}
-
-static irqreturn_t gowin_bar_irq_handler(int irq, void *dev_id) {
-    int i;
-    int id;
-    u32 rval;
-    struct gowin_bar_data *data = dev_id;
-
-    if (unlikely(msi_number <= 0)) {
-        return IRQ_NONE;
-    } else if (msi_number == 1) {
-        //! read IRQ status
-        do {
-            rval = gowin_readl(data, 0, 0x010);
-        } while (rval == 0xFFFFFFFF);
-        while (rval > 0) {
-            //! clear IRQ right now
-            gowin_writel(data, 0, 0x010, rval);
-            gowin_readl(data, 0, 0); //! flush write
-            id = 0;
-            for (i = 0; i < RDMA_CH_NUM; i++) {
-                if (rval & (1 << i)) {
-                    // printk(KERN_INFO "rval 0x%08x (%d)\n", rval, id);
-                    atomic64_inc(&data->irq_count[id]);
-                    wake_up_interruptible(&data->irq_wait[id]);
-                }
-                id++;
-            }
-            for (i = 0; i < WDMA_CH_NUM; i++) {
-                if (rval & (1 << (i + 16))) {
-                    atomic64_inc(&data->irq_count[id]);
-                    wake_up_interruptible(&data->irq_wait[id]);
-                }
-                id++;
-            }
-            //! Reread IRQ status
-            do {
-                rval = gowin_readl(data, 0, 0x010);
-            } while (rval == 0xFFFFFFFF);
-        }
-    } else {
-        for (id = 0; id < GW_IRQ_NUM; id++) {
-            if (data->irq_number[id] == irq)
-                break;
-        }
-        if (unlikely(id >= GW_IRQ_NUM)) {
-            return IRQ_NONE;
-        }
-        atomic64_inc(&data->irq_count[id]);
-        wake_up_interruptible(&data->irq_wait[id]);
-    }
-    // printk(KERN_INFO "IRQ.........%lld", atomic64_read(&data->irq_count[i]));
-    return IRQ_HANDLED;
 }
 
 /*!
@@ -420,55 +359,6 @@ static int ioctl_write_config(struct gowin_bar_data *data, unsigned long arg) {
 }
 
 /*!
- * ioctl_wait_irq() -
- *      static function for ioctl: GOWIN_WAIT_IRQ
- *
- * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for ioctl
- */
-static int ioctl_wait_irq(struct gowin_bar_data *data, unsigned long arg) {
-    u64 count;
-    int ret;
-    u32 timeout;
-    struct gowin_ioctl_param param;
-    struct device *dev;
-
-    if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
-        return -EINVAL;
-
-    dev = &data->pdev->dev;
-
-    if (copy_from_user(&param, (void __user *)arg, sizeof(param)))
-        return -EFAULT;
-
-    if (param.irq_idx < 0 || param.irq_idx >= GW_IRQ_NUM)
-        return -EINVAL;
-
-    timeout = param.timeout_ms;
-    if (timeout == 0) {
-        timeout = 1;
-    } else if (timeout > 1000) {
-        timeout = 1000;
-    }
-
-    count = atomic64_read(&data->irq_count[param.irq_idx]);
-    ret = wait_event_interruptible_timeout(
-        data->irq_wait[param.irq_idx],
-        count != atomic64_read(&data->irq_count[param.irq_idx]),
-        msecs_to_jiffies(timeout));
-    // printk(KERN_DEBUG "[ioctl_wait_irq] count[%d] = %lld (%lld, %d)\n",
-    // param.irq_idx, atomic64_read(&data->irq_count[param.irq_idx]), count, ret);
-    // count = atomic64_read(&data->irq_count[param.irq_idx]);
-    if (ret == -ERESTARTSYS) {
-        return -EINTR;
-    }
-    if (ret == 0) {
-        return -ETIMEDOUT;
-    }
-    return 0;
-}
-
-/*!
  * ioctl_dma_mem_request() -
  *      static function for ioctl: GOWIN_REQUEST_DMA_MEM
  *
@@ -640,96 +530,6 @@ static int ioctl_switch_bar_mem(struct gowin_bar_data *data, unsigned long arg) 
 }
 
 /*!
- * ioctl_clear_irq_count() -
- *      static function for ioctl: GOWIN_GET_IRQ_COUNT
- *
- * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for ioctl
- */
-static int ioctl_get_irq_count(struct gowin_bar_data *data, unsigned long arg) {
-    struct gowin_ioctl_param param;
-
-    if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
-        return -EINVAL;
-
-    if (copy_from_user(&param, (void __user *)arg, sizeof(param)))
-        return -EFAULT;
-
-    if (param.irq_idx < 0 || param.irq_idx >= GW_IRQ_NUM)
-        return -EINVAL;
-
-    param.irq_count = atomic64_read(&data->irq_count[param.irq_idx]);
-
-    if (copy_to_user((void __user *)arg, &param, sizeof(param)))
-        return -EFAULT;
-
-    return 0;
-}
-
-/*!
- * ioctl_clear_irq_count() -
- *      static function for ioctl: GOWIN_CLEAR_IRQ_COUNT
- *
- * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for ioctl
- */
-static int ioctl_clear_irq_count(struct gowin_bar_data *data, unsigned long arg) {
-    if (WARN_ON(!data))
-        return -EINVAL;
-    if (arg < 0 || arg >= GW_IRQ_NUM)
-        return -EINVAL;
-    atomic64_set(&data->irq_count[arg], 0);
-    return 0;
-}
-
-/*!
- * ioctl_enable_irq() -
- *      static function for ioctl: GOWIN_IRQ_ENABLE
- *
- * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for ioctl
- */
-static int ioctl_enable_irq(struct gowin_bar_data *data, unsigned long arg) {
-    u32 rval, mask;
-    if (WARN_ON(!data))
-        return -EINVAL;
-    if (arg < 0 || arg >= GW_IRQ_NUM)
-        return -EINVAL;
-
-    mask = 1 << (arg < RDMA_CH_NUM ? arg : (arg - RDMA_CH_NUM + 16));
-    gowin_writel(data, 0, 0x010, mask);
-    rval = gowin_readl(data, 0, 0x008);
-    gowin_writel(data, 0, 0x008, rval | mask);
-
-    // enable_irq(pci_irq_vector(data->pdev, arg));
-
-    return 0;
-}
-
-/*!
- * ioctl_disable_irq() -
- *      static function for ioctl: GOWIN_IRQ_DISABLE
- *
- * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for ioctl
- */
-static int ioctl_disable_irq(struct gowin_bar_data *data, unsigned long arg) {
-    u32 rval, mask;
-    if (WARN_ON(!data))
-        return -EINVAL;
-    if (arg < 0 || arg >= GW_IRQ_NUM)
-        return -EINVAL;
-
-    // disable_irq(pci_irq_vector(data->pdev, arg));
-
-    mask = 1 << (arg < RDMA_CH_NUM ? arg : (arg - RDMA_CH_NUM + 16));
-    rval = gowin_readl(data, 0, 0x008);
-    gowin_writel(data, 0, 0x008, rval & ~mask);
-
-    return 0;
-}
-
-/*!
  * ioctl_debug() -
  *      static function for ioctl: GOWIN_DEBUG_ONLY
  *
@@ -775,9 +575,6 @@ static long gowin_bar_ioctl(struct file *filp, unsigned int cmd, unsigned long a
         case GOWIN_CONFIG_WRITE_DWORD:
             err = ioctl_write_config(data, arg);
             break;
-        case GOWIN_WAIT_IRQ:
-            err = ioctl_wait_irq(data, arg);
-            break;
         case GOWIN_REQUEST_DMA_MEM:
             err = ioctl_dma_mem_request(data, arg);
             break;
@@ -786,18 +583,6 @@ static long gowin_bar_ioctl(struct file *filp, unsigned int cmd, unsigned long a
             break;
         case GOWIN_SWITCH_BAR_OR_MEM:
             err = ioctl_switch_bar_mem(data, arg);
-            break;
-        case GOWIN_GET_IRQ_COUNT:
-            err = ioctl_get_irq_count(data, arg);
-            break;
-        case GOWIN_CLEAR_IRQ_COUNT:
-            err = ioctl_clear_irq_count(data, arg);
-            break;
-        case GOWIN_IRQ_ENABLE:
-            err = ioctl_enable_irq(data, arg);
-            break;
-        case GOWIN_IRQ_DISABLE:
-            err = ioctl_disable_irq(data, arg);
             break;
         case GOWIN_DEBUG_ONLY:
             err = ioctl_debug(data, arg);
@@ -961,9 +746,7 @@ static const struct file_operations gowin_bar_fops = {
 };
 
 static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did) {
-    int i;
     int err;
-    int irq;
     int bar;
     struct gowin_bar_data *data;
     struct device *dev = &pdev->dev;
@@ -1032,52 +815,11 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         return -ENOMEM;
     }
 
-    // irq = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_MSI | PCI_IRQ_LEGACY);
-    irq = pci_alloc_irq_vectors(pdev, GW_IRQ_NUM, GW_IRQ_NUM, PCI_IRQ_MSI);
-    if (irq < 0) {
-        irq = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_MSI);
-        if (irq < 0) {
-            dev_err(dev, "pci_alloc_irq_vectors failed. (errno: %d)\n", irq);
-            return -EINVAL;
-        }
-        dev_err(dev, "Use single interrupt mode.\n");
-        msi_number = 1;
-    } else {
-        msi_number = GW_IRQ_NUM;
-    }
-
-    gowin_writel(data, 0, 0x0010, 0xFFFFFFFF);
-
-    for (i = 0; i < GW_IRQ_NUM; i++) {
-        if (msi_number > 1 || i == 0) {
-            err = pci_request_irq(pdev, i, gowin_bar_irq_handler, 0, data,
-                                  DRIVER_NAME);
-            if (unlikely(err)) {
-                break;
-            }
-            data->irq_number[i] = pci_irq_vector(pdev, i);
-            // disable_irq(data->irq_number[i]);
-        } else {
-            data->irq_number[i] = pci_irq_vector(pdev, 0);
-        }
-    }
-
-    if (unlikely(i < GW_IRQ_NUM)) {
-        if (msi_number == 1) {
-            pci_free_irq(pdev, 0, data);
-        } else {
-            for (; i >= 0; i--) {
-                pci_free_irq(pdev, i, data);
-            }
-        }
-        goto err_free_irq_vectors;
-    }
-
     err = alloc_chrdev_region(&data->gw_devid, 0, 1, DRIVER_NAME);
     if (err < 0) {
         dev_err(dev, "alloc_chrdev_region() failed.\n");
         err = -EINVAL;
-        goto err_free_pci_irq;
+        return err;
     }
 
     data->gw_cdev.owner = THIS_MODULE;
@@ -1109,31 +851,6 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_class_destroy;
     }
 
-    for (i = 0; i < GW_IRQ_NUM; i++) {
-        atomic64_set(&data->irq_count[i], 0);
-        init_waitqueue_head(&data->irq_wait[i]);
-    }
-
-    do {
-        u32 rval = 0;
-        for (i = 0; i < RDMA_CH_NUM; i++) {
-            rval |= 1 << i;
-        }
-        for (i = 0; i < WDMA_CH_NUM; i++) {
-            rval |= 1 << (i + 16);
-        }
-        gowin_writel(data, 0, 0x0008, 0);   // mask all IRQ
-        gowin_writel(data, 0, 0x010, rval); // clear all IRQ
-        if (msi_number > 1) { // Set IRQ auto-clear if not single IRQ mode
-            gowin_writel(data, 0, 0x00C, rval);
-        } else {
-            gowin_writel(data, 0, 0x00C, 0);
-        }
-        gowin_writel(data, 0, 0x0004, rval); // enable all channel
-        rval = (msi_number > 1) ? 1 : 3;     // single IRQ mode ?
-        gowin_writel(data, 0, 0x0000, rval); // enable device
-    } while (0);
-
     spin_lock_init(&data->lock);
     pci_set_drvdata(pdev, data);
 
@@ -1148,23 +865,13 @@ err_cdev_del:
     cdev_del(&data->gw_cdev);
 err_unregister_chrdev_region:
     unregister_chrdev_region(data->gw_devid, 1);
-err_free_pci_irq:
-    pci_free_irq(pdev, 0, data);
-    for (i = 0; i < msi_number; i++) {
-        pci_free_irq(pdev, i, data);
-    }
-err_free_irq_vectors:
-    pci_free_irq_vectors(pdev);
 
     dev_err(dev, "Failed to register device (errno:%d).\n", err);
-
-    msi_number = 0;
     drvOccupied = 0;
     return err;
 }
 
 static void gowin_bar_remove(struct pci_dev *pdev) {
-    int i;
     struct gowin_bar_data *data = pci_get_drvdata(pdev);
 
     dev_info(&pdev->dev, DRIVER_NAME " remove");
@@ -1174,17 +881,8 @@ static void gowin_bar_remove(struct pci_dev *pdev) {
         class_destroy(data->gw_class);
         cdev_del(&data->gw_cdev);
         unregister_chrdev_region(data->gw_devid, 1);
-
-        for (i = 0; i < msi_number; i++) {
-            pci_free_irq(pdev, i, data);
-        }
-        pci_free_irq_vectors(pdev);
-
-        if (msi_number > 1) { // clear IRQ auto-clear
-            gowin_writel(data, 0, 0x00C, 0);
-        }
     }
-    msi_number = 0;
+
     drvOccupied = 0;
 }
 
