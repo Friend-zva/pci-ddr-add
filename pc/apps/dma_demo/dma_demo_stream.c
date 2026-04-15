@@ -103,6 +103,13 @@ int main(int argc, char *argv[]) {
         dump_source(sp);
     }
 
+    if (DBG_INFO) {
+        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
+               gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags);
+        fflush(stdout);
+    }
+
     desc_h2c_p->flags = SET_FLAG_STOP_EOP_COMP;
     desc_h2c_p->length = size_data;
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
@@ -117,6 +124,13 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
     gwbar0->h2c[0].num_desc_adj = 0;
+
+    if (DBG_INFO) {
+        printf("Status1: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
+               gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
+               gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags);
+        fflush(stdout);
+    }
 
     // c2h
 
@@ -147,6 +161,13 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
     gwbar0->c2h[0].num_desc_adj = 0;
 
+    if (DBG_INFO) {
+        printf("Status2: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_c2h_p,
+               gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
+               gwbar0->c2h[0].desc_count, desc_c2h_p[0].flags);
+        fflush(stdout);
+    }
+
     // control
 
     gwbar0->c2h[0].ctrl = SGDMA_START_POLL_DUPL;
@@ -154,6 +175,15 @@ int main(int argc, char *argv[]) {
 
     int timeout = TIMEOUT_POLL;
     while (timeout-- > 0 && !flag_exit) {
+        if (DBG_INFO) {
+            printf("Status_h2c: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
+                   gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
+                   gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags);
+            printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_c2h_p,
+                   gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
+                   gwbar0->c2h[0].desc_count, desc_c2h_p[0].flags);
+            fflush(stdout);
+        }
         if (*poll_h2c_p && *poll_c2h_p) {
             break;
         }

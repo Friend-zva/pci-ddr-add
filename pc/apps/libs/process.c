@@ -62,9 +62,12 @@ void dest_proc(Process *proc) {
     if (proc == NULL) {
         return;
     }
+    proc->gwbar0->h2c[0].ctrl = SGDMA_STOP;
+    proc->gwbar0->c2h[0].ctrl = SGDMA_STOP;
     if (proc->gwbar0) {
         munmap(proc->gwbar0, BAR0_SIZE);
     }
+    proc->gwbar2->ctrl = BAR2_PCIE_WR_STOP | BAR2_PCIE_RD_STOP | BAR2_LAD_STOP;
     if (proc->gwbar2) {
         munmap(proc->gwbar2, BAR2_SIZE);
     }

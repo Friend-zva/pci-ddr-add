@@ -3,7 +3,7 @@
 #ifndef GOWIN_DESCRIPTOR_H
 #define GOWIN_DESCRIPTOR_H
 
-#define SET_FLAG_EOP (1 << 1)
+#define SET_FLAG_STOP (1 << 0)
 #define SET_FLAG_STOP_EOP ((1 << 0) | (1 << 1))
 #define SET_FLAG_STOP_EOP_COMP ((1 << 0) | (1 << 1) | (1 << 2))
 #define SET_FLAG_NUM_DESC(num_desc) (((uint32_t)(num_desc) & 0x7F) << 8)

@@ -30,8 +30,8 @@ void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
 static int DUMP_INFO = 1;
-static int FILL_INFO = 1;
-static int FILL_FLAG_ALL = 1;
+static int FILL_INFO = 0;
+static int FILL_FLAG_ALL = 0;
 static int FILL_FLAG_LAST = 1;
 
 int main(int argc, char *argv[]) {
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
         sa += length;
     }
 
-    desc_h2c_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
+    desc_h2c_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : SET_FLAG_STOP;
     desc_h2c_p->length = length;
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
     desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
@@ -187,7 +187,6 @@ int main(int argc, char *argv[]) {
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
 
-    __sync_synchronize(); //? try
     gwbar2->ctrl = BAR2_PCIE_WR_START;
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
@@ -202,6 +201,10 @@ int main(int argc, char *argv[]) {
         }
         if (gwbar0->h2c[0].desc_count == num_descs) {
             printf("h2c: count\n");
+            break;
+        }
+        if ((desc_c2h_p - num_desc_adj)->flags & DESC_COMPLETED) {
+            printf("h2c: completed\n");
             break;
         }
         usleep(1);
@@ -262,7 +265,7 @@ int main(int argc, char *argv[]) {
         da += length;
     }
 
-    desc_c2h_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : 0x0;
+    desc_c2h_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : SET_FLAG_STOP;
     desc_c2h_p->length = length;
     desc_c2h_p->addr_src_lo = PP_ADDR_LO(write_back_a);
     desc_c2h_p->addr_src_hi = PP_ADDR_HI(write_back_a);
@@ -280,7 +283,6 @@ int main(int argc, char *argv[]) {
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
 
-    __sync_synchronize(); //? try
     gwbar2->ctrl = BAR2_PCIE_RD_START;
     gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
@@ -295,6 +297,10 @@ int main(int argc, char *argv[]) {
         }
         if (gwbar0->c2h[0].desc_count == num_descs) {
             printf("c2h: count\n");
+            break;
+        }
+        if ((desc_c2h_p - num_desc_adj)->flags & DESC_COMPLETED) {
+            printf("c2h: completed\n");
             break;
         }
     }
