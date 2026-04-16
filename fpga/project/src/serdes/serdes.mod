@@ -1,5 +1,5 @@
 -type SERDES
--path /Users/vladimir/Projects/svg/adder/pci-test/sgdma_version/fpga/project/src/serdes/
+-path /Users/vladimir/Projects/svg/pci-ddr-add/fpga/project/src/serdes/
 -file_type vlg
 -file_name serdes
 -mod_name SerDes_Top
@@ -16,8 +16,6 @@
 -PCIE_Controller_TopReferenceClockSource Q0REFCLK0
 -PCIE_Controller_TopQ0Lane0 true
 -PCIE_Controller_TopQ0Lane1 true
--PCIE_Controller_TopQ0Lane2 true
--PCIE_Controller_TopQ0Lane3 true
 -PCIE_Controller_TopEnableMSI true
--PCIE_Controller_TopLaneWidth X4
+-PCIE_Controller_TopLaneWidth X2
 -PCIE_Controller_TopEnableDRP true
