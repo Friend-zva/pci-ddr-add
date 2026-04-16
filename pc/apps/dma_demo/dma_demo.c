@@ -104,6 +104,7 @@ int main(int argc, char *argv[]) {
     // h2c
 
     volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mem_src;
+    memset((void *)desc_h2c_p, 0, offset_poll);
     uint64_t desc_h2c_a = proc->dma_src;
 
     volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mem_src + offset_poll);
@@ -128,6 +129,7 @@ int main(int argc, char *argv[]) {
     // c2h
 
     volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mem_dst;
+    memset((void *)desc_c2h_p, 0, offset_poll);
     uint64_t desc_c2h_a = proc->dma_dst;
 
     volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mem_dst + offset_poll);
@@ -135,6 +137,7 @@ int main(int argc, char *argv[]) {
     uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
 
     volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_oh_wb);
+    *write_back_p = 0;
     uint64_t write_back_a = proc->dma_dst + offset_oh_wb;
 
     volatile uint8_t *dp = proc->mem_dst + offset_data;
@@ -299,7 +302,7 @@ int main(int argc, char *argv[]) {
                    *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
                    gwbar0->c2h[0].desc_count, (desc_c2h_p - num_desc_adj)->flags,
                    desc_c2h_p->flags);
-            usleep(1);
+            fflush(stdout);
         }
         if (gwbar0->c2h[0].desc_count == (num_descs + 1)) {
             printf("c2h: must be polled\n");
@@ -309,6 +312,7 @@ int main(int argc, char *argv[]) {
             printf("c2h: completed\n");
             break;
         }
+        usleep(1);
     }
     if (DBG_INFO) {
         printf("c2h: write back: 0x%08x\n", *write_back_p);
