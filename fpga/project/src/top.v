@@ -55,7 +55,7 @@ module top (
       .lock(pll_lock),
       .reset(~rst_n)
   );
-  assign ddr_clk = pll_50m_clk;  //? recommend in ip core guide [maybe try]
+  assign ddr_clk = pll_50m_clk;  //? In DDR3 IP User Guide recommended
   assign sys_clk = pll_200m_clk;
   assign memory_clk = pll_400m_clk;
 
@@ -185,6 +185,7 @@ module top (
   wire [255:0] axis_h2c_data_tdata;
   wire         axis_h2c_data_tlast;
   wire [ 31:0] axis_h2c_data_tkeep;
+  wire [ 63:0] h2c_overhead;
   wire         h2c_run;
   // c2h AXI stream data
   wire         axis_c2h_data_tready;
@@ -241,14 +242,14 @@ module top (
       .m_axis_h2c_tdata(axis_h2c_data_tdata),
       .m_axis_h2c_tlast(axis_h2c_data_tlast),
       .m_axis_h2c_tkeep(axis_h2c_data_tkeep),
-      .h2c_overhead(),
+      .h2c_overhead(h2c_overhead),
       .s_axis_c2h_tready(axis_c2h_data_tready),
       .s_axis_c2h_tvalid(axis_c2h_data_tvalid),
       .s_axis_c2h_tlast(axis_c2h_data_tlast),
       .s_axis_c2h_tdata(axis_c2h_data_tdata),
       .s_axis_c2h_tkeep(axis_c2h_data_tkeep),
-      .c2h_overhead_valid(1'b0),
-      .c2h_overhead_data(64'd0),
+      .c2h_overhead_valid(1'b1),
+      .c2h_overhead_data(64'h76543210),
       .user_cs(user_cs),
       .user_address(user_address),
       .user_rw(user_rw),
@@ -260,6 +261,28 @@ module top (
       .h2c_run(h2c_run),
       .c2h_run(c2h_run)
   );
+
+  reg [63:0] h2c_overhead_reg;
+
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      h2c_overhead_reg <= 64'd0;
+    end else begin
+      if (axis_h2c_data_tvalid) begin
+        h2c_overhead_reg <= h2c_overhead;
+      end
+    end
+  end
+
+  wire [31:0] pcie_tl_tx_data_debug;
+  wire [31:0] pcie_tl_rx_data_debug;
+  wire [31:0] axis_h2c_data_tdata_debug;
+  wire [31:0] axis_c2h_data_tdata_debug;
+
+  assign pcie_tl_tx_data_debug = pcie_tl_tx_data[31:0];
+  assign pcie_tl_rx_data_debug = pcie_tl_rx_data[31:0];
+  assign axis_h2c_data_tdata_debug = axis_h2c_data_tdata[31:0];
+  assign axis_c2h_data_tdata_debug = axis_c2h_data_tdata[31:0];
 
   /* Logic control BAR2 (Descriptors for DDR3) */
   localparam integer AXIADDRWIDTH = 29;
@@ -300,6 +323,7 @@ module top (
       .m_axis_h2c_desc_len(axis_h2c_desc_len),
       .m_axis_h2c_desc_valid(axis_h2c_desc_valid),
       .m_axis_h2c_desc_ready(axis_h2c_desc_ready),
+      .h2c_overhead_reg(h2c_overhead_reg),
       .m_axis_c2h_desc_addr(axis_c2h_desc_addr),
       .m_axis_c2h_desc_len(axis_c2h_desc_len),
       .m_axis_c2h_desc_valid(axis_c2h_desc_valid),
@@ -365,11 +389,10 @@ module top (
       .AXIS_KEEP_WIDTH(32),
       .AXIS_LAST_ENABLE(1),
       .AXIS_ID_ENABLE(0),
-      .AXIS_ID_WIDTH(8),
       .AXIS_DEST_ENABLE(0),
-      .AXIS_DEST_WIDTH(8),
       .AXIS_USER_ENABLE(0),
-      .AXIS_USER_WIDTH(32)
+      .ENABLE_SG(1),
+      .ENABLE_UNALIGNED(0)
   ) u_axi_dma_pcie_sgdma (
       .clk(tlp_clk),
       .rst(tlp_rst),
@@ -553,11 +576,10 @@ module top (
       .AXIS_KEEP_WIDTH(32),
       .AXIS_LAST_ENABLE(1),
       .AXIS_ID_ENABLE(0),
-      .AXIS_ID_WIDTH(8),
       .AXIS_DEST_ENABLE(0),
-      .AXIS_DEST_WIDTH(8),
       .AXIS_USER_ENABLE(0),
-      .AXIS_USER_WIDTH(32)
+      .ENABLE_SG(1),
+      .ENABLE_UNALIGNED(0)
   ) u_axi_pci_dma_logic_adder (
       .clk(tlp_clk),
       .rst(tlp_rst),

@@ -1,0 +1,197 @@
+<?xml version="1" encoding="UTF-8"?>
+<GAO_CONFIG>
+    <Version>3.0</Version>
+    <Mode>Standard</Mode>
+    <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
+        <SignalList>
+            <Signal capture_enable="true">axis_h2c_desc_valid</Signal>
+            <Signal capture_enable="true">axis_h2c_desc_ready</Signal>
+            <Signal capture_enable="true">axis_h2c_data_tlast</Signal>
+            <Bus capture_enable="true" name="axis_h2c_desc_addr[28:0]">
+                <Signal>axis_h2c_desc_addr[28]</Signal>
+                <Signal>axis_h2c_desc_addr[27]</Signal>
+                <Signal>axis_h2c_desc_addr[26]</Signal>
+                <Signal>axis_h2c_desc_addr[25]</Signal>
+                <Signal>axis_h2c_desc_addr[24]</Signal>
+                <Signal>axis_h2c_desc_addr[23]</Signal>
+                <Signal>axis_h2c_desc_addr[22]</Signal>
+                <Signal>axis_h2c_desc_addr[21]</Signal>
+                <Signal>axis_h2c_desc_addr[20]</Signal>
+                <Signal>axis_h2c_desc_addr[19]</Signal>
+                <Signal>axis_h2c_desc_addr[18]</Signal>
+                <Signal>axis_h2c_desc_addr[17]</Signal>
+                <Signal>axis_h2c_desc_addr[16]</Signal>
+                <Signal>axis_h2c_desc_addr[15]</Signal>
+                <Signal>axis_h2c_desc_addr[14]</Signal>
+                <Signal>axis_h2c_desc_addr[13]</Signal>
+                <Signal>axis_h2c_desc_addr[12]</Signal>
+                <Signal>axis_h2c_desc_addr[11]</Signal>
+                <Signal>axis_h2c_desc_addr[10]</Signal>
+                <Signal>axis_h2c_desc_addr[9]</Signal>
+                <Signal>axis_h2c_desc_addr[8]</Signal>
+                <Signal>axis_h2c_desc_addr[7]</Signal>
+                <Signal>axis_h2c_desc_addr[6]</Signal>
+                <Signal>axis_h2c_desc_addr[5]</Signal>
+                <Signal>axis_h2c_desc_addr[4]</Signal>
+                <Signal>axis_h2c_desc_addr[3]</Signal>
+                <Signal>axis_h2c_desc_addr[2]</Signal>
+                <Signal>axis_h2c_desc_addr[1]</Signal>
+                <Signal>axis_h2c_desc_addr[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">axis_h2c_data_tready</Signal>
+            <Signal capture_enable="true">axis_h2c_data_tvalid</Signal>
+            <Bus capture_enable="true" name="axis_h2c_data_tdata_debug[31:0]">
+                <Signal>axis_h2c_data_tdata_debug[31]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[30]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[29]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[28]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[27]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[26]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[25]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[24]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[23]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[22]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[21]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[20]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[19]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[18]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[17]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[16]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[15]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[14]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[13]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[12]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[11]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[10]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[9]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[8]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[7]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[6]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[5]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[4]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[3]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[2]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[1]</Signal>
+                <Signal>axis_h2c_data_tdata_debug[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="h2c_overhead_reg[63:0]">
+                <Signal>h2c_overhead_reg[63]</Signal>
+                <Signal>h2c_overhead_reg[62]</Signal>
+                <Signal>h2c_overhead_reg[61]</Signal>
+                <Signal>h2c_overhead_reg[60]</Signal>
+                <Signal>h2c_overhead_reg[59]</Signal>
+                <Signal>h2c_overhead_reg[58]</Signal>
+                <Signal>h2c_overhead_reg[57]</Signal>
+                <Signal>h2c_overhead_reg[56]</Signal>
+                <Signal>h2c_overhead_reg[55]</Signal>
+                <Signal>h2c_overhead_reg[54]</Signal>
+                <Signal>h2c_overhead_reg[53]</Signal>
+                <Signal>h2c_overhead_reg[52]</Signal>
+                <Signal>h2c_overhead_reg[51]</Signal>
+                <Signal>h2c_overhead_reg[50]</Signal>
+                <Signal>h2c_overhead_reg[49]</Signal>
+                <Signal>h2c_overhead_reg[48]</Signal>
+                <Signal>h2c_overhead_reg[47]</Signal>
+                <Signal>h2c_overhead_reg[46]</Signal>
+                <Signal>h2c_overhead_reg[45]</Signal>
+                <Signal>h2c_overhead_reg[44]</Signal>
+                <Signal>h2c_overhead_reg[43]</Signal>
+                <Signal>h2c_overhead_reg[42]</Signal>
+                <Signal>h2c_overhead_reg[41]</Signal>
+                <Signal>h2c_overhead_reg[40]</Signal>
+                <Signal>h2c_overhead_reg[39]</Signal>
+                <Signal>h2c_overhead_reg[38]</Signal>
+                <Signal>h2c_overhead_reg[37]</Signal>
+                <Signal>h2c_overhead_reg[36]</Signal>
+                <Signal>h2c_overhead_reg[35]</Signal>
+                <Signal>h2c_overhead_reg[34]</Signal>
+                <Signal>h2c_overhead_reg[33]</Signal>
+                <Signal>h2c_overhead_reg[32]</Signal>
+                <Signal>h2c_overhead_reg[31]</Signal>
+                <Signal>h2c_overhead_reg[30]</Signal>
+                <Signal>h2c_overhead_reg[29]</Signal>
+                <Signal>h2c_overhead_reg[28]</Signal>
+                <Signal>h2c_overhead_reg[27]</Signal>
+                <Signal>h2c_overhead_reg[26]</Signal>
+                <Signal>h2c_overhead_reg[25]</Signal>
+                <Signal>h2c_overhead_reg[24]</Signal>
+                <Signal>h2c_overhead_reg[23]</Signal>
+                <Signal>h2c_overhead_reg[22]</Signal>
+                <Signal>h2c_overhead_reg[21]</Signal>
+                <Signal>h2c_overhead_reg[20]</Signal>
+                <Signal>h2c_overhead_reg[19]</Signal>
+                <Signal>h2c_overhead_reg[18]</Signal>
+                <Signal>h2c_overhead_reg[17]</Signal>
+                <Signal>h2c_overhead_reg[16]</Signal>
+                <Signal>h2c_overhead_reg[15]</Signal>
+                <Signal>h2c_overhead_reg[14]</Signal>
+                <Signal>h2c_overhead_reg[13]</Signal>
+                <Signal>h2c_overhead_reg[12]</Signal>
+                <Signal>h2c_overhead_reg[11]</Signal>
+                <Signal>h2c_overhead_reg[10]</Signal>
+                <Signal>h2c_overhead_reg[9]</Signal>
+                <Signal>h2c_overhead_reg[8]</Signal>
+                <Signal>h2c_overhead_reg[7]</Signal>
+                <Signal>h2c_overhead_reg[6]</Signal>
+                <Signal>h2c_overhead_reg[5]</Signal>
+                <Signal>h2c_overhead_reg[4]</Signal>
+                <Signal>h2c_overhead_reg[3]</Signal>
+                <Signal>h2c_overhead_reg[2]</Signal>
+                <Signal>h2c_overhead_reg[1]</Signal>
+                <Signal>h2c_overhead_reg[0]</Signal>
+            </Bus>
+        </SignalList>
+        <Triggers>
+            <Trigger index="0">
+                <SignalList>
+                    <Signal>axis_h2c_desc_valid</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="1">
+                <SignalList>
+                    <Signal>axis_h2c_desc_ready</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="2">
+                <SignalList>
+                    <Signal>axis_h2c_data_tlast</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="3"/>
+            <Trigger index="4"/>
+            <Trigger index="5"/>
+            <Trigger index="6"/>
+            <Trigger index="7"/>
+            <Trigger index="8"/>
+            <Trigger index="9"/>
+            <Trigger index="10"/>
+            <Trigger index="11"/>
+            <Trigger index="12"/>
+            <Trigger index="13"/>
+            <Trigger index="14"/>
+            <Trigger index="15"/>
+        </Triggers>
+        <MatchUnits>
+            <MatchUnit index="0" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="0"/>
+            <MatchUnit index="1" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="1"/>
+            <MatchUnit index="2" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="2"/>
+            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="7" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="8" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="9" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="10" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="11" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="12" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="13" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="14" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+        </MatchUnits>
+        <Expressions type="Static">
+            <Expression>M0|M1|M2</Expression>
+        </Expressions>
+    </AoCore>
+    <GAO_ID>0001100110111110</GAO_ID>
+</GAO_CONFIG>
