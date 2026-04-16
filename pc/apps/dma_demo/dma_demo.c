@@ -30,9 +30,11 @@ void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
 static int DUMP_INFO = 1;
-static int FILL_INFO = 0;
-static int FILL_FLAG_ALL = 0;
-static int FILL_FLAG_LAST = 1;
+
+static int FILL_NEXT = 0;
+static int FILL_FLAG_NUMS = 0;
+static int FLAG_MED = 0; // or SET_FLAG_COMP
+static int FLAG_LAST = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
@@ -109,6 +111,7 @@ int main(int argc, char *argv[]) {
     uint64_t poll_h2c_a = proc->dma_src + offset_poll;
 
     volatile uint32_t *overhead_p = (uint32_t *)(proc->mem_src + offset_oh_wb);
+    *overhead_p = 0x01234567;
     uint64_t overhead_a = proc->dma_src + offset_oh_wb;
 
     volatile uint8_t *sp = proc->mem_src + offset_data;
@@ -154,7 +157,7 @@ int main(int argc, char *argv[]) {
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
         desc_h2c_p->flags =
-            FILL_FLAG_ALL ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
+            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED;
         desc_h2c_p->length = length;
         desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
         desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
@@ -162,19 +165,19 @@ int main(int argc, char *argv[]) {
         desc_h2c_p->addr_dst_hi = 0x0;
 
         uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
-        desc_h2c_p->next_lo = FILL_INFO ? PP_ADDR_LO(desc_next_a) : 0x0;
-        desc_h2c_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
+        desc_h2c_p->next_lo = FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0;
+        desc_h2c_p->next_hi = FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0;
 
         desc_h2c_p += 1;
         sa += length;
     }
 
-    desc_h2c_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : SET_FLAG_STOP;
+    desc_h2c_p->flags = FLAG_LAST;
     desc_h2c_p->length = length;
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
     desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
-    desc_h2c_p->addr_dst_lo = FILL_INFO ? PP_ADDR_LO(overhead_a) : 0x0;
-    desc_h2c_p->addr_dst_hi = FILL_INFO ? PP_ADDR_HI(overhead_a) : 0x0;
+    desc_h2c_p->addr_dst_lo = PP_ADDR_LO(overhead_a);
+    desc_h2c_p->addr_dst_hi = PP_ADDR_HI(overhead_a);
     desc_h2c_p->next_lo = 0x0;
     desc_h2c_p->next_hi = 0x0;
 
@@ -199,15 +202,18 @@ int main(int argc, char *argv[]) {
                    desc_h2c_p->flags);
             fflush(stdout);
         }
-        if (gwbar0->h2c[0].desc_count == num_descs) {
-            printf("h2c: count\n");
+        if (gwbar0->h2c[0].desc_count == (num_descs + 1)) {
+            printf("h2c: must be polled\n");
             break;
         }
-        if ((desc_c2h_p - num_desc_adj)->flags & DESC_COMPLETED) {
+        if (gwbar0->h2c[0].status0 & DESC_COMPLETED) {
             printf("h2c: completed\n");
             break;
         }
         usleep(1);
+    }
+    if (DBG_INFO) {
+        printf("h2c: status & overhead: 0x%08x\n", gwbar2->status);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
@@ -250,7 +256,7 @@ int main(int argc, char *argv[]) {
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
         desc_c2h_p->flags =
-            FILL_FLAG_ALL ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0;
+            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED;
         desc_c2h_p->length = length;
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
@@ -258,14 +264,14 @@ int main(int argc, char *argv[]) {
         desc_c2h_p->addr_dst_hi = PP_ADDR_HI(da);
 
         uint64_t desc_next_a = proc->dma_dst + (i + 1) * SIZE_DESC;
-        desc_c2h_p->next_lo = FILL_INFO ? PP_ADDR_LO(desc_next_a) : 0x0;
-        desc_c2h_p->next_hi = FILL_INFO ? PP_ADDR_HI(desc_next_a) : 0x0;
+        desc_c2h_p->next_lo = FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0;
+        desc_c2h_p->next_hi = FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0;
 
         desc_c2h_p += 1;
         da += length;
     }
 
-    desc_c2h_p->flags = FILL_FLAG_LAST ? SET_FLAG_STOP_EOP_COMP : SET_FLAG_STOP;
+    desc_c2h_p->flags = FLAG_LAST;
     desc_c2h_p->length = length;
     desc_c2h_p->addr_src_lo = PP_ADDR_LO(write_back_a);
     desc_c2h_p->addr_src_hi = PP_ADDR_HI(write_back_a);
@@ -295,14 +301,17 @@ int main(int argc, char *argv[]) {
                    desc_c2h_p->flags);
             usleep(1);
         }
-        if (gwbar0->c2h[0].desc_count == num_descs) {
-            printf("c2h: count\n");
+        if (gwbar0->c2h[0].desc_count == (num_descs + 1)) {
+            printf("c2h: must be polled\n");
             break;
         }
-        if ((desc_c2h_p - num_desc_adj)->flags & DESC_COMPLETED) {
+        if (gwbar0->c2h[0].status0 & DESC_COMPLETED) {
             printf("c2h: completed\n");
             break;
         }
+    }
+    if (DBG_INFO) {
+        printf("c2h: write back: 0x%08x\n", *write_back_p);
     }
     if (timeout_c2h <= 0) {
         printf("c2h: timeout\n");

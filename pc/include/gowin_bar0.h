@@ -11,7 +11,7 @@
 #define SGDMA_STOP (0x0000)
 #define SGDMA_START ((1 << 0))
 #define SGDMA_START_POLL ((1 << 0) | (1 << 1))
-#define SGDMA_START_POLL_DUPL ((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3))
+#define SGDMA_START_POLL_DUPL ((1 << 0) | (1 << 1) | (1 << 2))
 #define SGDMA_DONE (1 << 2)
 
 typedef struct __attribute__((packed, aligned(32))) {
