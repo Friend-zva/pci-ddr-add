@@ -3,7 +3,7 @@
 #include "../../include/gowin_bar0.h"
 #include "../../include/gowin_bar2.h"
 
-#define DMA_SIZE (1024 * 16) //! 16 for pretty printing
+#define DMA_SIZE (1024 * 4) //! 16 for pretty printing
 
 typedef struct process {
     uint64_t dma_src;

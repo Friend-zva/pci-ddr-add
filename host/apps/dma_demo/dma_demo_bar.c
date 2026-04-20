@@ -147,82 +147,26 @@ int main(int argc, char *argv[]) {
         printf("*** Init: %i descriptors ***\n", num_descs);
     }
 
-    if (DBG_INFO) {
-        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
-               gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
-               desc_h2c_p[num_desc_adj].flags);
-        fflush(stdout);
-    }
-
-    // ====================
-    // Host PC -> FPGA DDR3
-    // ====================
-    for (int i = 0; i < num_desc_adj; i++) {
-        desc_h2c_p->flags =
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED;
-        desc_h2c_p->length = length;
-        desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
-        desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
-        desc_h2c_p->addr_dst_lo = 0x0;
-        desc_h2c_p->addr_dst_hi = 0x0;
-
-        uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
-        desc_h2c_p->next_lo = FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0;
-        desc_h2c_p->next_hi = FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0;
-
-        desc_h2c_p += 1;
-        sa += length;
-    }
-
-    desc_h2c_p->flags = FLAG_LAST;
-    desc_h2c_p->length = length;
-    desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
-    desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
-    desc_h2c_p->addr_dst_lo = PP_ADDR_LO(overhead_a);
-    desc_h2c_p->addr_dst_hi = PP_ADDR_HI(overhead_a);
-    desc_h2c_p->next_lo = 0x0;
-    desc_h2c_p->next_hi = 0x0;
-
-    gwbar0->h2c[0].addr_desc_lo = PP_ADDR_LO(desc_h2c_a);
-    gwbar0->h2c[0].addr_desc_hi = PP_ADDR_HI(desc_h2c_a);
-    gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
-    gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
-    gwbar0->h2c[0].num_desc_adj = num_desc_adj;
-
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
 
     gwbar2->ctrl = BAR2_PCIE_WR_START;
-    gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     int timeout_h2c = TIMEOUT_POLL;
-    while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
-        if (DBG_INFO) {
-            printf("Status: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-                   *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
-                   gwbar0->h2c[0].desc_count, (desc_h2c_p - num_desc_adj)->flags,
-                   desc_h2c_p->flags);
-            fflush(stdout);
-        }
-        if (gwbar0->h2c[0].desc_count == (num_descs + 1)) {
-            printf("h2c: must be polled\n");
-            break;
-        }
-        if (gwbar0->h2c[0].status0 & DESC_COMPLETED) {
+    while (--timeout_h2c > 0 && !flag_exit) {
+        if ((gwbar2->status & BAR2_H2C_OVERHEAD) & 0b1) {
             printf("h2c: completed\n");
             break;
         }
+        if (DBG_INFO) {
+            printf("h2c: status & overhead: 0x%08x\n", gwbar2->status);
+        }
         usleep(1);
-    }
-    if (DBG_INFO) {
-        printf("h2c: status & overhead: 0x%08x\n", gwbar2->status);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
     }
 
-    gwbar0->h2c[0].ctrl = SGDMA_STOP;
     gwbar2->ctrl = BAR2_PCIE_WR_STOP;
 
     if (flag_exit) {
