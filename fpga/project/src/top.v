@@ -1,3 +1,5 @@
+// `define EN_GEN_H2C
+
 module top (
     input sys_clk_p,
     input pcie_rstn,
@@ -204,7 +206,7 @@ module top (
   wire         user_rd_valid;
   wire [ 31:0] user_rd_data;
 
-  Pcie_Sgdma_Top u_pcie_sgdma (
+  Pcie_Sgdma_Top #() u_pcie_sgdma (
       .pcie_rstn(rst_n),
       .clk(tlp_clk),
       .pcie_tl_rx_sop(pcie_tl_rx_sop),
@@ -237,11 +239,19 @@ module top (
       .pcie_ltssm(pcie_ltssm),
       .pcie_linkup(pcie_linkup),
       .pcie_tl_cfg_busdev(pcie_tl_cfg_busdev),
+`ifdef EN_GEN_H2C
+      .m_axis_h2c_tready(1'b1),
+      .m_axis_h2c_tvalid(),
+      .m_axis_h2c_tdata(),
+      .m_axis_h2c_tlast(),
+      .m_axis_h2c_tkeep(),
+`else
       .m_axis_h2c_tready(axis_h2c_data_tready),
       .m_axis_h2c_tvalid(axis_h2c_data_tvalid),
       .m_axis_h2c_tdata(axis_h2c_data_tdata),
       .m_axis_h2c_tlast(axis_h2c_data_tlast),
       .m_axis_h2c_tkeep(axis_h2c_data_tkeep),
+`endif
       .h2c_overhead(h2c_overhead),
       .s_axis_c2h_tready(axis_c2h_data_tready),
       .s_axis_c2h_tvalid(axis_c2h_data_tvalid),
@@ -268,11 +278,61 @@ module top (
     if (!rst_n) begin
       h2c_overhead_reg <= 64'd0;
     end else begin
+`ifdef EN_GEN_H2C
+      if (axis_h2c_gen_tvalid) begin
+`else
       if (axis_h2c_data_tvalid) begin
+`endif
         h2c_overhead_reg <= h2c_overhead;
       end
     end
   end
+
+  wire [AXILENWIDTH-1:0] lad_cfg_len;  //? Temporary
+  wire axis_h2c_gen_done;  //? Temporary
+`ifdef EN_GEN_H2C
+  reg          axis_h2c_gen_start;
+  wire         axis_h2c_gen_busy;
+  wire         axis_h2c_gen_tready;
+  wire         axis_h2c_gen_tvalid;
+  wire [255:0] axis_h2c_gen_tdata;
+  wire [ 31:0] axis_h2c_gen_tkeep;
+  wire         axis_h2c_gen_tlast;
+
+  wire [ 31:0] axis_h2c_gen_data_tdata_debug;
+  assign axis_h2c_gen_data_tdata_debug = axis_h2c_gen_tdata[31:0];
+
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      axis_h2c_gen_start <= 1'b0;
+    end else begin
+      if (axis_h2c_desc_valid && axis_h2c_desc_ready) begin
+        axis_h2c_gen_start <= 1'b1;
+      end
+
+      if (axis_h2c_gen_done) begin
+        axis_h2c_gen_start <= 1'b0;
+      end
+    end
+  end
+
+  gen_h2c #(
+      .DATA_WIDTH(256),
+      .LEN_WIDTH (AXILENWIDTH)
+  ) u_gen_h2c (
+      .clk(tlp_clk),
+      .rstn(tlp_rst_n),
+      .start(axis_h2c_gen_start),
+      .cfg_len(lad_cfg_len),
+      .busy(axis_h2c_gen_busy),
+      .done(axis_h2c_gen_done),
+      .m_axis_tdata(axis_h2c_gen_tdata),
+      .m_axis_tkeep(axis_h2c_gen_tkeep),
+      .m_axis_tvalid(axis_h2c_gen_tvalid),
+      .m_axis_tready(axis_h2c_gen_tready),
+      .m_axis_tlast(axis_h2c_gen_tlast)
+  );
+`endif
 
   wire [31:0] pcie_tl_tx_data_debug;
   wire [31:0] pcie_tl_rx_data_debug;
@@ -281,7 +341,12 @@ module top (
 
   assign pcie_tl_tx_data_debug = pcie_tl_tx_data[31:0];
   assign pcie_tl_rx_data_debug = pcie_tl_rx_data[31:0];
+
+`ifdef EN_GEN_H2C
+  assign axis_h2c_data_tdata_debug = axis_h2c_gen_tdata[31:0];
+`else
   assign axis_h2c_data_tdata_debug = axis_h2c_data_tdata[31:0];
+`endif
   assign axis_c2h_data_tdata_debug = axis_c2h_data_tdata[31:0];
 
   /* Logic control BAR2 (Descriptors for DDR3) */
@@ -300,7 +365,7 @@ module top (
   // Logic Adder config
   wire [AXIADDRWIDTH-1:0] lad_cfg_read_addr;
   wire [AXIADDRWIDTH-1:0] lad_cfg_write_addr;
-  wire [ AXILENWIDTH-1:0] lad_cfg_len;
+  // wire [ AXILENWIDTH-1:0] lad_cfg_len;
   wire                    lad_run;
   wire                    lad_busy;
   wire                    lad_done;
@@ -333,7 +398,8 @@ module top (
       .lad_len(lad_cfg_len),
       .lad_run(lad_run),
       .lad_busy(lad_busy),
-      .lad_done(lad_done)
+      .lad_done(lad_done),
+      .axis_h2c_gen_done(axis_h2c_gen_done)
   );
 
   /* AXI DMA */
@@ -383,7 +449,7 @@ module top (
       .AXI_STRB_WIDTH(AXISTRBWIDTH),
       .AXI_ID_WIDTH(AXIIDWIDTH),
       .LEN_WIDTH(AXILENWIDTH),
-      .AXI_MAX_BURST_LEN(16),
+      .AXI_MAX_BURST_LEN(256),
       .AXIS_DATA_WIDTH(256),
       .AXIS_KEEP_ENABLE(1),
       .AXIS_KEEP_WIDTH(32),
@@ -414,11 +480,19 @@ module top (
       .s_axis_write_desc_tag(8'd0),
       .s_axis_write_desc_valid(axis_h2c_desc_valid),
       .s_axis_write_desc_ready(axis_h2c_desc_ready),
+`ifdef EN_GEN_H2C
+      .s_axis_write_data_tdata(axis_h2c_gen_tdata),
+      .s_axis_write_data_tkeep(axis_h2c_gen_tkeep),
+      .s_axis_write_data_tvalid(axis_h2c_gen_tvalid),
+      .s_axis_write_data_tready(axis_h2c_gen_tready),
+      .s_axis_write_data_tlast(axis_h2c_gen_tlast),
+`else
       .s_axis_write_data_tdata(axis_h2c_data_tdata),
       .s_axis_write_data_tkeep(axis_h2c_data_tkeep),
       .s_axis_write_data_tvalid(axis_h2c_data_tvalid),
       .s_axis_write_data_tready(axis_h2c_data_tready),
       .s_axis_write_data_tlast(axis_h2c_data_tlast),
+`endif
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
       .m_axi_awid(axi_pci_dma_awid),
@@ -570,7 +644,7 @@ module top (
       .AXI_STRB_WIDTH(AXISTRBWIDTH),
       .AXI_ID_WIDTH(AXIIDWIDTH),
       .LEN_WIDTH(AXILENWIDTH),
-      .AXI_MAX_BURST_LEN(16),
+      .AXI_MAX_BURST_LEN(256),
       .AXIS_DATA_WIDTH(256),
       .AXIS_KEEP_ENABLE(1),
       .AXIS_KEEP_WIDTH(32),

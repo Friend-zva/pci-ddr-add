@@ -74,7 +74,45 @@
                 <Signal>axis_h2c_data_tdata_debug[1]</Signal>
                 <Signal>axis_h2c_data_tdata_debug[0]</Signal>
             </Bus>
-            <Bus capture_enable="true" name="h2c_overhead_reg[63:0]">
+            <Bus capture_enable="true" name="axi_pci_dma_awaddr[28:0]">
+                <Signal>axi_pci_dma_awaddr[28]</Signal>
+                <Signal>axi_pci_dma_awaddr[27]</Signal>
+                <Signal>axi_pci_dma_awaddr[26]</Signal>
+                <Signal>axi_pci_dma_awaddr[25]</Signal>
+                <Signal>axi_pci_dma_awaddr[24]</Signal>
+                <Signal>axi_pci_dma_awaddr[23]</Signal>
+                <Signal>axi_pci_dma_awaddr[22]</Signal>
+                <Signal>axi_pci_dma_awaddr[21]</Signal>
+                <Signal>axi_pci_dma_awaddr[20]</Signal>
+                <Signal>axi_pci_dma_awaddr[19]</Signal>
+                <Signal>axi_pci_dma_awaddr[18]</Signal>
+                <Signal>axi_pci_dma_awaddr[17]</Signal>
+                <Signal>axi_pci_dma_awaddr[16]</Signal>
+                <Signal>axi_pci_dma_awaddr[15]</Signal>
+                <Signal>axi_pci_dma_awaddr[14]</Signal>
+                <Signal>axi_pci_dma_awaddr[13]</Signal>
+                <Signal>axi_pci_dma_awaddr[12]</Signal>
+                <Signal>axi_pci_dma_awaddr[11]</Signal>
+                <Signal>axi_pci_dma_awaddr[10]</Signal>
+                <Signal>axi_pci_dma_awaddr[9]</Signal>
+                <Signal>axi_pci_dma_awaddr[8]</Signal>
+                <Signal>axi_pci_dma_awaddr[7]</Signal>
+                <Signal>axi_pci_dma_awaddr[6]</Signal>
+                <Signal>axi_pci_dma_awaddr[5]</Signal>
+                <Signal>axi_pci_dma_awaddr[4]</Signal>
+                <Signal>axi_pci_dma_awaddr[3]</Signal>
+                <Signal>axi_pci_dma_awaddr[2]</Signal>
+                <Signal>axi_pci_dma_awaddr[1]</Signal>
+                <Signal>axi_pci_dma_awaddr[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">axi_pci_dma_wlast</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_awready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_awvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_bvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_bready</Signal>
+            <Bus capture_enable="false" name="h2c_overhead_reg[63:0]">
                 <Signal>h2c_overhead_reg[63]</Signal>
                 <Signal>h2c_overhead_reg[62]</Signal>
                 <Signal>h2c_overhead_reg[61]</Signal>
@@ -193,5 +231,5 @@
             <Expression>M0|M1|M2</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0001100110111110</GAO_ID>
+    <GAO_ID>1001000001011101</GAO_ID>
 </GAO_CONFIG>

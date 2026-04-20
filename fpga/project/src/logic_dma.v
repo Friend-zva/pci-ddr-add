@@ -34,7 +34,9 @@ module logic_dma #(
     output reg [ AXILENWIDTH-1:0] lad_len,
     output reg                    lad_run,
     input                         lad_busy,
-    input                         lad_done
+    input                         lad_done,
+
+    input axis_h2c_gen_done
 );
   //* All lengths in bytes.
 
@@ -163,8 +165,9 @@ module logic_dma #(
             user_rd_data[4] <= lad_run;
             user_rd_data[5] <= lad_busy;
             user_rd_data[6] <= lad_done_latched;
-            user_rd_data[31:7] <= h2c_overhead_reg[24:0];
-            // user_rd_data[31:8] <= 24'd0;
+            user_rd_data[7] <= axis_h2c_gen_done;
+            user_rd_data[31:8] <= h2c_overhead_reg[23:0];
+            // user_rd_data[31:7] <= 24'd0;
           end
 
           RegAddrDDRh2c: user_rd_data <= {{(32 - AXIADDRWIDTH) {1'b0}}, m_axis_h2c_desc_addr};
