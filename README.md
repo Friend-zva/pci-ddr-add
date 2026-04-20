@@ -4,7 +4,7 @@ This project is a demonstration of SerDes, PCIe SGDMA, and DDR3 memory on the Si
 
 ## Main Features
 
-- **PCIe Gen2 x2**: High-speed data transmission.
+- **PCIe Gen3 x4**: High-speed data transmission.
 - **GOWIN PCIe SGDMA IP**: Supports Scatter-Gather DMA (H2C and C2H channels).
 - **DDR3 Memory**: Initialization and testing of onboard memory (2x H5TQ4G63EFR-RDC).
 - **Hardware Adder**: Computational core directly accessing memory via AXI.
