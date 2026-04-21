@@ -288,11 +288,14 @@ module top (
     end
   end
 
-  wire [AXILENWIDTH-1:0] lad_cfg_len;  //? Temporary
-  wire axis_h2c_gen_done;  //? Temporary
+  //? Temporary
+  localparam integer AXILENWIDTH = 20;
+  wire [AXILENWIDTH-1:0] lad_cfg_len;
+  wire axis_h2c_gen_done;
 `ifdef EN_GEN_H2C
   reg          axis_h2c_gen_start;
   wire         axis_h2c_gen_busy;
+  // wire axis_h2c_gen_done;
   wire         axis_h2c_gen_tready;
   wire         axis_h2c_gen_tvalid;
   wire [255:0] axis_h2c_gen_tdata;
@@ -351,7 +354,7 @@ module top (
 
   /* Logic control BAR2 (Descriptors for DDR3) */
   localparam integer AXIADDRWIDTH = 29;
-  localparam integer AXILENWIDTH = 20;
+  // localparam integer AXILENWIDTH = 20;
   // h2c AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
@@ -371,8 +374,8 @@ module top (
   wire                    lad_done;
 
   logic_dma #(
-      .AXIADDRWIDTH(AXIADDRWIDTH),
-      .AXILENWIDTH (AXILENWIDTH)
+      .AXI_ADDR_WIDTH(AXIADDRWIDTH),
+      .AXI_LEN_WIDTH (AXILENWIDTH)
   ) u_logic_dma (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
@@ -406,6 +409,7 @@ module top (
   localparam integer AXIDATAWIDTH = 256;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
   localparam integer AXIIDWIDTH = 4;
+  localparam integer AXIBURSTLEN = 16;
 
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_awid;
   wire [AXIADDRWIDTH-1:0] axi_pci_dma_awaddr;
@@ -449,15 +453,15 @@ module top (
       .AXI_STRB_WIDTH(AXISTRBWIDTH),
       .AXI_ID_WIDTH(AXIIDWIDTH),
       .LEN_WIDTH(AXILENWIDTH),
-      .AXI_MAX_BURST_LEN(256),
-      .AXIS_DATA_WIDTH(256),
+      .AXI_MAX_BURST_LEN(AXIBURSTLEN),
+      .AXIS_DATA_WIDTH(AXIDATAWIDTH),
       .AXIS_KEEP_ENABLE(1),
-      .AXIS_KEEP_WIDTH(32),
+      .AXIS_KEEP_WIDTH(AXISTRBWIDTH),
       .AXIS_LAST_ENABLE(1),
       .AXIS_ID_ENABLE(0),
       .AXIS_DEST_ENABLE(0),
       .AXIS_USER_ENABLE(0),
-      .ENABLE_SG(1),
+      .ENABLE_SG(0),
       .ENABLE_UNALIGNED(0)
   ) u_axi_dma_pcie_sgdma (
       .clk(tlp_clk),
@@ -565,10 +569,10 @@ module top (
   wire [AXISTRBWIDTH-1:0] axis_lad_tx_data_tkeep;
 
   logic_adder #(
-      .AXIADDRWIDTH(AXIADDRWIDTH),
-      .AXILENWIDTH (AXILENWIDTH),
-      .AXIDATAWIDTH(AXIDATAWIDTH),
-      .AXISTRBWIDTH(AXISTRBWIDTH)
+      .AXI_ADDR_WIDTH(AXIADDRWIDTH),
+      .AXI_LEN_WIDTH (AXILENWIDTH),
+      .AXI_DATA_WIDTH(AXIDATAWIDTH),
+      .AXI_STRB_WIDTH(AXISTRBWIDTH)
   ) u_logic_adder (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
@@ -644,15 +648,15 @@ module top (
       .AXI_STRB_WIDTH(AXISTRBWIDTH),
       .AXI_ID_WIDTH(AXIIDWIDTH),
       .LEN_WIDTH(AXILENWIDTH),
-      .AXI_MAX_BURST_LEN(256),
-      .AXIS_DATA_WIDTH(256),
+      .AXI_MAX_BURST_LEN(AXIBURSTLEN),
+      .AXIS_DATA_WIDTH(AXIDATAWIDTH),
       .AXIS_KEEP_ENABLE(1),
-      .AXIS_KEEP_WIDTH(32),
+      .AXIS_KEEP_WIDTH(AXISTRBWIDTH),
       .AXIS_LAST_ENABLE(1),
       .AXIS_ID_ENABLE(0),
       .AXIS_DEST_ENABLE(0),
       .AXIS_USER_ENABLE(0),
-      .ENABLE_SG(1),
+      .ENABLE_SG(0),
       .ENABLE_UNALIGNED(0)
   ) u_axi_pci_dma_logic_adder (
       .clk(tlp_clk),

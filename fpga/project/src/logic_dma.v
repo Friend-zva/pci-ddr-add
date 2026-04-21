@@ -1,6 +1,6 @@
 module logic_dma #(
-    parameter integer AXIADDRWIDTH = 29,
-    parameter integer AXILENWIDTH  = 20
+    parameter integer AXI_ADDR_WIDTH = 29,
+    parameter integer AXI_LEN_WIDTH  = 20
 ) (
     input clk,
     input rstn,
@@ -17,24 +17,24 @@ module logic_dma #(
 
     // Descriptor control for AXI DMA (PCIe Sgdma)
 
-    output reg [AXIADDRWIDTH-1:0] m_axis_h2c_desc_addr,
-    output reg [ AXILENWIDTH-1:0] m_axis_h2c_desc_len,
-    output reg                    m_axis_h2c_desc_valid,
-    input                         m_axis_h2c_desc_ready,
-    input      [          63 : 0] h2c_overhead_reg,
+    output reg [AXI_ADDR_WIDTH-1:0] m_axis_h2c_desc_addr,
+    output reg [ AXI_LEN_WIDTH-1:0] m_axis_h2c_desc_len,
+    output reg                      m_axis_h2c_desc_valid,
+    input                           m_axis_h2c_desc_ready,
+    input      [            63 : 0] h2c_overhead_reg,
 
-    output reg [AXIADDRWIDTH-1:0] m_axis_c2h_desc_addr,
-    output reg [ AXILENWIDTH-1:0] m_axis_c2h_desc_len,
-    output reg                    m_axis_c2h_desc_valid,
-    input                         m_axis_c2h_desc_ready,
+    output reg [AXI_ADDR_WIDTH-1:0] m_axis_c2h_desc_addr,
+    output reg [ AXI_LEN_WIDTH-1:0] m_axis_c2h_desc_len,
+    output reg                      m_axis_c2h_desc_valid,
+    input                           m_axis_c2h_desc_ready,
 
     // Config & run control for Logic Adder
-    output reg [AXIADDRWIDTH-1:0] lad_read_addr,
-    output reg [AXIADDRWIDTH-1:0] lad_write_addr,
-    output reg [ AXILENWIDTH-1:0] lad_len,
-    output reg                    lad_run,
-    input                         lad_busy,
-    input                         lad_done,
+    output reg [AXI_ADDR_WIDTH-1:0] lad_read_addr,
+    output reg [AXI_ADDR_WIDTH-1:0] lad_write_addr,
+    output reg [ AXI_LEN_WIDTH-1:0] lad_len,
+    output reg                      lad_run,
+    input                           lad_busy,
+    input                           lad_done,
 
     input axis_h2c_gen_done
 );
@@ -65,17 +65,17 @@ module logic_dma #(
       user_rd_valid <= 1'b0;
       user_rd_data <= 32'd0;
 
-      m_axis_c2h_desc_addr <= {AXIADDRWIDTH{1'b0}};
-      m_axis_c2h_desc_len <= {AXILENWIDTH{1'b0}};
+      m_axis_c2h_desc_addr <= {AXI_ADDR_WIDTH{1'b0}};
+      m_axis_c2h_desc_len <= {AXI_LEN_WIDTH{1'b0}};
       m_axis_c2h_desc_valid <= 1'b0;
 
-      m_axis_h2c_desc_addr <= {AXIADDRWIDTH{1'b0}};
-      m_axis_h2c_desc_len <= {AXILENWIDTH{1'b0}};
+      m_axis_h2c_desc_addr <= {AXI_ADDR_WIDTH{1'b0}};
+      m_axis_h2c_desc_len <= {AXI_LEN_WIDTH{1'b0}};
       m_axis_h2c_desc_valid <= 1'b0;
 
-      lad_read_addr <= {AXIADDRWIDTH{1'b0}};
-      lad_write_addr <= {AXIADDRWIDTH{1'b0}};
-      lad_len <= {AXILENWIDTH{1'b0}};
+      lad_read_addr <= {AXI_ADDR_WIDTH{1'b0}};
+      lad_write_addr <= {AXI_ADDR_WIDTH{1'b0}};
+      lad_len <= {AXI_LEN_WIDTH{1'b0}};
       lad_run <= 1'b0;
 
       lad_done_latched <= 1'b0;
@@ -125,27 +125,27 @@ module logic_dma #(
           end
 
           RegAddrDDRh2c: begin
-            m_axis_h2c_desc_addr <= user_wr_data[AXIADDRWIDTH-1:0];
+            m_axis_h2c_desc_addr <= user_wr_data[AXI_ADDR_WIDTH-1:0];
           end
           RegLengDDRh2c: begin
-            m_axis_h2c_desc_len <= user_wr_data[AXILENWIDTH-1:0];
+            m_axis_h2c_desc_len <= user_wr_data[AXI_LEN_WIDTH-1:0];
           end
 
           RegAddrDDRc2h: begin
-            m_axis_c2h_desc_addr <= user_wr_data[AXIADDRWIDTH-1:0];
+            m_axis_c2h_desc_addr <= user_wr_data[AXI_ADDR_WIDTH-1:0];
           end
           RegLengDDRc2h: begin
-            m_axis_c2h_desc_len <= user_wr_data[AXILENWIDTH-1:0];
+            m_axis_c2h_desc_len <= user_wr_data[AXI_LEN_WIDTH-1:0];
           end
 
           RegAddrLadRd: begin
-            lad_read_addr <= user_wr_data[AXIADDRWIDTH-1:0];
+            lad_read_addr <= user_wr_data[AXI_ADDR_WIDTH-1:0];
           end
           RegAddrLadWr: begin
-            lad_write_addr <= user_wr_data[AXIADDRWIDTH-1:0];
+            lad_write_addr <= user_wr_data[AXI_ADDR_WIDTH-1:0];
           end
           RegLengLad: begin
-            lad_len <= user_wr_data[AXILENWIDTH-1:0];
+            lad_len <= user_wr_data[AXI_LEN_WIDTH-1:0];
           end
 
           default: begin
@@ -170,15 +170,15 @@ module logic_dma #(
             // user_rd_data[31:7] <= 24'd0;
           end
 
-          RegAddrDDRh2c: user_rd_data <= {{(32 - AXIADDRWIDTH) {1'b0}}, m_axis_h2c_desc_addr};
-          RegLengDDRh2c: user_rd_data <= {{(32 - AXILENWIDTH) {1'b0}}, m_axis_h2c_desc_len};
+          RegAddrDDRh2c: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, m_axis_h2c_desc_addr};
+          RegLengDDRh2c: user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, m_axis_h2c_desc_len};
 
-          RegAddrDDRc2h: user_rd_data <= {{(32 - AXIADDRWIDTH) {1'b0}}, m_axis_c2h_desc_addr};
-          RegLengDDRc2h: user_rd_data <= {{(32 - AXILENWIDTH) {1'b0}}, m_axis_c2h_desc_len};
+          RegAddrDDRc2h: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, m_axis_c2h_desc_addr};
+          RegLengDDRc2h: user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, m_axis_c2h_desc_len};
 
-          RegAddrLadRd: user_rd_data <= {{(32 - AXIADDRWIDTH) {1'b0}}, lad_read_addr};
-          RegAddrLadWr: user_rd_data <= {{(32 - AXIADDRWIDTH) {1'b0}}, lad_write_addr};
-          RegLengLad:   user_rd_data <= {{(32 - AXILENWIDTH) {1'b0}}, lad_len};
+          RegAddrLadRd: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, lad_read_addr};
+          RegAddrLadWr: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, lad_write_addr};
+          RegLengLad:   user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, lad_len};
 
           default: user_rd_data <= 32'd0;
         endcase

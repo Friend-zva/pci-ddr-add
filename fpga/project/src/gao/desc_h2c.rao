@@ -4,9 +4,6 @@
     <Mode>Standard</Mode>
     <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
         <SignalList>
-            <Signal capture_enable="true">axis_h2c_desc_valid</Signal>
-            <Signal capture_enable="true">axis_h2c_desc_ready</Signal>
-            <Signal capture_enable="true">axis_h2c_data_tlast</Signal>
             <Bus capture_enable="true" name="axis_h2c_desc_addr[28:0]">
                 <Signal>axis_h2c_desc_addr[28]</Signal>
                 <Signal>axis_h2c_desc_addr[27]</Signal>
@@ -38,8 +35,8 @@
                 <Signal>axis_h2c_desc_addr[1]</Signal>
                 <Signal>axis_h2c_desc_addr[0]</Signal>
             </Bus>
-            <Signal capture_enable="true">axis_h2c_data_tready</Signal>
-            <Signal capture_enable="true">axis_h2c_data_tvalid</Signal>
+            <Signal capture_enable="true">axis_h2c_desc_valid</Signal>
+            <Signal capture_enable="true">axis_h2c_desc_ready</Signal>
             <Bus capture_enable="true" name="axis_h2c_data_tdata_debug[31:0]">
                 <Signal>axis_h2c_data_tdata_debug[31]</Signal>
                 <Signal>axis_h2c_data_tdata_debug[30]</Signal>
@@ -74,6 +71,10 @@
                 <Signal>axis_h2c_data_tdata_debug[1]</Signal>
                 <Signal>axis_h2c_data_tdata_debug[0]</Signal>
             </Bus>
+            <Signal capture_enable="true">axis_h2c_data_tlast</Signal>
+            <Signal capture_enable="true">axis_h2c_data_tready</Signal>
+            <Signal capture_enable="true">axis_h2c_data_tvalid</Signal>
+            <Signal capture_enable="true">h2c_run</Signal>
             <Bus capture_enable="true" name="axi_pci_dma_awaddr[28:0]">
                 <Signal>axi_pci_dma_awaddr[28]</Signal>
                 <Signal>axi_pci_dma_awaddr[27]</Signal>
@@ -105,13 +106,25 @@
                 <Signal>axi_pci_dma_awaddr[1]</Signal>
                 <Signal>axi_pci_dma_awaddr[0]</Signal>
             </Bus>
-            <Signal capture_enable="true">axi_pci_dma_wlast</Signal>
-            <Signal capture_enable="true">axi_pci_dma_wvalid</Signal>
-            <Signal capture_enable="true">axi_pci_dma_wready</Signal>
             <Signal capture_enable="true">axi_pci_dma_awready</Signal>
             <Signal capture_enable="true">axi_pci_dma_awvalid</Signal>
-            <Signal capture_enable="true">axi_pci_dma_bvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wlast</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wvalid</Signal>
             <Signal capture_enable="true">axi_pci_dma_bready</Signal>
+            <Bus capture_enable="true" name="axi_pci_dma_bresp[1:0]">
+                <Signal>axi_pci_dma_bresp[1]</Signal>
+                <Signal>axi_pci_dma_bresp[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">axi_pci_dma_bvalid</Signal>
+            <Signal capture_enable="true">ddr_init</Signal>
+            <Signal capture_enable="true">axi_ddr_awready</Signal>
+            <Signal capture_enable="true">axi_ddr_awvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_wlast</Signal>
+            <Signal capture_enable="true">axi_ddr_wready</Signal>
+            <Signal capture_enable="true">axi_ddr_wvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_bready</Signal>
+            <Signal capture_enable="true">axi_ddr_bvalid</Signal>
             <Bus capture_enable="false" name="h2c_overhead_reg[63:0]">
                 <Signal>h2c_overhead_reg[63]</Signal>
                 <Signal>h2c_overhead_reg[62]</Signal>
@@ -231,5 +244,5 @@
             <Expression>M0|M1|M2</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>1001000001011101</GAO_ID>
+    <GAO_ID>1101011000110110</GAO_ID>
 </GAO_CONFIG>

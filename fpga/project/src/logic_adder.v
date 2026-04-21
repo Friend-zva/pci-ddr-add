@@ -1,44 +1,44 @@
 module logic_adder #(
-    parameter integer AXIADDRWIDTH = 29,
-    parameter integer AXILENWIDTH = 20,
-    parameter integer AXIDATAWIDTH = 256,
-    parameter integer AXISTRBWIDTH = 32
+    parameter integer AXI_ADDR_WIDTH = 29,
+    parameter integer AXI_LEN_WIDTH  = 20,
+    parameter integer AXI_DATA_WIDTH = 256,
+    parameter integer AXI_STRB_WIDTH = 32
 ) (
     input clk,
     input rstn,
 
     // Config
-    input [AXIADDRWIDTH-1:0] cfg_read_addr,
-    input [AXIADDRWIDTH-1:0] cfg_write_addr,
-    input [ AXILENWIDTH-1:0] cfg_len,
-    input [ 7:0] cfg_desc_tag,
+    input [AXI_ADDR_WIDTH-1:0] cfg_read_addr,
+    input [AXI_ADDR_WIDTH-1:0] cfg_write_addr,
+    input [AXI_LEN_WIDTH-1:0] cfg_len,
+    input [7:0] cfg_desc_tag,
 
     // Descriptors for AXI DMA
 
-    output reg        m_axis_read_desc_valid,
-    input             m_axis_read_desc_ready,
-    output     [AXIADDRWIDTH-1:0] m_axis_read_desc_addr,
-    output     [ AXILENWIDTH-1:0] m_axis_read_desc_len,
-    output     [ 7:0] m_axis_read_desc_tag,
+    output reg                      m_axis_read_desc_valid,
+    input                           m_axis_read_desc_ready,
+    output     [AXI_ADDR_WIDTH-1:0] m_axis_read_desc_addr,
+    output     [ AXI_LEN_WIDTH-1:0] m_axis_read_desc_len,
+    output     [               7:0] m_axis_read_desc_tag,
 
-    output reg        m_axis_write_desc_valid,
-    input             m_axis_write_desc_ready,
-    output     [AXIADDRWIDTH-1:0] m_axis_write_desc_addr,
-    output     [ AXILENWIDTH-1:0] m_axis_write_desc_len,
-    output     [ 7:0] m_axis_write_desc_tag,
+    output reg                      m_axis_write_desc_valid,
+    input                           m_axis_write_desc_ready,
+    output     [AXI_ADDR_WIDTH-1:0] m_axis_write_desc_addr,
+    output     [ AXI_LEN_WIDTH-1:0] m_axis_write_desc_len,
+    output     [               7:0] m_axis_write_desc_tag,
 
     // Receive
-    output         s_axis_rx_tready,
-    input          s_axis_rx_tvalid,
-    input  [AXIDATAWIDTH-1:0] s_axis_rx_tdata,
-    input          s_axis_rx_tlast,
-    input  [AXISTRBWIDTH-1:0] s_axis_rx_tkeep,
+    output                      s_axis_rx_tready,
+    input                       s_axis_rx_tvalid,
+    input  [AXI_DATA_WIDTH-1:0] s_axis_rx_tdata,
+    input                       s_axis_rx_tlast,
+    input  [AXI_STRB_WIDTH-1:0] s_axis_rx_tkeep,
     // Transmit
-    input          m_axis_tx_tready,
-    output         m_axis_tx_tvalid,
-    output         m_axis_tx_tlast,
-    output [AXIDATAWIDTH-1:0] m_axis_tx_tdata,
-    output [AXISTRBWIDTH-1:0] m_axis_tx_tkeep,
+    input                       m_axis_tx_tready,
+    output                      m_axis_tx_tvalid,
+    output                      m_axis_tx_tlast,
+    output [AXI_DATA_WIDTH-1:0] m_axis_tx_tdata,
+    output [AXI_STRB_WIDTH-1:0] m_axis_tx_tkeep,
 
     input      run,
     output reg busy,
@@ -49,7 +49,7 @@ module logic_adder #(
   wire read_desc_fire;
   wire write_desc_fire;
   wire stream_fire;
-  wire [AXIDATAWIDTH-1:0] tx_data_add16;
+  wire [AXI_DATA_WIDTH-1:0] tx_data_add16;
 
   reg read_desc_issued;
   reg write_desc_issued;
@@ -68,7 +68,7 @@ module logic_adder #(
 
   genvar tx_dw;
   generate
-    for (tx_dw = 0; tx_dw < (AXIDATAWIDTH/32); tx_dw = tx_dw + 1) begin : gen_tx_add16
+    for (tx_dw = 0; tx_dw < (AXI_DATA_WIDTH / 32); tx_dw = tx_dw + 1) begin : gen_tx_add16
       wire [31:0] dword;
       wire [16:0] sum16;
       assign dword = s_axis_rx_tdata[tx_dw*32+:32];
@@ -128,10 +128,10 @@ module logic_adder #(
   end
 
   // Pipeline
-  reg [AXIDATAWIDTH-1:0] pipe_tdata;
+  reg [AXI_DATA_WIDTH-1:0] pipe_tdata;
   reg pipe_tvalid;
   reg pipe_tlast;
-  reg [AXISTRBWIDTH-1:0] pipe_tkeep;
+  reg [AXI_STRB_WIDTH-1:0] pipe_tkeep;
 
   wire pipe_ready = m_axis_tx_tready || !pipe_tvalid;
   wire in_valid = stream_enable && read_desc_issued && write_desc_issued && s_axis_rx_tvalid;
@@ -152,9 +152,9 @@ module logic_adder #(
     end
   end
 
-  assign m_axis_tx_tvalid  = pipe_tvalid;
-  assign m_axis_tx_tdata   = pipe_tdata;
-  assign m_axis_tx_tlast   = pipe_tlast;
-  assign m_axis_tx_tkeep   = pipe_tkeep;
+  assign m_axis_tx_tvalid = pipe_tvalid;
+  assign m_axis_tx_tdata  = pipe_tdata;
+  assign m_axis_tx_tlast  = pipe_tlast;
+  assign m_axis_tx_tkeep  = pipe_tkeep;
 
 endmodule
