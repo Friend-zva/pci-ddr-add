@@ -1,3 +1,7 @@
+// =====================================
+// Without Logic Adder (Simple Loopback)
+// =====================================
+
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
@@ -70,52 +74,54 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    const uint32_t size_data = 1024;
-    const uint32_t size_dump = 32;
-    if (size_data + 64 > DMA_SIZE) {
-        printf("DMA_SIZE too small for size_data=%u\n", size_data);
+    uint32_t cnt_dword = 128;
+    uint32_t length = cnt_dword * 4;
+
+    int size_data = length; //?  DMA_SIZE / 2
+    int num_descs = size_data / length;
+    int num_desc_adj = num_descs - 1;
+
+    uint32_t offset_safe = 32;
+    uint32_t offset_poll = num_descs * SIZE_DESC + offset_safe;
+    uint32_t offset_oh_wb = offset_poll + offset_safe;
+    uint32_t offset_data = offset_oh_wb + 2 * offset_safe;
+    if (offset_data + size_data > DMA_SIZE) {
+        printf("Failed to distributed dma area\n");
         dest_proc(proc);
         return -1;
     }
 
-    const uint32_t offset_desc = 0;
-    const uint32_t offset_poll = 32;
-    const uint32_t offset_data = 64;
-
     // h2c
 
-    volatile GowinDescriptor *desc_h2c_p =
-        (GowinDescriptor *)(proc->mem_src + offset_desc);
-    uint64_t desc_h2c_a = proc->dma_src + offset_desc;
+    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mem_src;
+    memset((void *)desc_h2c_p, 0, offset_poll);
+    uint64_t desc_h2c_a = proc->dma_src;
 
     volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mem_src + offset_poll);
     *poll_h2c_p = 0;
     uint64_t poll_h2c_a = proc->dma_src + offset_poll;
 
+    volatile uint32_t *overhead_p = (uint32_t *)(proc->mem_src + offset_oh_wb);
+    *overhead_p = 0x01234567;
+    uint64_t overhead_a = proc->dma_src + offset_oh_wb;
+
     volatile uint8_t *sp = proc->mem_src + offset_data;
     uint64_t sa = proc->dma_src + offset_data;
 
-    for (uint32_t i = 0; i < size_data / 2; i++) {
-        *(uint16_t *)(&sp[i * 2]) = (uint16_t)(i & 0xFFFF);
+    for (int i = 0; i < size_data / 2; i++) {
+        *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
 
     if (DUMP_INFO) {
         dump_source(sp);
     }
 
-    if (DBG_INFO) {
-        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
-               gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
-               gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags);
-        fflush(stdout);
-    }
-
-    desc_h2c_p->flags = SET_FLAG_STOP_EOP_COMP;
-    desc_h2c_p->length = size_data;
+    desc_h2c_p->flags = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
+    desc_h2c_p->length = length;
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
     desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
-    desc_h2c_p->addr_dst_lo = 0;
-    desc_h2c_p->addr_dst_hi = 0;
+    desc_h2c_p->addr_dst_lo = PP_ADDR_LO(overhead_a);
+    desc_h2c_p->addr_dst_hi = PP_ADDR_HI(overhead_a);
     desc_h2c_p->next_lo = 0;
     desc_h2c_p->next_hi = 0;
 
@@ -126,7 +132,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].num_desc_adj = 0;
 
     if (DBG_INFO) {
-        printf("Status1: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
+        printf("Status_h2c: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
                gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
                gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags);
         fflush(stdout);
@@ -134,22 +140,29 @@ int main(int argc, char *argv[]) {
 
     // c2h
 
-    volatile GowinDescriptor *desc_c2h_p =
-        (GowinDescriptor *)(proc->mem_dst + offset_desc);
-    uint64_t desc_c2h_a = proc->dma_dst + offset_desc;
+    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mem_dst;
+    memset((void *)desc_c2h_p, 0, offset_poll);
+    uint64_t desc_c2h_a = proc->dma_dst;
 
     volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mem_dst + offset_poll);
     *poll_c2h_p = 0;
     uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
 
+    volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_oh_wb);
+    *write_back_p = 0;
+    uint64_t write_back_a = proc->dma_dst + offset_oh_wb;
+
     volatile uint8_t *dp = proc->mem_dst + offset_data;
     uint64_t da = proc->dma_dst + offset_data;
-    memset((void *)dp, 0, size_data);
 
-    desc_c2h_p->flags = SET_FLAG_STOP_EOP_COMP;
-    desc_c2h_p->length = size_data;
-    desc_c2h_p->addr_src_lo = 0;
-    desc_c2h_p->addr_src_hi = 0;
+    if (DBG_INFO) {
+        printf("*** Init: %i descriptors ***\n", num_descs);
+    }
+
+    desc_c2h_p->flags = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
+    desc_c2h_p->length = length;
+    desc_c2h_p->addr_src_lo = PP_ADDR_LO(write_back_a);
+    desc_c2h_p->addr_src_hi = PP_ADDR_HI(write_back_a);
     desc_c2h_p->addr_dst_lo = PP_ADDR_LO(da);
     desc_c2h_p->addr_dst_hi = PP_ADDR_HI(da);
     desc_c2h_p->next_lo = 0;
@@ -162,7 +175,7 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].num_desc_adj = 0;
 
     if (DBG_INFO) {
-        printf("Status2: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_c2h_p,
+        printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_c2h_p,
                gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
                gwbar0->c2h[0].desc_count, desc_c2h_p[0].flags);
         fflush(stdout);
@@ -187,9 +200,6 @@ int main(int argc, char *argv[]) {
         if (*poll_h2c_p && *poll_c2h_p) {
             break;
         }
-        if (gwbar0->h2c[0].desc_count >= 1 && gwbar0->c2h[0].desc_count >= 1) {
-            break;
-        }
         usleep(1);
     }
     if (timeout <= 0) {
@@ -207,17 +217,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int failed = 0;
-    for (uint32_t i = 0; i < (size_data / 4); i++) {
-        uint32_t d = ((uint32_t *)dp)[i];
-        uint32_t s = ((uint16_t *)sp)[i * 2] + ((uint16_t *)sp)[i * 2 + 1];
-        if (d != s) {
-            printf("*** FAILED *** at dword %u: got=0x%08x exp=0x%08x\n", i, d, s);
-            failed = 1;
-            break;
-        }
-    }
-
     if (DUMP_INFO) {
         dump_destination(dp);
     }
@@ -227,5 +226,5 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    return failed ? 2 : 0;
+    return 0;
 }

@@ -1,3 +1,7 @@
+// ===================================================================
+// Logic Adder & DDR without SGDMA h2c stream (only bar communication)
+// ===================================================================
+
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>

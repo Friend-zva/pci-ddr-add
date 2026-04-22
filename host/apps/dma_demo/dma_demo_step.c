@@ -1,3 +1,7 @@
+// =============================
+// Logic Adder with 1 descriptor
+// =============================
+
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
@@ -110,7 +114,7 @@ int main(int argc, char *argv[]) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
     if (DUMP_INFO) {
-        dump_source((uint8_t *)sp, size_dump);
+        dump_source(sp);
     }
 
     for (int chunk = 0; chunk < loop; chunk++) {
@@ -124,7 +128,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // Host PC -> FPGA DDR3
         // ====================
-        desc_h2c->flags = SET_FLAG_STOP_EOP;
+        desc_h2c->flags = SET_FLAG_STOP | SET_FLAG_EOP;
         desc_h2c->length = length;
         desc_h2c->addr_src_lo = sa & MAXFF;
         desc_h2c->addr_src_hi = (sa >> 32) & MAXFF;
@@ -187,7 +191,7 @@ int main(int argc, char *argv[]) {
         // ====================
         // FPGA DDR3 -> Host PC
         // ====================
-        desc_c2h->flags = SET_FLAG_STOP_EOP;
+        desc_c2h->flags = SET_FLAG_STOP | SET_FLAG_EOP;
         desc_c2h->length = length;
         desc_c2h->addr_dst_lo = da & MAXFF;
         desc_c2h->addr_dst_hi = (da >> 32) & MAXFF;
@@ -244,7 +248,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (DUMP_INFO) {
-            dump_destination((uint8_t *)dp, size_dump);
+            dump_destination(dp);
         }
     }
 
