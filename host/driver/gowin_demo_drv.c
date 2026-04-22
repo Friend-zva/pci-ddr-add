@@ -542,11 +542,15 @@ static int ioctl_debug(struct gowin_bar_data *data, unsigned long arg) {
 
     if (data->mem_select != 0) {
         struct dma_context *ctx = data->dma_ctx;
-        int i = data->cur_dma;
-        char *p = ctx[i].vir;
+        // int i = data->cur_dma;
+        uint32_t *p = ctx[0].vir;
         if (p) {
-            dev_info(&data->pdev->dev, "ioctl_debug: \"%s\"\n", p);
+            printk(KERN_DEBUG "DMA Mem Dump: 0x%08X 0x%08X 0x%08X 0x%08X\n", p[0],
+                   p[1], p[2], p[3]);
         }
+        // if (p) {
+        //     dev_info(&data->pdev->dev, "ioctl_debug: \"%s\"\n", p);
+        // }
     }
     return 0;
 }

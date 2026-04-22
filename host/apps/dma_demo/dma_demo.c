@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     uint32_t addr_ddr_h2c = 0x1000;
     uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
 
-    uint32_t cnt_dword = 128;
+    uint32_t cnt_dword = 64;
     uint32_t length = cnt_dword * 4;
 
     int size_data = DMA_SIZE / 2;
@@ -93,8 +93,8 @@ int main(int argc, char *argv[]) {
 
     uint32_t offset_safe = 32;
     uint32_t offset_poll = num_descs * SIZE_DESC + offset_safe;
-    uint32_t offset_oh_wb = offset_poll + offset_safe;
-    uint32_t offset_data = offset_oh_wb + 2 * offset_safe;
+    uint32_t offset_wb = offset_poll + offset_safe;
+    uint32_t offset_data = offset_wb + 2 * offset_safe;
     if (offset_data + size_data > DMA_SIZE) {
         printf("Failed to distributed dma area\n");
         dest_proc(proc);
@@ -110,10 +110,6 @@ int main(int argc, char *argv[]) {
     volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mem_src + offset_poll);
     *poll_h2c_p = 0;
     uint64_t poll_h2c_a = proc->dma_src + offset_poll;
-
-    volatile uint32_t *overhead_p = (uint32_t *)(proc->mem_src + offset_oh_wb);
-    *overhead_p = 0x01234567;
-    uint64_t overhead_a = proc->dma_src + offset_oh_wb;
 
     volatile uint8_t *sp = proc->mem_src + offset_data;
     uint64_t sa = proc->dma_src + offset_data;
@@ -136,9 +132,9 @@ int main(int argc, char *argv[]) {
     *poll_c2h_p = 0;
     uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
 
-    volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_oh_wb);
+    volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_wb);
     *write_back_p = 0;
-    uint64_t write_back_a = proc->dma_dst + offset_oh_wb;
+    uint64_t write_back_a = proc->dma_dst + offset_wb;
 
     volatile uint8_t *dp = proc->mem_dst + offset_data;
     uint64_t da = proc->dma_dst + offset_data;
@@ -179,8 +175,8 @@ int main(int argc, char *argv[]) {
     desc_h2c_p->length = length;
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
     desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
-    desc_h2c_p->addr_dst_lo = PP_ADDR_LO(overhead_a);
-    desc_h2c_p->addr_dst_hi = PP_ADDR_HI(overhead_a);
+    desc_h2c_p->addr_dst_lo = 0x01234567;
+    desc_h2c_p->addr_dst_hi = 0x0;
     desc_h2c_p->next_lo = 0x0;
     desc_h2c_p->next_hi = 0x0;
 
@@ -189,12 +185,16 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
+    gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
+
+    if (ioctl(proc->fd, GOWIN_DEBUG_ONLY, &param)) {
+        fprintf(stderr, "ioctl: %s\n", strerror(errno));
+        dest_proc(proc);
+    }
 
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
-
     gwbar2->ctrl = BAR2_PCIE_WR_START;
-    gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     int timeout_h2c = TIMEOUT_POLL;
     while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
