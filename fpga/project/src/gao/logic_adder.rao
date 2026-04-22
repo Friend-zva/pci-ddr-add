@@ -1,0 +1,115 @@
+<?xml version="1" encoding="UTF-8"?>
+<GAO_CONFIG>
+    <Version>3.0</Version>
+    <Mode>Standard</Mode>
+    <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
+        <SignalList>
+            <Bus capture_enable="true" name="lad_cfg_len[19:0]">
+                <Signal>lad_cfg_len[19]</Signal>
+                <Signal>lad_cfg_len[18]</Signal>
+                <Signal>lad_cfg_len[17]</Signal>
+                <Signal>lad_cfg_len[16]</Signal>
+                <Signal>lad_cfg_len[15]</Signal>
+                <Signal>lad_cfg_len[14]</Signal>
+                <Signal>lad_cfg_len[13]</Signal>
+                <Signal>lad_cfg_len[12]</Signal>
+                <Signal>lad_cfg_len[11]</Signal>
+                <Signal>lad_cfg_len[10]</Signal>
+                <Signal>lad_cfg_len[9]</Signal>
+                <Signal>lad_cfg_len[8]</Signal>
+                <Signal>lad_cfg_len[7]</Signal>
+                <Signal>lad_cfg_len[6]</Signal>
+                <Signal>lad_cfg_len[5]</Signal>
+                <Signal>lad_cfg_len[4]</Signal>
+                <Signal>lad_cfg_len[3]</Signal>
+                <Signal>lad_cfg_len[2]</Signal>
+                <Signal>lad_cfg_len[1]</Signal>
+                <Signal>lad_cfg_len[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">lad_run</Signal>
+            <Signal capture_enable="true">lad_done</Signal>
+            <Signal capture_enable="true">lad_busy</Signal>
+            <Signal capture_enable="true">axi_lad_dma_awlock</Signal>
+            <Signal capture_enable="true">axi_lad_dma_awvalid</Signal>
+            <Signal capture_enable="true">axi_lad_dma_awready</Signal>
+            <Signal capture_enable="true">axi_lad_dma_wlast</Signal>
+            <Signal capture_enable="true">axi_lad_dma_wvalid</Signal>
+            <Signal capture_enable="true">axi_lad_dma_wready</Signal>
+            <Signal capture_enable="true">axi_lad_dma_bvalid</Signal>
+            <Signal capture_enable="true">axi_lad_dma_bready</Signal>
+            <Signal capture_enable="true">axi_lad_dma_arlock</Signal>
+            <Signal capture_enable="true">axi_lad_dma_arvalid</Signal>
+            <Signal capture_enable="true">axi_lad_dma_arready</Signal>
+            <Signal capture_enable="true">axi_lad_dma_rlast</Signal>
+            <Signal capture_enable="true">axi_lad_dma_rvalid</Signal>
+            <Signal capture_enable="true">axi_lad_dma_rready</Signal>
+            <Signal capture_enable="true">axis_lad_rd_desc_valid</Signal>
+            <Signal capture_enable="true">axis_lad_rd_desc_ready</Signal>
+            <Signal capture_enable="true">axis_lad_wr_desc_valid</Signal>
+            <Signal capture_enable="true">axis_lad_wr_desc_ready</Signal>
+            <Signal capture_enable="true">axis_lad_rx_data_tready</Signal>
+            <Signal capture_enable="true">axis_lad_rx_data_tvalid</Signal>
+            <Signal capture_enable="true">axis_lad_rx_data_tlast</Signal>
+            <Signal capture_enable="true">axis_lad_tx_data_tready</Signal>
+            <Signal capture_enable="true">axis_lad_tx_data_tvalid</Signal>
+            <Signal capture_enable="true">axis_lad_tx_data_tlast</Signal>
+            <Signal capture_enable="true">ddr_init</Signal>
+            <Signal capture_enable="true">axi_ddr_awvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_awready</Signal>
+            <Signal capture_enable="true">axi_ddr_wlast</Signal>
+            <Signal capture_enable="true">axi_ddr_wvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_wready</Signal>
+            <Signal capture_enable="true">axi_ddr_bvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_bready</Signal>
+            <Signal capture_enable="true">axi_ddr_arvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_arready</Signal>
+            <Signal capture_enable="true">axi_ddr_rvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_rready</Signal>
+            <Signal capture_enable="true">axi_ddr_rlast</Signal>
+        </SignalList>
+        <Triggers>
+            <Trigger index="0">
+                <SignalList>
+                    <Signal>lad_run</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="1"/>
+            <Trigger index="2"/>
+            <Trigger index="3"/>
+            <Trigger index="4"/>
+            <Trigger index="5"/>
+            <Trigger index="6"/>
+            <Trigger index="7"/>
+            <Trigger index="8"/>
+            <Trigger index="9"/>
+            <Trigger index="10"/>
+            <Trigger index="11"/>
+            <Trigger index="12"/>
+            <Trigger index="13"/>
+            <Trigger index="14"/>
+            <Trigger index="15"/>
+        </Triggers>
+        <MatchUnits>
+            <MatchUnit index="0" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="0"/>
+            <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="7" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="8" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="9" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="10" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="11" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="12" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="13" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="14" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+        </MatchUnits>
+        <Expressions type="Static">
+            <Expression>M0</Expression>
+        </Expressions>
+    </AoCore>
+    <GAO_ID>0011000010110000</GAO_ID>
+</GAO_CONFIG>

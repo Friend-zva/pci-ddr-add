@@ -108,6 +108,16 @@
             </Bus>
             <Signal capture_enable="true">axi_pci_dma_awready</Signal>
             <Signal capture_enable="true">axi_pci_dma_awvalid</Signal>
+            <Bus capture_enable="true" name="axi_pci_dma_wdata_debug[7:0]">
+                <Signal>axi_pci_dma_wdata_debug[7]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[6]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[5]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[4]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[3]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[2]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[1]</Signal>
+                <Signal>axi_pci_dma_wdata_debug[0]</Signal>
+            </Bus>
             <Signal capture_enable="true">axi_pci_dma_wlast</Signal>
             <Signal capture_enable="true">axi_pci_dma_wready</Signal>
             <Signal capture_enable="true">axi_pci_dma_wvalid</Signal>
@@ -125,6 +135,8 @@
             <Signal capture_enable="true">axi_ddr_wvalid</Signal>
             <Signal capture_enable="true">axi_ddr_bready</Signal>
             <Signal capture_enable="true">axi_ddr_bvalid</Signal>
+            <Signal capture_enable="true">axis_h2c_gen_done</Signal>
+            <Signal capture_enable="true">lad_run</Signal>
             <Bus capture_enable="false" name="h2c_overhead_reg[63:0]">
                 <Signal>h2c_overhead_reg[63]</Signal>
                 <Signal>h2c_overhead_reg[62]</Signal>
@@ -208,8 +220,49 @@
                     <Signal>axis_h2c_data_tlast</Signal>
                 </SignalList>
             </Trigger>
-            <Trigger index="3"/>
-            <Trigger index="4"/>
+            <Trigger index="3">
+                <SignalList>
+                    <Signal>h2c_run</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="4">
+                <SignalList>
+                    <Bus restorename="axis_h2c_data_tdata_debug[31:0]">
+                        <Signal>axis_h2c_data_tdata_debug[31]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[30]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[29]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[28]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[27]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[26]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[25]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[24]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[23]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[22]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[21]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[20]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[19]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[18]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[17]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[16]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[15]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[14]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[13]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[12]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[11]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[10]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[9]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[8]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[7]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[6]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[5]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[4]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[3]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[2]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[1]</Signal>
+                        <Signal>axis_h2c_data_tdata_debug[0]</Signal>
+                    </Bus>
+                </SignalList>
+            </Trigger>
             <Trigger index="5"/>
             <Trigger index="6"/>
             <Trigger index="7"/>
@@ -226,8 +279,8 @@
             <MatchUnit index="0" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="0"/>
             <MatchUnit index="1" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="1"/>
             <MatchUnit index="2" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="2"/>
-            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
-            <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="3" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R" value1="0" trigger="3"/>
+            <MatchUnit index="4" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="000000000000000000000000000000R0" value1="00000000000000000000000000000000" trigger="4"/>
             <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
             <MatchUnit index="7" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
@@ -241,8 +294,8 @@
             <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
         </MatchUnits>
         <Expressions type="Static">
-            <Expression>M0|M1|M2</Expression>
+            <Expression>M0|M1|M2|M3|M4</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>1101011000110110</GAO_ID>
+    <GAO_ID>0011101010111011</GAO_ID>
 </GAO_CONFIG>

@@ -335,6 +335,8 @@ module top (
       .m_axis_tready(axis_h2c_gen_tready),
       .m_axis_tlast(axis_h2c_gen_tlast)
   );
+`else
+  assign axis_h2c_gen_done = 1'b0;
 `endif
 
   wire [31:0] pcie_tl_tx_data_debug;
@@ -409,7 +411,7 @@ module top (
   localparam integer AXIDATAWIDTH = 256;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
   localparam integer AXIIDWIDTH = 4;
-  localparam integer AXIBURSTLEN = 16;
+  localparam integer AXIBURSTLEN = 8;
 
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_awid;
   wire [AXIADDRWIDTH-1:0] axi_pci_dma_awaddr;
@@ -446,6 +448,9 @@ module top (
   wire                    axi_pci_dma_rlast;
   wire                    axi_pci_dma_rvalid;
   wire                    axi_pci_dma_rready;
+
+  wire [7:0] axi_pci_dma_wdata_debug;
+  assign axi_pci_dma_wdata_debug = axi_pci_dma_wdata[7:0];
 
   axi_dma #(
       .AXI_DATA_WIDTH(AXIDATAWIDTH),
