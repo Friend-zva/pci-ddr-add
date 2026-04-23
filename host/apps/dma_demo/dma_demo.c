@@ -183,6 +183,10 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
+    if (DBG_INFO) {
+        debug_dma(proc->fd, 0, 4);
+    }
+
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
     gwbar2->rsv_08[0] = num_desc; //? Temp

@@ -26,17 +26,9 @@
 
 #include "../include/gowin_pcie_bar_drv_uapi.h"
 
-// #ifndef RDMA_CH_NUM
-// #define RDMA_CH_NUM         2
-// #endif
-// #ifndef WDMA_CH_NUM
-// #define WDMA_CH_NUM         2
-// #endif
-
 #define MAX_DMA_CTX_NUM 256
 
 #ifndef PCI_STD_NUM_BARS
-//! DO NOT modify it
 #define PCI_STD_NUM_BARS 6
 #endif
 
@@ -55,8 +47,6 @@ struct dma_context {
 struct gowin_bar_data {
     struct pci_dev *pdev;
     void __iomem *const *iomap;
-    // void   __iomem          *base;
-    // void   __iomem          *bar[PCI_STD_NUM_BARS];
 
     struct cdev gw_cdev;
     dev_t gw_devid;
@@ -73,11 +63,8 @@ struct gowin_bar_data {
     int cur_bar;
     int cur_dma;
 
-    /*! mutex to protect the ioctl */
     struct mutex mutex;
 
-    //! ????
-    // size_t              alignment;
     struct gowin_ioctl_param *test;
 };
 
@@ -370,7 +357,6 @@ static int ioctl_dma_mem_request(struct gowin_bar_data *data, unsigned long arg)
     struct gowin_ioctl_param param;
     struct device *dev;
 
-    // printk(KERN_DEBUG "ioctl_dma_mem_request() 1\n");
     if (WARN_ON(!data || WARN_ON(!data->pdev) || WARN_ON(!arg)))
         return -EINVAL;
     dev = &data->pdev->dev;
@@ -440,7 +426,6 @@ static int ioctl_dma_mem_release(struct gowin_bar_data *data, unsigned long arg)
     struct gowin_ioctl_param param;
     struct device *dev;
 
-    // printk(KERN_DEBUG "ioctl_dma_mem_release() 1\n");
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
         return -EINVAL;
     dev = &data->pdev->dev;
@@ -521,7 +506,6 @@ static int ioctl_switch_bar_mem(struct gowin_bar_data *data, unsigned long arg) 
             return -EINVAL;
 
         data->cur_bar = index;
-        // data->base = data->bar[index];
         data->mem_select = 0;
     }
 
@@ -552,14 +536,14 @@ static int ioctl_debug(struct gowin_bar_data *data, unsigned long arg) {
     size = param.dma_size;
 
     struct dma_context *ctx = data->dma_ctx;
-    uint32_t *p = ctx[id].vir;
-    int count = ((size <= ctx[id].len) ? size : ctx[id].len) / sizeof(uint32_t);
+    u32 *p = ctx[id].vir;
+    int count = ((size <= ctx[id].len) ? size : ctx[id].len) / sizeof(u32);
     if (p) {
         int i;
         for (i = 0; i + 1 < count; i += 2)
-            dev_info(dev, "DMA Dump %i: 0x%08x 0x%08x\n", i, p[i], p[i + 1]);
+            printk(KERN_DEBUG "DMA Dump %i: 0x%08x 0x%08x\n", i, p[i], p[i + 1]);
     } else {
-        dev_info(dev, "ioctl_debug() error.\n");
+        dev_info(dev, "ioctl_debug() failed.\n");
     }
 
     return 0;
@@ -617,9 +601,9 @@ static int gowin_bar_open(struct inode *inode, struct file *filp) {
     struct device *dev;
     struct cdev *cdev = inode->i_cdev;
     struct gowin_bar_data *data = container_of(cdev, struct gowin_bar_data, gw_cdev);
-    if (WARN_ON(!data) || WARN_ON(!data->pdev)) {
+
+    if (WARN_ON(!data) || WARN_ON(!data->pdev))
         return -ENODEV;
-    }
     dev = &data->pdev->dev;
 
     spin_lock_irqsave(&data->lock, flags);
@@ -654,12 +638,8 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
     unsigned long vsize;
     unsigned long psize;
 
-    // printk(KERN_DEBUG "vm_start: 0x%lx; vm_end:0x%lx\n", vma->vm_start,
-    // vma->vm_end); printk(KERN_DEBUG "vm_flags: 0x%lx\n", vma->vm_flags); return 0;
-
-    if (WARN_ON(!data) || WARN_ON(!data->pdev)) {
+    if (WARN_ON(!data) || WARN_ON(!data->pdev))
         return -ENODEV;
-    }
     dev = &data->pdev->dev;
 
     off = vma->vm_pgoff << PAGE_SHIFT;
@@ -674,50 +654,36 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
         }
         /*! BAR physical address*/
         phys = pci_resource_start(data->pdev, data->cur_bar) + off;
-        if (pci_resource_end(data->pdev, data->cur_bar) < phys) {
-            // printk(KERN_DEBUG "DEBUG 1-1\n");
+        if (pci_resource_end(data->pdev, data->cur_bar) < phys)
             return -EINVAL;
-        }
     } else {
-        // printk(KERN_DEBUG "gowin_bar_mmap() DEBUG 2\n");
         vir = data->dma_ctx[data->cur_dma].vir + off;
         phys = (unsigned long)data->dma_ctx[data->cur_dma].phy + off;
         psize = (unsigned long)data->dma_ctx[data->cur_dma].len - off;
     }
 
-    printk(KERN_DEBUG "vma->vm_pgoff:%ld, vsize: %ld, psize:%ld\n", vma->vm_pgoff,
+    printk(KERN_DEBUG "vma->vm_pgoff:%ld, vsize:%ld, psize:%ld\n", vma->vm_pgoff,
            vsize, psize);
     if (vsize > psize || psize <= 0) {
-        dev_err(dev, "gowin_bar_mmap() failed. (maybe dma psize)\n");
+        dev_err(dev, "gowin_bar_mmap() failed.\n");
         return -EINVAL;
     }
 
-    /*!
-     *  page must not be cached as this would result in cache line size
-     *  accesses to the end point
-     */
-    // vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-    /*!
-     * prevent touching the pages (byte access) for swap-in,
-     * and prevent the pages from being swapped out
-     */
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
-    vm_flags_set(vma, VMEM_FLAGS);
-#else
-    vma->vm_flags |= VMEM_FLAGS;
-#endif
-
     if (data->mem_select == 0) {
-        /*! make MMIO accessible to user space */
-        //! TODO
+        /*!
+         * prevent touching the pages (byte access) for swap-in,
+         * and prevent the pages from being swapped out
+         */
+        vm_flags_set(vma, VMEM_FLAGS);
+        /*!
+         *  page must not be cached as this would result in cache line size
+         *  accesses to the end point
+         */
         vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+        /*! make MMIO accessible to user space */
         ret = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
                                  vma->vm_page_prot);
     } else {
-        // set_memory_uc(vir, vsize / PAGE_SIZE);
-        // ret = remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
-        //   vma->vm_page_prot);
         ret = dma_mmap_coherent(dev, vma, data->dma_ctx[data->cur_dma].vir,
                                 data->dma_ctx[data->cur_dma].phy,
                                 data->dma_ctx[data->cur_dma].len);
@@ -806,7 +772,6 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
     /* Reserve BAR regions (bitmask: 1 << BAR0 = 1) */
     err = pcim_iomap_regions(pdev, (1 << 0) | (1 << 2), DRIVER_NAME);
     if (unlikely(err)) {
-        // dev_err(dev, "pcim_iomap_regions_request_all() failed. (%d)\n", err);
         dev_err(dev, "pcim_iomap_regions() failed. (%d)\n", err);
         return err;
     }
@@ -845,11 +810,7 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_unregister_chrdev_region;
     }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
     data->gw_class = class_create(CLASS_NAME);
-#else
-    data->gw_class = class_create(THIS_MODULE, CLASS_NAME);
-#endif
 
     if (IS_ERR(data->gw_class)) {
         dev_err(dev, "class_create() failed.\n");
