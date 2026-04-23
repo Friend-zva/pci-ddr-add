@@ -42,8 +42,11 @@ module logic_dma #(
 
   localparam integer RegCtrl = 8'h00;
   localparam integer RegStatus = 8'h04;
+  localparam integer RegNumDesc = 8'h08;  //? Temp
   localparam integer RegAddrDDRh2c = 8'h10;
   localparam integer RegLengDDRh2c = 8'h14;
+  localparam integer RegOverheadh2cLo = 8'h18;  //? Temp
+  localparam integer RegOverheadh2cHi = 8'h1C;  //? Temp
   localparam integer RegAddrDDRc2h = 8'h20;
   localparam integer RegLengDDRc2h = 8'h24;
   localparam integer RegAddrLadRd = 8'h30;
@@ -51,14 +54,15 @@ module logic_dma #(
   localparam integer RegLengLad = 8'h38;
 
   reg lad_done_latched;
+  reg [7:0] num_desc;
 
   wire wr_en;
   wire rd_en;
-  wire [7:0] reg_addr;
+  wire [7:0] addr_reg;
 
   assign wr_en = user_cs && user_rw;
   assign rd_en = user_cs && !user_rw;
-  assign reg_addr = user_address[7:0];
+  assign addr_reg = user_address[7:0];
 
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
@@ -95,7 +99,7 @@ module logic_dma #(
       end
 
       if (wr_en) begin
-        case (reg_addr)
+        case (addr_reg)
           RegCtrl: begin
             // bit0: start pcie write descriptor
             // bit1: stop  pcie write descriptor
@@ -122,6 +126,10 @@ module logic_dma #(
             if (user_wr_data[5]) begin
               lad_run <= 1'b0;
             end
+          end
+
+          RegNumDesc: begin
+            num_desc <= user_wr_data[7:0];
           end
 
           RegAddrDDRh2c: begin
@@ -155,7 +163,7 @@ module logic_dma #(
 
       if (rd_en) begin
         user_rd_valid <= 1'b1;
-        case (reg_addr)
+        case (addr_reg)
           RegCtrl: user_rd_data <= 32'd0;
           RegStatus: begin
             user_rd_data[0] <= m_axis_c2h_desc_valid;
@@ -166,21 +174,43 @@ module logic_dma #(
             user_rd_data[5] <= lad_busy;
             user_rd_data[6] <= lad_done_latched;
             user_rd_data[7] <= axis_h2c_gen_done;
-            user_rd_data[31:8] <= h2c_overhead_reg[23:0];
-            // user_rd_data[31:7] <= 24'd0;
+            user_rd_data[31:8] <= 23'd0;
           end
 
-          RegAddrDDRh2c: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, m_axis_h2c_desc_addr};
-          RegLengDDRh2c: user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, m_axis_h2c_desc_len};
+          RegAddrDDRh2c: begin
+            user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, m_axis_h2c_desc_addr};
+          end
+          RegLengDDRh2c: begin
+            user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, m_axis_h2c_desc_len};
+          end
 
-          RegAddrDDRc2h: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, m_axis_c2h_desc_addr};
-          RegLengDDRc2h: user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, m_axis_c2h_desc_len};
+          RegOverheadh2cLo: begin
+            user_rd_data <= h2c_overhead_reg[31:0];
+          end
+          RegOverheadh2cHi: begin
+            user_rd_data <= h2c_overhead_reg[63:32];
+          end
 
-          RegAddrLadRd: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, lad_read_addr};
-          RegAddrLadWr: user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, lad_write_addr};
-          RegLengLad:   user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, lad_len};
+          RegAddrDDRc2h: begin
+            user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, m_axis_c2h_desc_addr};
+          end
+          RegLengDDRc2h: begin
+            user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, m_axis_c2h_desc_len};
+          end
 
-          default: user_rd_data <= 32'd0;
+          RegAddrLadRd: begin
+            user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, lad_read_addr};
+          end
+          RegAddrLadWr: begin
+            user_rd_data <= {{(32 - AXI_ADDR_WIDTH) {1'b0}}, lad_write_addr};
+          end
+          RegLengLad: begin
+            user_rd_data <= {{(32 - AXI_LEN_WIDTH) {1'b0}}, lad_len};
+          end
+
+          default: begin
+            user_rd_data <= 32'd0;
+          end
         endcase
       end
     end

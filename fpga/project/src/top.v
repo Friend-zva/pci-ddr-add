@@ -288,7 +288,7 @@ module top (
     end
   end
 
-  //? Temporary
+  //? Temp
   localparam integer AXILENWIDTH = 20;
   wire [AXILENWIDTH-1:0] lad_cfg_len;
   wire axis_h2c_gen_done;
@@ -339,20 +339,31 @@ module top (
   assign axis_h2c_gen_done = 1'b0;
 `endif
 
-  wire [31:0] pcie_tl_tx_data_debug;
-  wire [31:0] pcie_tl_rx_data_debug;
-  wire [31:0] axis_h2c_data_tdata_debug;
-  wire [31:0] axis_c2h_data_tdata_debug;
-
-  assign pcie_tl_tx_data_debug = pcie_tl_tx_data[31:0];
-  assign pcie_tl_rx_data_debug = pcie_tl_rx_data[31:0];
-
+  reg [31:0] axis_h2c_data_tdata_debug;
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      axis_h2c_data_tdata_debug <= 32'd0;
+    end else begin
+      if (axis_h2c_data_tready && axis_h2c_data_tvalid) begin
 `ifdef EN_GEN_H2C
-  assign axis_h2c_data_tdata_debug = axis_h2c_gen_tdata[31:0];
+      axis_h2c_data_tdata_debug <= axis_h2c_gen_tdata[31:0];
 `else
-  assign axis_h2c_data_tdata_debug = axis_h2c_data_tdata[31:0];
+      axis_h2c_data_tdata_debug <= axis_h2c_data_tdata[31:0];
 `endif
-  assign axis_c2h_data_tdata_debug = axis_c2h_data_tdata[31:0];
+      end
+    end
+  end
+
+  reg [31:0] axis_c2h_data_tdata_debug;
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      axis_c2h_data_tdata_debug <= 32'd0;
+    end else begin
+      if (axis_c2h_data_tvalid) begin
+        axis_c2h_data_tdata_debug <= axis_c2h_data_tdata[31:0];
+      end
+    end
+  end
 
   /* Logic control BAR2 (Descriptors for DDR3) */
   localparam integer AXIADDRWIDTH = 29;
@@ -451,6 +462,8 @@ module top (
 
   wire [7:0] axi_pci_dma_wdata_debug;
   assign axi_pci_dma_wdata_debug = axi_pci_dma_wdata[7:0];
+  wire [7:0] axi_pci_dma_rdata_debug;
+  assign axi_pci_dma_rdata_debug = axi_pci_dma_rdata[7:0];
 
   axi_dma #(
       .AXI_DATA_WIDTH(AXIDATAWIDTH),
@@ -609,6 +622,17 @@ module top (
       .busy(lad_busy),
       .done(lad_done)
   );
+
+  reg [31:0] axis_lad_tx_data_tdata_debug;
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      axis_lad_tx_data_tdata_debug <= 32'd0;
+    end else begin
+      if (axis_lad_tx_data_tvalid) begin
+        axis_lad_tx_data_tdata_debug <= axis_lad_tx_data_tdata[31:0];
+      end
+    end
+  end
 
   /* AXI DMA */
   wire [  AXIIDWIDTH-1:0] axi_lad_dma_awid;
@@ -830,6 +854,20 @@ module top (
       .IO_ddr_dqs(ddr_dqs),
       .IO_ddr_dqs_n(ddr_dqs_n)
   );
+
+  reg [31:0] axi_ddr_wdata_debug;
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      axi_ddr_wdata_debug <= 32'd0;
+    end else begin
+      if (axi_ddr_wvalid) begin
+        axi_ddr_wdata_debug <= axi_ddr_wdata[31:0];
+      end
+    end
+  end
+
+  wire [15:0] axi_ddr_wdata_debug2;
+  assign axi_ddr_wdata_debug2 = axi_ddr_wdata[31:0];
 
   // ================
   // AXI Interconnect

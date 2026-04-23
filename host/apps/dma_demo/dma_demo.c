@@ -87,11 +87,11 @@ int main(int argc, char *argv[]) {
     uint32_t length = cnt_dword * 4;
 
     int size_data = DMA_SIZE / 2;
-    int num_descs = size_data / length;
-    int num_desc_adj = num_descs - 1;
+    int num_desc = size_data / length;
+    int num_desc_adj = num_desc - 1;
 
     uint32_t offset_safe = 32;
-    uint32_t offset_poll = num_descs * SIZE_DESC + offset_safe;
+    uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
     uint32_t offset_wb = offset_poll + offset_safe;
     uint32_t offset_data = offset_wb + 2 * offset_safe;
     if (offset_data + size_data > DMA_SIZE) {
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
     uint64_t da = proc->dma_dst + offset_data;
 
     if (DBG_INFO) {
-        printf("*** Init: %i descriptors ***\n", num_descs);
+        printf("*** Init: %i descriptors ***\n", num_desc);
     }
 
     if (DBG_INFO) {
@@ -185,6 +185,7 @@ int main(int argc, char *argv[]) {
 
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
+    gwbar2->rsv_08[0] = num_desc; //? Temp
     gwbar2->ctrl = BAR2_PCIE_WR_START;
 
     int timeout_h2c = TIMEOUT_POLL;
@@ -196,7 +197,7 @@ int main(int argc, char *argv[]) {
                    desc_h2c_p->flags);
             fflush(stdout);
         }
-        if (gwbar0->h2c[0].desc_count == (num_descs + 1)) {
+        if (gwbar0->h2c[0].desc_count == (num_desc + 1)) {
             printf("h2c: must be polled\n");
             break;
         }
@@ -207,7 +208,8 @@ int main(int argc, char *argv[]) {
         usleep(1);
     }
     if (DBG_INFO) {
-        printf("h2c: status & overhead: 0x%08x\n", gwbar2->status);
+        printf("h2c: status: 0x%08x, overhead: %08x%08x\n", gwbar2->status,
+               gwbar2->rsv_18[1], gwbar2->rsv_18[0]);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
@@ -296,7 +298,7 @@ int main(int argc, char *argv[]) {
                    desc_c2h_p->flags);
             fflush(stdout);
         }
-        if (gwbar0->c2h[0].desc_count == (num_descs + 1)) {
+        if (gwbar0->c2h[0].desc_count == (num_desc + 1)) {
             printf("c2h: must be polled\n");
             break;
         }

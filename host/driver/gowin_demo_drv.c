@@ -696,7 +696,7 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
      *  page must not be cached as this would result in cache line size
      *  accesses to the end point
      */
-    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+    // vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
     /*!
      * prevent touching the pages (byte access) for swap-in,
      * and prevent the pages from being swapped out
@@ -711,6 +711,7 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
     if (data->mem_select == 0) {
         /*! make MMIO accessible to user space */
         //! TODO
+        vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
         ret = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
                                  vma->vm_page_prot);
     } else {
