@@ -29,7 +29,6 @@ static volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
-static int DUMP_INFO = 1;
 
 static int FILL_NEXT = 0;
 static int FILL_FLAG_NUMS = 0;
@@ -117,10 +116,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < size_data / 2; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
-
-    if (DUMP_INFO) {
-        dump_source(sp);
-    }
+    dump_source(sa, sp);
 
     // c2h
 
@@ -144,8 +140,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (DBG_INFO) {
-        printf("Status0: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", *poll_h2c_p,
-               gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
+        printf("Status_ini: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+               *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
                gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
                desc_h2c_p[num_desc_adj].flags);
         fflush(stdout);
@@ -176,7 +172,7 @@ int main(int argc, char *argv[]) {
     desc_h2c_p->addr_src_lo = PP_ADDR_LO(sa);
     desc_h2c_p->addr_src_hi = PP_ADDR_HI(sa);
     desc_h2c_p->addr_dst_lo = 0x01234567;
-    desc_h2c_p->addr_dst_hi = 0x0;
+    desc_h2c_p->addr_dst_hi = 0x89ABCDEF;
     desc_h2c_p->next_lo = 0x0;
     desc_h2c_p->next_hi = 0x0;
 
@@ -187,11 +183,6 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
-    if (ioctl(proc->fd, GOWIN_DEBUG_ONLY, &param)) {
-        fprintf(stderr, "ioctl: %s\n", strerror(errno));
-        dest_proc(proc);
-    }
-
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
     gwbar2->ctrl = BAR2_PCIE_WR_START;
@@ -199,7 +190,7 @@ int main(int argc, char *argv[]) {
     int timeout_h2c = TIMEOUT_POLL;
     while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
         if (DBG_INFO) {
-            printf("Status: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+            printf("Status_h2c: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
                    gwbar0->h2c[0].desc_count, (desc_h2c_p - num_desc_adj)->flags,
                    desc_h2c_p->flags);
@@ -236,12 +227,14 @@ int main(int argc, char *argv[]) {
     gwbar2->addr_lad_rd = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->addr_lad_wr = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_lad = size_data;
-
     gwbar2->ctrl = BAR2_LAD_START;
 
     int timeout_lad = TIMEOUT_POLL;
     while (!(gwbar2->status & BAR2_LAD_DONE) && --timeout_lad > 0 && !flag_exit) {
         usleep(1);
+    }
+    if (DBG_INFO) {
+        printf("lad: status: 0x%08x\n", gwbar2->status);
     }
     if (timeout_lad <= 0) {
         printf("lad: timeout\n");
@@ -288,17 +281,16 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
     gwbar0->c2h[0].num_desc_adj = num_desc_adj;
+    gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
-
     gwbar2->ctrl = BAR2_PCIE_RD_START;
-    gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
     int timeout_c2h = TIMEOUT_POLL;
     while (!(*poll_c2h_p) && --timeout_c2h > 0 && !flag_exit) {
         if (DBG_INFO) {
-            printf("Status: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+            printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
                    gwbar0->c2h[0].desc_count, (desc_c2h_p - num_desc_adj)->flags,
                    desc_c2h_p->flags);
@@ -337,15 +329,8 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
-
-    if (DUMP_INFO) {
-        dump_destination(dp);
-    }
+    dump_destination(da, dp);
 
     dest_proc(proc);
-    if (flag_exit) {
-        return 1;
-    }
-
     return 0;
 }

@@ -537,21 +537,31 @@ static int ioctl_switch_bar_mem(struct gowin_bar_data *data, unsigned long arg) 
  * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_debug(struct gowin_bar_data *data, unsigned long arg) {
-    if (WARN_ON(!data))
-        return -EINVAL;
+    int id, size;
+    struct gowin_ioctl_param param;
+    struct device *dev;
 
-    if (data->mem_select != 0) {
-        struct dma_context *ctx = data->dma_ctx;
-        // int i = data->cur_dma;
-        uint32_t *p = ctx[0].vir;
-        if (p) {
-            printk(KERN_DEBUG "DMA Mem Dump: 0x%08X 0x%08X 0x%08X 0x%08X\n", p[0],
-                   p[1], p[2], p[3]);
-        }
-        // if (p) {
-        //     dev_info(&data->pdev->dev, "ioctl_debug: \"%s\"\n", p);
-        // }
+    if (WARN_ON(!data || WARN_ON(!data->pdev) || WARN_ON(!arg)))
+        return -EINVAL;
+    dev = &data->pdev->dev;
+
+    if (copy_from_user(&param, (void __user *)arg, sizeof(param)))
+        return -EFAULT;
+
+    id = param.dma_idx;
+    size = param.dma_size;
+
+    struct dma_context *ctx = data->dma_ctx;
+    uint32_t *p = ctx[id].vir;
+    int count = ((size <= ctx[id].len) ? size : ctx[id].len) / sizeof(uint32_t);
+    if (p) {
+        int i;
+        for (i = 0; i + 1 < count; i += 2)
+            dev_info(dev, "DMA Dump %i: 0x%08x 0x%08x\n", i, p[i], p[i + 1]);
+    } else {
+        dev_info(dev, "ioctl_debug() error.\n");
     }
+
     return 0;
 }
 

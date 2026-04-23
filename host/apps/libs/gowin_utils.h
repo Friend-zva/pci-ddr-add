@@ -13,8 +13,10 @@ uint32_t bar_readl(int fd, int bar, uint32_t offset);
 void cfg_writel(int fd, uint32_t offset, uint32_t value);
 uint32_t cfg_readl(int fd, uint32_t offset);
 
-uint64_t request_mem(int fd, int index, size_t size);
+uint64_t request_mem(int fd, int index, uint32_t size);
 void release_mem(int fd, int index);
 
 void *mmap_mem(int fd, int index, size_t length);
 void *mmap_bar(int fd, int index, size_t length);
+
+void debug_dma(int fd, int index, uint32_t size);

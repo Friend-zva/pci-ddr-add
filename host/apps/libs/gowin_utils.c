@@ -88,7 +88,7 @@ uint32_t cfg_readl(int fd, uint32_t offset) {
     return param.cfg_dword;
 }
 
-uint64_t request_mem(int fd, int index, size_t size) {
+uint64_t request_mem(int fd, int index, uint32_t size) {
     struct gowin_ioctl_param param = {0};
     param.dma_idx = index;
     param.dma_size = size;
@@ -133,4 +133,14 @@ void *mmap_bar(int fd, int index, size_t length) {
     printf("mmap_bar(index=%d) ptr = %p\n", index, ptr);
     fflush(stdout);
     return (ptr == MAP_FAILED) ? NULL : ptr;
+}
+
+void debug_dma(int fd, int index, uint32_t size) {
+    struct gowin_ioctl_param param = {0};
+    param.dma_idx = index;
+    param.dma_size = size;
+
+    if (ioctl(fd, GOWIN_DEBUG_ONLY, &param)) {
+        fprintf(stderr, "ioctl: %s\n", strerror(errno));
+    }
 }
