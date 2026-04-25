@@ -50,12 +50,10 @@ int main(int argc, char *argv[]) {
     if (DBG_INFO) {
         val = gwbar0->rsv[0];
         printf("gwbar0 alive\n");
-        fflush(stdout);
     }
     if (DBG_INFO) {
         val = gwbar2->rsv_28[0];
         printf("gwbar2 alive\n");
-        fflush(stdout);
     }
 
     gwbar0->ctrl.ctrl_init = 1;
@@ -67,7 +65,6 @@ int main(int argc, char *argv[]) {
     }
     if (DBG_INFO) {
         printf("pcie ready\n");
-        fflush(stdout);
     }
 
     struct gowin_ioctl_param param = {0};
@@ -144,7 +141,6 @@ int main(int argc, char *argv[]) {
                *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
                gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
                desc_h2c_p[num_desc_adj].flags);
-        fflush(stdout);
     }
 
     // ====================
@@ -184,7 +180,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     if (DBG_INFO) {
-        debug_dma(proc->fd, 0, 4);
+        debug_dma(proc->fd, 0, 4 * sizeof(uint32_t));
     }
 
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
@@ -203,10 +199,12 @@ int main(int argc, char *argv[]) {
         }
         if (gwbar0->h2c[0].desc_count == (num_desc + 1)) {
             printf("h2c: must be polled\n");
+            fflush(stdout);
             break;
         }
         if (gwbar0->h2c[0].status0 & DESC_COMPLETED) {
             printf("h2c: completed\n");
+            fflush(stdout);
             break;
         }
         usleep(1);
@@ -304,10 +302,12 @@ int main(int argc, char *argv[]) {
         }
         if (gwbar0->c2h[0].desc_count == (num_desc + 1)) {
             printf("c2h: must be polled\n");
+            fflush(stdout);
             break;
         }
         if (gwbar0->c2h[0].status0 & DESC_COMPLETED) {
             printf("c2h: completed\n");
+            fflush(stdout);
             break;
         }
         usleep(1);

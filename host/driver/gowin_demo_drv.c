@@ -537,11 +537,12 @@ static int ioctl_debug(struct gowin_bar_data *data, unsigned long arg) {
 
     struct dma_context *ctx = data->dma_ctx;
     u32 *p = ctx[id].vir;
-    int count = ((size <= ctx[id].len) ? size : ctx[id].len) / sizeof(u32);
+    int bytes = (size <= ctx[id].len) ? size : ctx[id].len;
+    bytes &= ~15;
     if (p) {
-        int i;
-        for (i = 0; i + 1 < count; i += 2)
-            printk(KERN_DEBUG "DMA Dump %i: 0x%08x 0x%08x\n", i, p[i], p[i + 1]);
+        for (int i = 0; i < bytes; i += 4)
+            printk(KERN_DEBUG "DMA Dump %i: 0x%08x 0x%08x 0x%08x 0x%08x\n", i, p[i],
+                   p[i + 1], p[i + 2], p[i + 3]);
     } else {
         dev_info(dev, "ioctl_debug() failed.\n");
     }

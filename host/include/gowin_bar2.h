@@ -13,7 +13,7 @@
 #define BAR2_LAD_START (1 << 4) // adder
 #define BAR2_LAD_STOP (1 << 5)
 #define BAR2_LAD_DONE (1 << 6)
-#define BAR2_H2C_OVERHEAD (1 << 7)
+#define BAR2_GEN_DONE (1 << 7)
 
 typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t ctrl;      //* 0x000 - Control (RW)
