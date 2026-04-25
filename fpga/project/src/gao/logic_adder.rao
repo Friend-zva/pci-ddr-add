@@ -4,32 +4,8 @@
     <Mode>Standard</Mode>
     <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
         <SignalList>
-            <Bus capture_enable="true" name="lad_cfg_len[19:0]">
-                <Signal>lad_cfg_len[19]</Signal>
-                <Signal>lad_cfg_len[18]</Signal>
-                <Signal>lad_cfg_len[17]</Signal>
-                <Signal>lad_cfg_len[16]</Signal>
-                <Signal>lad_cfg_len[15]</Signal>
-                <Signal>lad_cfg_len[14]</Signal>
-                <Signal>lad_cfg_len[13]</Signal>
-                <Signal>lad_cfg_len[12]</Signal>
-                <Signal>lad_cfg_len[11]</Signal>
-                <Signal>lad_cfg_len[10]</Signal>
-                <Signal>lad_cfg_len[9]</Signal>
-                <Signal>lad_cfg_len[8]</Signal>
-                <Signal>lad_cfg_len[7]</Signal>
-                <Signal>lad_cfg_len[6]</Signal>
-                <Signal>lad_cfg_len[5]</Signal>
-                <Signal>lad_cfg_len[4]</Signal>
-                <Signal>lad_cfg_len[3]</Signal>
-                <Signal>lad_cfg_len[2]</Signal>
-                <Signal>lad_cfg_len[1]</Signal>
-                <Signal>lad_cfg_len[0]</Signal>
-            </Bus>
+            <Signal capture_enable="true">ddr_init</Signal>
             <Signal capture_enable="true">lad_run</Signal>
-            <Signal capture_enable="true">lad_done</Signal>
-            <Signal capture_enable="true">lad_busy</Signal>
-            <Signal capture_enable="true">axi_lad_dma_awlock</Signal>
             <Signal capture_enable="true">axi_lad_dma_awvalid</Signal>
             <Signal capture_enable="true">axi_lad_dma_awready</Signal>
             <Signal capture_enable="true">axi_lad_dma_wlast</Signal>
@@ -37,35 +13,101 @@
             <Signal capture_enable="true">axi_lad_dma_wready</Signal>
             <Signal capture_enable="true">axi_lad_dma_bvalid</Signal>
             <Signal capture_enable="true">axi_lad_dma_bready</Signal>
-            <Signal capture_enable="true">axi_lad_dma_arlock</Signal>
             <Signal capture_enable="true">axi_lad_dma_arvalid</Signal>
             <Signal capture_enable="true">axi_lad_dma_arready</Signal>
             <Signal capture_enable="true">axi_lad_dma_rlast</Signal>
             <Signal capture_enable="true">axi_lad_dma_rvalid</Signal>
             <Signal capture_enable="true">axi_lad_dma_rready</Signal>
-            <Signal capture_enable="true">axis_lad_rd_desc_valid</Signal>
-            <Signal capture_enable="true">axis_lad_rd_desc_ready</Signal>
-            <Signal capture_enable="true">axis_lad_wr_desc_valid</Signal>
-            <Signal capture_enable="true">axis_lad_wr_desc_ready</Signal>
             <Signal capture_enable="true">axis_lad_rx_data_tready</Signal>
             <Signal capture_enable="true">axis_lad_rx_data_tvalid</Signal>
             <Signal capture_enable="true">axis_lad_rx_data_tlast</Signal>
             <Signal capture_enable="true">axis_lad_tx_data_tready</Signal>
             <Signal capture_enable="true">axis_lad_tx_data_tvalid</Signal>
             <Signal capture_enable="true">axis_lad_tx_data_tlast</Signal>
-            <Signal capture_enable="true">ddr_init</Signal>
-            <Signal capture_enable="true">axi_ddr_awvalid</Signal>
-            <Signal capture_enable="true">axi_ddr_awready</Signal>
-            <Signal capture_enable="true">axi_ddr_wlast</Signal>
+            <Bus capture_enable="true" name="axi_ddr_wdata[15:0]">
+                <Signal>axi_ddr_wdata[15]</Signal>
+                <Signal>axi_ddr_wdata[14]</Signal>
+                <Signal>axi_ddr_wdata[13]</Signal>
+                <Signal>axi_ddr_wdata[12]</Signal>
+                <Signal>axi_ddr_wdata[11]</Signal>
+                <Signal>axi_ddr_wdata[10]</Signal>
+                <Signal>axi_ddr_wdata[9]</Signal>
+                <Signal>axi_ddr_wdata[8]</Signal>
+                <Signal>axi_ddr_wdata[7]</Signal>
+                <Signal>axi_ddr_wdata[6]</Signal>
+                <Signal>axi_ddr_wdata[5]</Signal>
+                <Signal>axi_ddr_wdata[4]</Signal>
+                <Signal>axi_ddr_wdata[3]</Signal>
+                <Signal>axi_ddr_wdata[2]</Signal>
+                <Signal>axi_ddr_wdata[1]</Signal>
+                <Signal>axi_ddr_wdata[0]</Signal>
+            </Bus>
             <Signal capture_enable="true">axi_ddr_wvalid</Signal>
             <Signal capture_enable="true">axi_ddr_wready</Signal>
+            <Bus capture_enable="true" name="axi_ddr_awaddr[15:8]">
+                <Signal>axi_ddr_awaddr[15]</Signal>
+                <Signal>axi_ddr_awaddr[14]</Signal>
+                <Signal>axi_ddr_awaddr[13]</Signal>
+                <Signal>axi_ddr_awaddr[12]</Signal>
+                <Signal>axi_ddr_awaddr[11]</Signal>
+                <Signal>axi_ddr_awaddr[10]</Signal>
+                <Signal>axi_ddr_awaddr[9]</Signal>
+                <Signal>axi_ddr_awaddr[8]</Signal>
+            </Bus>
+            <Signal capture_enable="true">axi_ddr_awvalid</Signal>
             <Signal capture_enable="true">axi_ddr_bvalid</Signal>
             <Signal capture_enable="true">axi_ddr_bready</Signal>
+            <Bus capture_enable="true" name="axi_ddr_araddr[15:8]">
+                <Signal>axi_ddr_araddr[15]</Signal>
+                <Signal>axi_ddr_araddr[14]</Signal>
+                <Signal>axi_ddr_araddr[13]</Signal>
+                <Signal>axi_ddr_araddr[12]</Signal>
+                <Signal>axi_ddr_araddr[11]</Signal>
+                <Signal>axi_ddr_araddr[10]</Signal>
+                <Signal>axi_ddr_araddr[9]</Signal>
+                <Signal>axi_ddr_araddr[8]</Signal>
+            </Bus>
             <Signal capture_enable="true">axi_ddr_arvalid</Signal>
             <Signal capture_enable="true">axi_ddr_arready</Signal>
             <Signal capture_enable="true">axi_ddr_rvalid</Signal>
             <Signal capture_enable="true">axi_ddr_rready</Signal>
-            <Signal capture_enable="true">axi_ddr_rlast</Signal>
+            <Signal capture_enable="true">user_cs</Signal>
+            <Signal capture_enable="true">c2h_run</Signal>
+            <Signal capture_enable="true">axi_pci_dma_bvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_bready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_awvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_awready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wlast</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_wready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_arvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_arready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_rlast</Signal>
+            <Signal capture_enable="true">axi_pci_dma_rvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_rready</Signal>
+            <Bus capture_enable="true" name="axis_c2h_data_tdata[15:0]">
+                <Signal>axis_c2h_data_tdata[15]</Signal>
+                <Signal>axis_c2h_data_tdata[14]</Signal>
+                <Signal>axis_c2h_data_tdata[13]</Signal>
+                <Signal>axis_c2h_data_tdata[12]</Signal>
+                <Signal>axis_c2h_data_tdata[11]</Signal>
+                <Signal>axis_c2h_data_tdata[10]</Signal>
+                <Signal>axis_c2h_data_tdata[9]</Signal>
+                <Signal>axis_c2h_data_tdata[8]</Signal>
+                <Signal>axis_c2h_data_tdata[7]</Signal>
+                <Signal>axis_c2h_data_tdata[6]</Signal>
+                <Signal>axis_c2h_data_tdata[5]</Signal>
+                <Signal>axis_c2h_data_tdata[4]</Signal>
+                <Signal>axis_c2h_data_tdata[3]</Signal>
+                <Signal>axis_c2h_data_tdata[2]</Signal>
+                <Signal>axis_c2h_data_tdata[1]</Signal>
+                <Signal>axis_c2h_data_tdata[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">axis_c2h_data_tready</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tvalid</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tlast</Signal>
+            <Signal capture_enable="true">axis_c2h_desc_valid</Signal>
+            <Signal capture_enable="true">axis_c2h_desc_ready</Signal>
         </SignalList>
         <Triggers>
             <Trigger index="0">
@@ -111,5 +153,5 @@
             <Expression>M0</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0011000010110000</GAO_ID>
+    <GAO_ID>1000101011110101</GAO_ID>
 </GAO_CONFIG>

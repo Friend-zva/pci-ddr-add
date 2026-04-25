@@ -4,31 +4,22 @@
     <Mode>Standard</Mode>
     <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
         <SignalList>
-            <Signal capture_enable="true">h2c_run</Signal>
-            <Signal capture_enable="true">gen_run</Signal>
-            <Signal capture_enable="true">gen_done</Signal>
-            <Bus capture_enable="true" name="axis_h2c_desc_addr[15:8]">
-                <Signal>axis_h2c_desc_addr[15]</Signal>
-                <Signal>axis_h2c_desc_addr[14]</Signal>
-                <Signal>axis_h2c_desc_addr[13]</Signal>
-                <Signal>axis_h2c_desc_addr[12]</Signal>
-                <Signal>axis_h2c_desc_addr[11]</Signal>
-                <Signal>axis_h2c_desc_addr[10]</Signal>
-                <Signal>axis_h2c_desc_addr[9]</Signal>
-                <Signal>axis_h2c_desc_addr[8]</Signal>
+            <Signal capture_enable="true">c2h_run</Signal>
+            <Bus capture_enable="true" name="axis_c2h_desc_addr[15:8]">
+                <Signal>axis_c2h_desc_addr[15]</Signal>
+                <Signal>axis_c2h_desc_addr[14]</Signal>
+                <Signal>axis_c2h_desc_addr[13]</Signal>
+                <Signal>axis_c2h_desc_addr[12]</Signal>
+                <Signal>axis_c2h_desc_addr[11]</Signal>
+                <Signal>axis_c2h_desc_addr[10]</Signal>
+                <Signal>axis_c2h_desc_addr[9]</Signal>
+                <Signal>axis_c2h_desc_addr[8]</Signal>
             </Bus>
-            <Bus capture_enable="true" name="u_auto_stop_h2c/desc_count[6:0]">
-                <Signal>u_auto_stop_h2c/desc_count[6]</Signal>
-                <Signal>u_auto_stop_h2c/desc_count[5]</Signal>
-                <Signal>u_auto_stop_h2c/desc_count[4]</Signal>
-                <Signal>u_auto_stop_h2c/desc_count[3]</Signal>
-                <Signal>u_auto_stop_h2c/desc_count[2]</Signal>
-                <Signal>u_auto_stop_h2c/desc_count[1]</Signal>
-                <Signal>u_auto_stop_h2c/desc_count[0]</Signal>
-            </Bus>
-            <Signal capture_enable="true">h2c_done</Signal>
-            <Signal capture_enable="true">axis_h2c_desc_valid</Signal>
-            <Signal capture_enable="true">axis_h2c_desc_ready</Signal>
+            <Signal capture_enable="true">axis_c2h_desc_valid</Signal>
+            <Signal capture_enable="true">axis_c2h_desc_ready</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tlast</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tready</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tvalid</Signal>
             <Bus capture_enable="true" name="axis_write_data_tdata[31:0]">
                 <Signal>axis_write_data_tdata[31]</Signal>
                 <Signal>axis_write_data_tdata[30]</Signal>
@@ -63,9 +54,6 @@
                 <Signal>axis_write_data_tdata[1]</Signal>
                 <Signal>axis_write_data_tdata[0]</Signal>
             </Bus>
-            <Signal capture_enable="true">axis_write_data_tvalid</Signal>
-            <Signal capture_enable="true">axis_write_data_tready</Signal>
-            <Signal capture_enable="true">axis_write_data_tlast</Signal>
             <Bus capture_enable="true" name="axi_pci_dma_awaddr[15:8]">
                 <Signal>axi_pci_dma_awaddr[15]</Signal>
                 <Signal>axi_pci_dma_awaddr[14]</Signal>
@@ -130,22 +118,22 @@
         <Triggers>
             <Trigger index="0">
                 <SignalList>
-                    <Signal>axis_h2c_desc_valid</Signal>
+                    <Signal>axis_c2h_desc_valid</Signal>
                 </SignalList>
             </Trigger>
             <Trigger index="1">
                 <SignalList>
-                    <Signal>axis_h2c_desc_ready</Signal>
+                    <Signal>axis_c2h_desc_ready</Signal>
                 </SignalList>
             </Trigger>
             <Trigger index="2">
                 <SignalList>
-                    <Signal>axis_h2c_data_tlast</Signal>
+                    <Signal>axis_c2h_data_tlast</Signal>
                 </SignalList>
             </Trigger>
             <Trigger index="3">
                 <SignalList>
-                    <Signal>h2c_run</Signal>
+                    <Signal>c2h_run</Signal>
                 </SignalList>
             </Trigger>
             <Trigger index="4"/>
@@ -183,5 +171,5 @@
             <Expression>M0|M1|M2|M3</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0101110000110001</GAO_ID>
+    <GAO_ID>0010101111010000</GAO_ID>
 </GAO_CONFIG>
