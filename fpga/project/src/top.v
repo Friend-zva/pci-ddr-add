@@ -1,4 +1,4 @@
-// `define EN_GEN_H2C
+`define EN_GEN_H2C
 
 module top (
     input sys_clk_p,
@@ -290,17 +290,18 @@ module top (
 
   //? Temp
   localparam integer AXILENWIDTH = 20;
-  wire [AXILENWIDTH-1:0] lad_cfg_len;
+  wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire axis_h2c_gen_done;
 `ifdef EN_GEN_H2C
-  reg          axis_h2c_gen_start;
-  wire         axis_h2c_gen_busy;
+  reg [AXILENWIDTH-1:0] axis_h2c_gen_len;
+  reg                   axis_h2c_gen_start;
+  wire                  axis_h2c_gen_busy;
   // wire axis_h2c_gen_done;
-  wire         axis_h2c_gen_tready;
-  wire         axis_h2c_gen_tvalid;
-  wire [255:0] axis_h2c_gen_tdata;
-  wire [ 31:0] axis_h2c_gen_tkeep;
-  wire         axis_h2c_gen_tlast;
+  wire                  axis_h2c_gen_tready;
+  wire                  axis_h2c_gen_tvalid;
+  wire  [      255 : 0] axis_h2c_gen_tdata;
+  wire  [       31 : 0] axis_h2c_gen_tkeep;
+  wire                  axis_h2c_gen_tlast;
 
   wire [ 31:0] axis_h2c_gen_data_tdata_debug;
   assign axis_h2c_gen_data_tdata_debug = axis_h2c_gen_tdata[31:0];
@@ -308,9 +309,11 @@ module top (
   always @(posedge tlp_clk or negedge rst_n) begin
     if (!rst_n) begin
       axis_h2c_gen_start <= 1'b0;
+      axis_h2c_gen_len <= 0;
     end else begin
       if (axis_h2c_desc_valid && axis_h2c_desc_ready) begin
         axis_h2c_gen_start <= 1'b1;
+        axis_h2c_gen_len <= axis_h2c_desc_len;
       end
 
       if (axis_h2c_gen_done) begin
@@ -326,7 +329,7 @@ module top (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
       .start(axis_h2c_gen_start),
-      .cfg_len(lad_cfg_len),
+      .len(axis_h2c_gen_len),
       .busy(axis_h2c_gen_busy),
       .done(axis_h2c_gen_done),
       .m_axis_tdata(axis_h2c_gen_tdata),
@@ -370,7 +373,7 @@ module top (
   // localparam integer AXILENWIDTH = 20;
   // h2c AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
-  wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
+  // wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
   // c2h AXI stream descriptors
@@ -381,7 +384,7 @@ module top (
   // Logic Adder config
   wire [AXIADDRWIDTH-1:0] lad_cfg_read_addr;
   wire [AXIADDRWIDTH-1:0] lad_cfg_write_addr;
-  // wire [ AXILENWIDTH-1:0] lad_cfg_len;
+  wire [ AXILENWIDTH-1:0] lad_cfg_len;
   wire                    lad_run;
   wire                    lad_busy;
   wire                    lad_done;
@@ -856,12 +859,22 @@ module top (
   );
 
   reg [31:0] axi_ddr_wdata_debug;
+  reg [8:0] axi_ddr_awaddr_debug;
+  reg [8:0] axi_ddr_araddr_debug;
   always @(posedge tlp_clk or negedge rst_n) begin
     if (!rst_n) begin
       axi_ddr_wdata_debug <= 32'd0;
+      axi_ddr_awaddr_debug <= 9'd0;
+      axi_ddr_araddr_debug <= 9'd0;
     end else begin
       if (axi_ddr_wvalid) begin
         axi_ddr_wdata_debug <= axi_ddr_wdata[31:0];
+      end
+      if (axi_ddr_awvalid) begin
+        axi_ddr_awaddr_debug <= axi_ddr_awaddr[16:8];
+      end
+      if (axi_ddr_arvalid) begin
+        axi_ddr_araddr_debug <= axi_ddr_araddr[16:8];
       end
     end
   end
