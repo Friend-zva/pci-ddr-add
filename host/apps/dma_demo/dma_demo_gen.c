@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     // ============================
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
-    gwbar2->rsv_08[0] = num_desc; //? Temp
+    gwbar2->ctrl = BAR2_GEN_EN;
     gwbar2->ctrl = BAR2_PCIE_WR_START;
 
     int timeout_h2c = TIMEOUT_POLL;

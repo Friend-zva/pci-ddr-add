@@ -36,7 +36,12 @@ module logic_dma #(
     input                           lad_busy,
     input                           lad_done,
 
-    input axis_h2c_gen_done
+    output reg [AXI_LEN_WIDTH-1:0] gen_len,
+    output reg                     gen_run,
+    input                          gen_done,
+    output reg                     en_gen_mode,
+    output reg [            6 : 0] num_desc,
+    input                          h2c_done
 );
   //* All lengths in bytes.
 
@@ -54,7 +59,10 @@ module logic_dma #(
   localparam integer RegLengLad = 8'h38;
 
   reg lad_done_latched;
-  reg [7:0] num_desc;
+  reg gen_done_latched;
+  reg h2c_done_latched;
+  reg lad_start_pulse;
+  reg lad_stop_pulse;
 
   wire wr_en;
   wire rd_en;
@@ -64,38 +72,100 @@ module logic_dma #(
   assign rd_en = user_cs && !user_rw;
   assign addr_reg = user_address[7:0];
 
+  // gen
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
-      user_rd_valid <= 1'b0;
-      user_rd_data <= 32'd0;
+      gen_run <= 1'b0;
+      gen_len <= {AXI_LEN_WIDTH{1'b0}};
+    end else begin
+      if (en_gen_mode && m_axis_h2c_desc_valid && m_axis_h2c_desc_ready) begin
+        gen_run <= 1'b1;
+        gen_len <= m_axis_h2c_desc_len;
+      end
+
+      if (gen_done) begin
+        gen_run <= 1'b0;
+      end
+    end
+  end
+
+  // lad
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      lad_run <= 1'b0;
+      lad_done_latched <= 1'b0;
+    end else begin
+      if (lad_done) begin
+        lad_run <= 1'b0;
+        lad_done_latched <= 1'b1;
+      end
+
+      if (lad_start_pulse) begin
+        lad_run <= 1'b1;
+        lad_done_latched <= 1'b0;
+      end
+
+      if (lad_stop_pulse) begin
+        lad_run <= 1'b0;
+      end
+    end
+  end
+
+  // h2c done
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      h2c_done_latched <= 1'b0;
+    end else begin
+      if (h2c_done) begin
+        h2c_done_latched <= 1'b1;
+      end
+      if (wr_en && addr_reg == RegCtrl && user_wr_data[0]) begin
+        h2c_done_latched <= 1'b0;
+      end
+    end
+  end
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      gen_done_latched <= 1'b0;
+    end else begin
+      if (gen_done) begin
+        gen_done_latched <= 1'b1;
+      end
+      if (wr_en && addr_reg == RegCtrl && user_wr_data[0]) begin
+        gen_done_latched <= 1'b0;
+      end
+    end
+  end
+
+  // BAR2 host write
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      m_axis_h2c_desc_addr <= {AXI_ADDR_WIDTH{1'b0}};
+      m_axis_h2c_desc_len <= {AXI_LEN_WIDTH{1'b0}};
+      m_axis_h2c_desc_valid <= 1'b0;
 
       m_axis_c2h_desc_addr <= {AXI_ADDR_WIDTH{1'b0}};
       m_axis_c2h_desc_len <= {AXI_LEN_WIDTH{1'b0}};
       m_axis_c2h_desc_valid <= 1'b0;
 
-      m_axis_h2c_desc_addr <= {AXI_ADDR_WIDTH{1'b0}};
-      m_axis_h2c_desc_len <= {AXI_LEN_WIDTH{1'b0}};
-      m_axis_h2c_desc_valid <= 1'b0;
-
       lad_read_addr <= {AXI_ADDR_WIDTH{1'b0}};
       lad_write_addr <= {AXI_ADDR_WIDTH{1'b0}};
       lad_len <= {AXI_LEN_WIDTH{1'b0}};
-      lad_run <= 1'b0;
 
-      lad_done_latched <= 1'b0;
+      en_gen_mode <= 1'b0;
+      num_desc <= 7'd0;
+
+      lad_start_pulse <= 1'b0;
+      lad_stop_pulse <= 1'b0;
     end else begin
-      user_rd_valid <= 1'b0;
+      lad_start_pulse <= 1'b0;
+      lad_stop_pulse  <= 1'b0;
 
-      if (m_axis_c2h_desc_valid && m_axis_c2h_desc_ready) begin
-        m_axis_c2h_desc_valid <= 1'b0;
-      end
       if (m_axis_h2c_desc_valid && m_axis_h2c_desc_ready) begin
         m_axis_h2c_desc_valid <= 1'b0;
       end
-
-      if (lad_done) begin
-        lad_run <= 1'b0;
-        lad_done_latched <= 1'b1;
+      if (m_axis_c2h_desc_valid && m_axis_c2h_desc_ready) begin
+        m_axis_c2h_desc_valid <= 1'b0;
       end
 
       if (wr_en) begin
@@ -107,6 +177,7 @@ module logic_dma #(
             // bit3: stop  pcie read  descriptor
             // bit4: start logic adder
             // bit5: stop  logic adder
+            // bit6: enable gen write data
             if (user_wr_data[0]) begin
               m_axis_h2c_desc_valid <= 1'b1;
             end
@@ -120,16 +191,18 @@ module logic_dma #(
               m_axis_c2h_desc_valid <= 1'b0;
             end
             if (user_wr_data[4]) begin
-              lad_run <= 1'b1;
-              lad_done_latched <= 1'b0;
+              lad_start_pulse <= 1'b1;
             end
             if (user_wr_data[5]) begin
-              lad_run <= 1'b0;
+              lad_stop_pulse <= 1'b1;
+            end
+            if (user_wr_data[6]) begin
+              en_gen_mode <= 1'b1;
             end
           end
 
           RegNumDesc: begin
-            num_desc <= user_wr_data[7:0];
+            num_desc <= user_wr_data[6:0];
           end
 
           RegAddrDDRh2c: begin
@@ -160,6 +233,16 @@ module logic_dma #(
           end
         endcase
       end
+    end
+  end
+
+  // BAR2 host read
+  always @(posedge clk or negedge rstn) begin
+    if (!rstn) begin
+      user_rd_valid <= 1'b0;
+      user_rd_data  <= 32'd0;
+    end else begin
+      user_rd_valid <= 1'b0;
 
       if (rd_en) begin
         user_rd_valid <= 1'b1;
@@ -171,10 +254,10 @@ module logic_dma #(
             user_rd_data[2] <= m_axis_c2h_desc_ready;
             user_rd_data[3] <= m_axis_h2c_desc_ready;
             user_rd_data[4] <= lad_run;
-            user_rd_data[5] <= lad_busy;
-            user_rd_data[6] <= lad_done_latched;
-            user_rd_data[7] <= axis_h2c_gen_done;
-            user_rd_data[31:8] <= 23'd0;
+            user_rd_data[5] <= lad_done_latched;
+            user_rd_data[6] <= gen_done_latched;
+            user_rd_data[7] <= h2c_done_latched;
+            user_rd_data[31:8] <= 24'd0;
           end
 
           RegAddrDDRh2c: begin

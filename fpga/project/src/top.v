@@ -24,14 +24,26 @@ module top (
     inout [3:0] ddr_dqs_n
 );
 
+  // ==========
+  // Parameters
+  // ==========
+  // Clocks
+  localparam integer PCIE_DLY = 8;  //25~500ms
+  localparam integer PERST_DLY = 25;
+  localparam integer RUN_DLY = 23;
+  localparam integer SYS_RST_DLY = 20;
+  // AXI
+  localparam integer AXIDATAWIDTH = 256;
+  localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
+  localparam integer AXIIDWIDTH = 4;
+  localparam integer AXIBURSTLEN = 8;
+  // DDR
+  localparam integer AXIADDRWIDTH = 29;
+  localparam integer AXILENWIDTH = 20;
+
   // ===============
   // Clocks & Resets
   // ===============
-  localparam PCIE_DLY = 8;  //25~500ms
-  localparam PERST_DLY = 25;
-  localparam RUN_DLY = 23;
-  localparam SYS_RST_DLY = 20;
-
   // Clocks
   wire sys_clk;
   /* synthesis syn_keep = 1 */
@@ -206,7 +218,7 @@ module top (
   wire         user_rd_valid;
   wire [ 31:0] user_rd_data;
 
-  Pcie_Sgdma_Top #() u_pcie_sgdma (
+  Pcie_Sgdma_Top u_pcie_sgdma (
       .pcie_rstn(rst_n),
       .clk(tlp_clk),
       .pcie_tl_rx_sop(pcie_tl_rx_sop),
@@ -239,19 +251,11 @@ module top (
       .pcie_ltssm(pcie_ltssm),
       .pcie_linkup(pcie_linkup),
       .pcie_tl_cfg_busdev(pcie_tl_cfg_busdev),
-`ifdef EN_GEN_H2C
-      .m_axis_h2c_tready(1'b1),
-      .m_axis_h2c_tvalid(),
-      .m_axis_h2c_tdata(),
-      .m_axis_h2c_tlast(),
-      .m_axis_h2c_tkeep(),
-`else
       .m_axis_h2c_tready(axis_h2c_data_tready),
       .m_axis_h2c_tvalid(axis_h2c_data_tvalid),
       .m_axis_h2c_tdata(axis_h2c_data_tdata),
       .m_axis_h2c_tlast(axis_h2c_data_tlast),
       .m_axis_h2c_tkeep(axis_h2c_data_tkeep),
-`endif
       .h2c_overhead(h2c_overhead),
       .s_axis_c2h_tready(axis_c2h_data_tready),
       .s_axis_c2h_tvalid(axis_c2h_data_tvalid),
@@ -272,110 +276,43 @@ module top (
       .c2h_run(c2h_run)
   );
 
-  reg [63:0] h2c_overhead_reg;
 
-  always @(posedge tlp_clk or negedge rst_n) begin
-    if (!rst_n) begin
-      h2c_overhead_reg <= 64'd0;
-    end else begin
-`ifdef EN_GEN_H2C
-      if (axis_h2c_gen_tvalid) begin
-`else
-      if (axis_h2c_data_tvalid) begin
-`endif
-        h2c_overhead_reg <= h2c_overhead;
-      end
-    end
-  end
+  /* Gen mode (alternative h2c) */
+  wire [AXILENWIDTH-1:0] gen_len;
+  wire                   gen_run;
+  wire                   gen_busy;
+  wire                   gen_done;
+  wire                   axis_gen_data_tready;
+  wire                   axis_gen_data_tvalid;
+  wire [        255 : 0] axis_gen_data_tdata;
+  wire [         31 : 0] axis_gen_data_tkeep;
+  wire                   axis_gen_data_tlast;
 
-  //? Temp
-  localparam integer AXILENWIDTH = 20;
-  wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
-  wire axis_h2c_gen_done;
-`ifdef EN_GEN_H2C
-  reg [AXILENWIDTH-1:0] axis_h2c_gen_len;
-  reg                   axis_h2c_gen_start;
-  wire                  axis_h2c_gen_busy;
-  // wire axis_h2c_gen_done;
-  wire                  axis_h2c_gen_tready;
-  wire                  axis_h2c_gen_tvalid;
-  wire  [      255 : 0] axis_h2c_gen_tdata;
-  wire  [       31 : 0] axis_h2c_gen_tkeep;
-  wire                  axis_h2c_gen_tlast;
-
-  wire [ 31:0] axis_h2c_gen_data_tdata_debug;
-  assign axis_h2c_gen_data_tdata_debug = axis_h2c_gen_tdata[31:0];
-
-  always @(posedge tlp_clk or negedge rst_n) begin
-    if (!rst_n) begin
-      axis_h2c_gen_start <= 1'b0;
-      axis_h2c_gen_len <= 0;
-    end else begin
-      if (axis_h2c_desc_valid && axis_h2c_desc_ready) begin
-        axis_h2c_gen_start <= 1'b1;
-        axis_h2c_gen_len <= axis_h2c_desc_len;
-      end
-
-      if (axis_h2c_gen_done) begin
-        axis_h2c_gen_start <= 1'b0;
-      end
-    end
-  end
-
-  gen_h2c #(
+  generator_h2c #(
       .DATA_WIDTH(256),
       .LEN_WIDTH (AXILENWIDTH)
-  ) u_gen_h2c (
+  ) u_generator_h2c (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
-      .start(axis_h2c_gen_start),
-      .len(axis_h2c_gen_len),
-      .busy(axis_h2c_gen_busy),
-      .done(axis_h2c_gen_done),
-      .m_axis_tdata(axis_h2c_gen_tdata),
-      .m_axis_tkeep(axis_h2c_gen_tkeep),
-      .m_axis_tvalid(axis_h2c_gen_tvalid),
-      .m_axis_tready(axis_h2c_gen_tready),
-      .m_axis_tlast(axis_h2c_gen_tlast)
+      .gen_len(gen_len),
+      .gen_run(gen_run),
+      .gen_busy(gen_busy),
+      .gen_done(gen_done),
+      .m_axis_tdata(axis_gen_data_tdata),
+      .m_axis_tkeep(axis_gen_data_tkeep),
+      .m_axis_tvalid(axis_gen_data_tvalid),
+      .m_axis_tready(axis_gen_data_tready),
+      .m_axis_tlast(axis_gen_data_tlast)
   );
-`else
-  assign axis_h2c_gen_done = 1'b0;
-`endif
-
-  reg [31:0] axis_h2c_data_tdata_debug;
-  always @(posedge tlp_clk or negedge rst_n) begin
-    if (!rst_n) begin
-      axis_h2c_data_tdata_debug <= 32'd0;
-    end else begin
-      if (axis_h2c_data_tready && axis_h2c_data_tvalid) begin
-`ifdef EN_GEN_H2C
-      axis_h2c_data_tdata_debug <= axis_h2c_gen_tdata[31:0];
-`else
-      axis_h2c_data_tdata_debug <= axis_h2c_data_tdata[31:0];
-`endif
-      end
-    end
-  end
-
-  reg [31:0] axis_c2h_data_tdata_debug;
-  always @(posedge tlp_clk or negedge rst_n) begin
-    if (!rst_n) begin
-      axis_c2h_data_tdata_debug <= 32'd0;
-    end else begin
-      if (axis_c2h_data_tvalid) begin
-        axis_c2h_data_tdata_debug <= axis_c2h_data_tdata[31:0];
-      end
-    end
-  end
 
   /* Logic control BAR2 (Descriptors for DDR3) */
-  localparam integer AXIADDRWIDTH = 29;
-  // localparam integer AXILENWIDTH = 20;
   // h2c AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
-  // wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
+  wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
+  wire [             6:0] num_desc;
+  reg  [            63:0] h2c_overhead_reg;
   // c2h AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
@@ -388,6 +325,16 @@ module top (
   wire                    lad_run;
   wire                    lad_busy;
   wire                    lad_done;
+
+  always @(posedge tlp_clk or negedge rst_n) begin
+    if (!rst_n) begin
+      h2c_overhead_reg <= 64'd0;
+    end else begin
+      if (axis_h2c_data_tvalid) begin
+        h2c_overhead_reg <= h2c_overhead;
+      end
+    end
+  end
 
   logic_dma #(
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
@@ -418,15 +365,64 @@ module top (
       .lad_run(lad_run),
       .lad_busy(lad_busy),
       .lad_done(lad_done),
-      .axis_h2c_gen_done(axis_h2c_gen_done)
+      .gen_len(gen_len),
+      .gen_run(gen_run),
+      .gen_done(gen_done),
+      .en_gen_mode(en_gen_mode),
+      .num_desc(num_desc),
+      .h2c_done(h2c_done)
+  );
+
+  /* Toggle gen and h2c mode */
+  wire [255 : 0] axis_write_data_tdata;
+  wire [ 31 : 0] axis_write_data_tkeep;
+  wire           axis_write_data_tvalid;
+  wire           axis_write_data_tready;
+  wire           axis_write_data_tlast;
+  wire           axis_auto_data_tlast;
+
+  controller_h2c u_controller_h2c (
+      .en_gen_mode(en_gen_mode),
+      .axis_gen_data_tdata(axis_gen_data_tdata),
+      .axis_gen_data_tkeep(axis_gen_data_tkeep),
+      .axis_gen_data_tvalid(axis_gen_data_tvalid),
+      .axis_gen_data_tready(axis_gen_data_tready),
+      .axis_gen_data_tlast(axis_gen_data_tlast),
+      .axis_h2c_data_tdata(axis_h2c_data_tdata),
+      .axis_h2c_data_tkeep(axis_h2c_data_tkeep),
+      .axis_h2c_data_tvalid(axis_h2c_data_tvalid),
+      .axis_h2c_data_tready(axis_h2c_data_tready),
+      .axis_h2c_data_tlast(axis_h2c_data_tlast),
+      .axis_auto_data_tlast(axis_auto_data_tlast),
+      .axis_write_data_tdata(axis_write_data_tdata),
+      .axis_write_data_tkeep(axis_write_data_tkeep),
+      .axis_write_data_tvalid(axis_write_data_tvalid),
+      .axis_write_data_tready(axis_write_data_tready),
+      .axis_write_data_tlast(axis_write_data_tlast)
+  );
+
+  /* Auto stop for h2c mode */
+  wire axi_pci_dma_bvalid;
+  wire axi_pci_dma_bready;
+  wire h2c_done;
+
+  auto_stop_h2c #(
+      .AXI_LEN_WIDTH(AXILENWIDTH)
+  ) u_auto_stop_h2c (
+      .clk(tlp_clk),
+      .rstn(tlp_rst_n),
+      .num_desc(num_desc),
+      .axis_h2c_desc_len(axis_h2c_desc_len),
+      .en_gen_mode(en_gen_mode),
+      .bvalid(axi_pci_dma_bvalid),
+      .bready(axi_pci_dma_bready),
+      .axis_write_data_tvalid(axis_write_data_tvalid),
+      .axis_write_data_tready(axis_write_data_tready),
+      .axis_auto_data_tlast(axis_auto_data_tlast),
+      .h2c_done(h2c_done)
   );
 
   /* AXI DMA */
-  localparam integer AXIDATAWIDTH = 256;
-  localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
-  localparam integer AXIIDWIDTH = 4;
-  localparam integer AXIBURSTLEN = 8;
-
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_awid;
   wire [AXIADDRWIDTH-1:0] axi_pci_dma_awaddr;
   wire [             7:0] axi_pci_dma_awlen;
@@ -444,8 +440,8 @@ module top (
   wire                    axi_pci_dma_wready;
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_bid;
   wire [             1:0] axi_pci_dma_bresp;
-  wire                    axi_pci_dma_bvalid;
-  wire                    axi_pci_dma_bready;
+  //wire                    axi_pci_dma_bvalid;
+  //wire                    axi_pci_dma_bready;
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_arid;
   wire [AXIADDRWIDTH-1:0] axi_pci_dma_araddr;
   wire [             7:0] axi_pci_dma_arlen;
@@ -462,11 +458,6 @@ module top (
   wire                    axi_pci_dma_rlast;
   wire                    axi_pci_dma_rvalid;
   wire                    axi_pci_dma_rready;
-
-  wire [7:0] axi_pci_dma_wdata_debug;
-  assign axi_pci_dma_wdata_debug = axi_pci_dma_wdata[7:0];
-  wire [7:0] axi_pci_dma_rdata_debug;
-  assign axi_pci_dma_rdata_debug = axi_pci_dma_rdata[7:0];
 
   axi_dma #(
       .AXI_DATA_WIDTH(AXIDATAWIDTH),
@@ -505,19 +496,11 @@ module top (
       .s_axis_write_desc_tag(8'd0),
       .s_axis_write_desc_valid(axis_h2c_desc_valid),
       .s_axis_write_desc_ready(axis_h2c_desc_ready),
-`ifdef EN_GEN_H2C
-      .s_axis_write_data_tdata(axis_h2c_gen_tdata),
-      .s_axis_write_data_tkeep(axis_h2c_gen_tkeep),
-      .s_axis_write_data_tvalid(axis_h2c_gen_tvalid),
-      .s_axis_write_data_tready(axis_h2c_gen_tready),
-      .s_axis_write_data_tlast(axis_h2c_gen_tlast),
-`else
-      .s_axis_write_data_tdata(axis_h2c_data_tdata),
-      .s_axis_write_data_tkeep(axis_h2c_data_tkeep),
-      .s_axis_write_data_tvalid(axis_h2c_data_tvalid),
-      .s_axis_write_data_tready(axis_h2c_data_tready),
-      .s_axis_write_data_tlast(axis_h2c_data_tlast),
-`endif
+      .s_axis_write_data_tdata(axis_write_data_tdata),
+      .s_axis_write_data_tkeep(axis_write_data_tkeep),
+      .s_axis_write_data_tvalid(axis_write_data_tvalid),
+      .s_axis_write_data_tready(axis_write_data_tready),
+      .s_axis_write_data_tlast(axis_write_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
       .m_axi_awid(axi_pci_dma_awid),
@@ -625,17 +608,6 @@ module top (
       .busy(lad_busy),
       .done(lad_done)
   );
-
-  reg [31:0] axis_lad_tx_data_tdata_debug;
-  always @(posedge tlp_clk or negedge rst_n) begin
-    if (!rst_n) begin
-      axis_lad_tx_data_tdata_debug <= 32'd0;
-    end else begin
-      if (axis_lad_tx_data_tvalid) begin
-        axis_lad_tx_data_tdata_debug <= axis_lad_tx_data_tdata[31:0];
-      end
-    end
-  end
 
   /* AXI DMA */
   wire [  AXIIDWIDTH-1:0] axi_lad_dma_awid;
@@ -857,30 +829,6 @@ module top (
       .IO_ddr_dqs(ddr_dqs),
       .IO_ddr_dqs_n(ddr_dqs_n)
   );
-
-  reg [31:0] axi_ddr_wdata_debug;
-  reg [8:0] axi_ddr_awaddr_debug;
-  reg [8:0] axi_ddr_araddr_debug;
-  always @(posedge tlp_clk or negedge rst_n) begin
-    if (!rst_n) begin
-      axi_ddr_wdata_debug <= 32'd0;
-      axi_ddr_awaddr_debug <= 9'd0;
-      axi_ddr_araddr_debug <= 9'd0;
-    end else begin
-      if (axi_ddr_wvalid) begin
-        axi_ddr_wdata_debug <= axi_ddr_wdata[31:0];
-      end
-      if (axi_ddr_awvalid) begin
-        axi_ddr_awaddr_debug <= axi_ddr_awaddr[16:8];
-      end
-      if (axi_ddr_arvalid) begin
-        axi_ddr_araddr_debug <= axi_ddr_araddr[16:8];
-      end
-    end
-  end
-
-  wire [15:0] axi_ddr_wdata_debug2;
-  assign axi_ddr_wdata_debug2 = axi_ddr_wdata[31:0];
 
   // ================
   // AXI Interconnect

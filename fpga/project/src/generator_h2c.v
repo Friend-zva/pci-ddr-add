@@ -1,19 +1,21 @@
-module gen_h2c #(
+module generator_h2c #(
     parameter integer DATA_WIDTH = 256,
     parameter integer LEN_WIDTH  = 20,
     parameter integer KEEP_WIDTH = (DATA_WIDTH / 8)
 ) (
-    input                        clk,
-    input                        rstn,
-    input                        start,
-    input       [ LEN_WIDTH-1:0] len,
-    output reg                   busy,
-    output reg                   done,
-    output reg  [DATA_WIDTH-1:0] m_axis_tdata,
-    output wire [KEEP_WIDTH-1:0] m_axis_tkeep,
-    output reg                   m_axis_tvalid,
-    input                        m_axis_tready,
-    output wire                  m_axis_tlast
+    input clk,
+    input rstn,
+
+    input      [LEN_WIDTH-1:0] gen_len,
+    input                      gen_run,
+    output reg                 gen_busy,
+    output reg                 gen_done,
+
+    output reg [DATA_WIDTH-1:0] m_axis_tdata,
+    output     [KEEP_WIDTH-1:0] m_axis_tkeep,
+    output reg                  m_axis_tvalid,
+    input                       m_axis_tready,
+    output                      m_axis_tlast
 );
 
   localparam [255:0] START_DATA = 256'h000F_000E_000D_000C_000B_000A_0009_0008_0007_0006_0005_0004_0003_0002_0001_0000;
@@ -24,29 +26,29 @@ module gen_h2c #(
   reg [LEN_WIDTH-1:0] counter;
 
   wire [LEN_WIDTH-1:0] step = 32;
-  wire is_last = (counter + step >= len);
+  wire is_last = (counter + step >= gen_len);
   assign m_axis_tlast = m_axis_tvalid && is_last;
 
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
-      busy <= 1'b0;
-      done <= 1'b0;
+      gen_busy <= 1'b0;
+      gen_done <= 1'b0;
       counter <= 0;
       m_axis_tdata <= START_DATA;
       m_axis_tvalid <= 1'b0;
     end else begin
-      done <= 1'b0;
+      gen_done <= 1'b0;
 
-      if (start && !busy) begin
-        busy <= 1'b1;
+      if (gen_run && !gen_busy) begin
+        gen_busy <= 1'b1;
         counter <= 0;
         m_axis_tdata <= START_DATA;
-        m_axis_tvalid <= (len > 0);
-        if (len == 0) done <= 1'b1;
-      end else if (busy && m_axis_tvalid && m_axis_tready) begin
+        m_axis_tvalid <= (gen_len > 0);
+        if (gen_len == 0) gen_done <= 1'b1;
+      end else if (gen_busy && m_axis_tvalid && m_axis_tready) begin
         if (is_last) begin
-          busy <= 1'b0;
-          done <= 1'b1;
+          gen_busy <= 1'b0;
+          gen_done <= 1'b1;
           m_axis_tvalid <= 1'b0;
         end else begin
           counter <= counter + step;
