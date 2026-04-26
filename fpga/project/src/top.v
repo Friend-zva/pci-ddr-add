@@ -276,7 +276,6 @@ module top (
       .c2h_run(c2h_run)
   );
 
-
   /* Gen mode (alternative h2c) */
   wire [AXILENWIDTH-1:0] gen_len;
   wire                   gen_run;
@@ -311,8 +310,9 @@ module top (
   wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
-  wire [             6:0] num_desc;
   reg  [            63:0] h2c_overhead_reg;
+  wire                    h2c_done;
+  wire [             6:0] desc_num;
   // c2h AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
@@ -369,7 +369,7 @@ module top (
       .gen_run(gen_run),
       .gen_done(gen_done),
       .en_gen_mode(en_gen_mode),
-      .num_desc(num_desc),
+      .desc_num(desc_num),
       .h2c_done(h2c_done)
   );
 
@@ -402,24 +402,21 @@ module top (
   );
 
   /* Auto stop for h2c mode */
-  wire axi_pci_dma_bvalid;
-  wire axi_pci_dma_bready;
-  wire h2c_done;
+  wire pci_dma_resp_fire;
+  wire write_data_fire = axis_write_data_tvalid && axis_write_data_tready;
 
   auto_stop_h2c #(
       .AXI_LEN_WIDTH(AXILENWIDTH)
   ) u_auto_stop_h2c (
       .clk(tlp_clk),
       .rstn(tlp_rst_n),
-      .num_desc(num_desc),
-      .axis_h2c_desc_len(axis_h2c_desc_len),
+      .cfg_desc_num(desc_num),
+      .cfg_desc_len(axis_h2c_desc_len),
       .en_gen_mode(en_gen_mode),
-      .bvalid(axi_pci_dma_bvalid),
-      .bready(axi_pci_dma_bready),
-      .axis_write_data_tvalid(axis_write_data_tvalid),
-      .axis_write_data_tready(axis_write_data_tready),
+      .resp_fire(pci_dma_resp_fire),
+      .data_fire(write_data_fire),
       .axis_auto_data_tlast(axis_auto_data_tlast),
-      .h2c_done(h2c_done)
+      .done(h2c_done)
   );
 
   /* AXI DMA */
@@ -440,8 +437,8 @@ module top (
   wire                    axi_pci_dma_wready;
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_bid;
   wire [             1:0] axi_pci_dma_bresp;
-  //wire                    axi_pci_dma_bvalid;
-  //wire                    axi_pci_dma_bready;
+  wire                    axi_pci_dma_bvalid;
+  wire                    axi_pci_dma_bready;
   wire [  AXIIDWIDTH-1:0] axi_pci_dma_arid;
   wire [AXIADDRWIDTH-1:0] axi_pci_dma_araddr;
   wire [             7:0] axi_pci_dma_arlen;
@@ -542,6 +539,8 @@ module top (
       .write_enable(1'b1),
       .write_abort(1'b0)
   );
+
+  assign pci_dma_resp_fire = axi_pci_dma_bvalid && axi_pci_dma_bready;
 
   // ==========
   // Logic Core

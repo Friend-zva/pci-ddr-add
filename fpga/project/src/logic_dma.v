@@ -40,7 +40,7 @@ module logic_dma #(
     output reg                     gen_run,
     input                          gen_done,
     output reg                     en_gen_mode,
-    output reg [            6 : 0] num_desc,
+    output reg [            6 : 0] desc_num,
     input                          h2c_done
 );
   //* All lengths in bytes.
@@ -58,25 +58,22 @@ module logic_dma #(
   localparam integer RegAddrLadWr = 8'h34;
   localparam integer RegLengLad = 8'h38;
 
+  wire wr_en = user_cs && user_rw;
+  wire rd_en = user_cs && !user_rw;
+  wire [7:0] addr_reg = user_address[7:0];
+
   reg lad_done_latched;
   reg gen_done_latched;
   reg h2c_done_latched;
   reg lad_start_pulse;
   reg lad_stop_pulse;
 
-  wire wr_en;
-  wire rd_en;
-  wire [7:0] addr_reg;
-
-  assign wr_en = user_cs && user_rw;
-  assign rd_en = user_cs && !user_rw;
-  assign addr_reg = user_address[7:0];
-
   // gen
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
       gen_run <= 1'b0;
       gen_len <= {AXI_LEN_WIDTH{1'b0}};
+      gen_done_latched <= 1'b0;
     end else begin
       if (en_gen_mode && m_axis_h2c_desc_valid && m_axis_h2c_desc_ready) begin
         gen_run <= 1'b1;
@@ -85,6 +82,11 @@ module logic_dma #(
 
       if (gen_done) begin
         gen_run <= 1'b0;
+        gen_done_latched <= 1'b1;
+      end
+
+      if (wr_en && addr_reg == RegCtrl && user_wr_data[0]) begin
+        gen_done_latched <= 1'b0;
       end
     end
   end
@@ -124,18 +126,6 @@ module logic_dma #(
       end
     end
   end
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
-      gen_done_latched <= 1'b0;
-    end else begin
-      if (gen_done) begin
-        gen_done_latched <= 1'b1;
-      end
-      if (wr_en && addr_reg == RegCtrl && user_wr_data[0]) begin
-        gen_done_latched <= 1'b0;
-      end
-    end
-  end
 
   // BAR2 host write
   always @(posedge clk or negedge rstn) begin
@@ -153,7 +143,7 @@ module logic_dma #(
       lad_len <= {AXI_LEN_WIDTH{1'b0}};
 
       en_gen_mode <= 1'b0;
-      num_desc <= 7'd0;
+      desc_num <= 7'd0;
 
       lad_start_pulse <= 1'b0;
       lad_stop_pulse <= 1'b0;
@@ -202,7 +192,7 @@ module logic_dma #(
           end
 
           RegNumDesc: begin
-            num_desc <= user_wr_data[6:0];
+            desc_num <= user_wr_data[6:0];
           end
 
           RegAddrDDRh2c: begin

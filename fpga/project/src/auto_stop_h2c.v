@@ -4,33 +4,31 @@ module auto_stop_h2c #(
     input clk,
     input rstn,
 
-    input [              6:0] num_desc,
-    input [AXI_LEN_WIDTH-1:0] axis_h2c_desc_len,
+    input [              6:0] cfg_desc_num,
+    input [AXI_LEN_WIDTH-1:0] cfg_desc_len,
     input                     en_gen_mode,
 
-    input bvalid,
-    input bready,
-
-    input axis_write_data_tvalid,
-    input axis_write_data_tready,
+    input resp_fire,
+    input data_fire,
 
     output reg axis_auto_data_tlast,
-    output reg h2c_done
+    output reg done
 );
 
   reg  [26:0] beat_count;
   reg  [ 6:0] desc_count;
 
   //? Check
-  wire [26:0] target_beats = ({20'd0, num_desc} * {7'd0, axis_h2c_desc_len}) >> 5;
+  wire [33:0] bytes_total = cfg_desc_num * cfg_desc_len;
+  wire [26:0] target_beats = bytes_total >> 5;
 
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
       beat_count <= 0;
       axis_auto_data_tlast <= 0;
     end else begin
-      if (num_desc != 0 && !en_gen_mode) begin
-        if (axis_write_data_tvalid && axis_write_data_tready) begin
+      if (cfg_desc_num != 0 && !en_gen_mode) begin
+        if (data_fire) begin
           if (beat_count + 1 == target_beats) begin
             beat_count <= 0;
             axis_auto_data_tlast <= 1'b1;
@@ -51,23 +49,23 @@ module auto_stop_h2c #(
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
       desc_count <= 0;
-      h2c_done   <= 0;
+      done <= 0;
     end else begin
-      if (num_desc != 0 && !en_gen_mode) begin
-        if (bvalid && bready) begin
-          if (desc_count + 1 == num_desc) begin
+      if (cfg_desc_num != 0 && !en_gen_mode) begin
+        if (resp_fire) begin
+          if (desc_count + 1 == cfg_desc_num) begin
             desc_count <= 0;
-            h2c_done   <= 1'b1;
+            done <= 1'b1;
           end else begin
             desc_count <= desc_count + 1;
-            h2c_done   <= 0;
+            done <= 0;
           end
         end else begin
-          h2c_done <= 0;
+          done <= 0;
         end
       end else begin
         desc_count <= 0;
-        h2c_done   <= 0;
+        done <= 0;
       end
     end
   end
