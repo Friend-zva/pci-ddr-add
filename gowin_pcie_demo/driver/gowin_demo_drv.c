@@ -47,7 +47,6 @@
 #define DRIVER_NAME "gowin_pcie_demo"
 #define DRIVER_VERSION "0.1"
 
-
 #define VMEM_FLAGS (VM_IO | VM_DONTEXPAND | VM_DONTDUMP)
 
 struct dma_context {
@@ -55,7 +54,6 @@ struct dma_context {
     dma_addr_t  phy;
     size_t      len;
 };
-
 
 struct gowin_bar_data {
     struct pci_dev         *pdev;
@@ -82,12 +80,12 @@ struct gowin_bar_data {
     atomic64_t              irq_count[GW_IRQ_NUM];
     wait_queue_head_t       irq_wait[GW_IRQ_NUM];
 
-    /*! mutex to protect the iotcl */
+    /*! mutex to protect the ioctl */
     struct mutex            mutex;
 
     //! ????
     // size_t              alignment;
-    struct gowin_iotcl_param *test;
+    struct gowin_ioctl_param *test;
 };
 
 static int msi_number   = 1;
@@ -216,7 +214,6 @@ static inline void gowin_writeb(
     }
 }
 
-
 static irqreturn_t gowin_bar_irq_handler(int irq, void *dev_id)
 {
     int i;
@@ -274,15 +271,15 @@ static irqreturn_t gowin_bar_irq_handler(int irq, void *dev_id)
 
 /*!
  * ioctl_read_bar() -
- *      static function for iotcl: GOWIN_BAR_READ_DWORD
+ *      static function for ioctl: GOWIN_BAR_READ_DWORD
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_read_bar(
         struct gowin_bar_data *data, unsigned long arg)
 {
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -324,15 +321,15 @@ static int ioctl_read_bar(
 
 /*!
  * ioctl_write_bar() -
- *      static function for iotcl: GOWIN_BAR_WRITE_DWORD
+ *      static function for ioctl: GOWIN_BAR_WRITE_DWORD
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_write_bar(
         struct gowin_bar_data *data, unsigned long arg)
 {
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -370,15 +367,15 @@ static int ioctl_write_bar(
 
 /*!
  * ioctl_read_config() -
- *      static function for iotcl: GOWIN_CONFIG_READ_DWORD
+ *      static function for ioctl: GOWIN_CONFIG_READ_DWORD
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_read_config(
         struct gowin_bar_data *data, unsigned long arg)
 {
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -417,15 +414,15 @@ static int ioctl_read_config(
 
 /*!
  * ioctl_write_config() -
- *      static function for iotcl: GOWIN_CONFIG_WRITE_DWORD
+ *      static function for ioctl: GOWIN_CONFIG_WRITE_DWORD
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_write_config(
         struct gowin_bar_data *data, unsigned long arg)
 {
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -459,10 +456,10 @@ static int ioctl_write_config(
 
 /*!
  * ioctl_wait_irq() -
- *      static function for iotcl: GOWIN_WAIT_IRQ
+ *      static function for ioctl: GOWIN_WAIT_IRQ
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_wait_irq(
         struct gowin_bar_data *data, unsigned long arg)
@@ -470,7 +467,7 @@ static int ioctl_wait_irq(
     u64 count;
     int ret;
     u32 timeout;
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -493,15 +490,15 @@ static int ioctl_wait_irq(
     }
 
     count = atomic64_read(&data->irq_count[param.irq_idx]);
-    do {
-        ret = wait_event_interruptible_timeout(
-                    data->irq_wait[param.irq_idx],
-                    count != atomic64_read(&data->irq_count[param.irq_idx]),
-                    msecs_to_jiffies(timeout));
-        timeout = ret;
-    } while (ret == -ERESTARTSYS);
+    ret = wait_event_interruptible_timeout(
+                data->irq_wait[param.irq_idx],
+                count != atomic64_read(&data->irq_count[param.irq_idx]),
+                msecs_to_jiffies(timeout));
     // printk(KERN_DEBUG "[ioctl_wait_irq] count[%d] = %lld (%lld, %d)\n", param.irq_idx, atomic64_read(&data->irq_count[param.irq_idx]), count, ret);
     // count = atomic64_read(&data->irq_count[param.irq_idx]);
+    if (ret == -ERESTARTSYS) {
+        return -EINTR;
+    }
     if (ret == 0) {
         return -ETIMEDOUT;
     } 
@@ -510,16 +507,16 @@ static int ioctl_wait_irq(
 
 /*!
  * ioctl_dma_mem_request() -
- *      static function for iotcl: GOWIN_REQUEST_DMA_MEM
+ *      static function for ioctl: GOWIN_REQUEST_DMA_MEM
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_dma_mem_request(
         struct gowin_bar_data *data, unsigned long arg)
 {
     int id, size;
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     // printk(KERN_DEBUG "ioctl_dma_mem_request() 1\n");
@@ -590,16 +587,16 @@ static int ioctl_dma_mem_request(
 
 /*!
  * ioctl_dma_mem_release() -
- *      static function for iotcl: GOWIN_RELEASE_DMA_MEM
+ *      static function for ioctl: GOWIN_RELEASE_DMA_MEM
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_dma_mem_release(
         struct gowin_bar_data *data, unsigned long arg)
 {
     int id;
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     // printk(KERN_DEBUG "ioctl_dma_mem_release() 1\n");
@@ -654,16 +651,16 @@ static int ioctl_dma_mem_release(
 
 /*!
  * ioctl_switch_bar_mem() -
- *      static function for iotcl: GOWIN_SWITCH_BAR_OR_MEM
+ *      static function for ioctl: GOWIN_SWITCH_BAR_OR_MEM
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_switch_bar_mem(
         struct gowin_bar_data *data, unsigned long arg)
 {
     int index;
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -701,15 +698,15 @@ static int ioctl_switch_bar_mem(
 
 /*!
  * ioctl_clear_irq_count() -
- *      static function for iotcl: GOWIN_GET_IRQ_COUNT
+ *      static function for ioctl: GOWIN_GET_IRQ_COUNT
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_get_irq_count(
         struct gowin_bar_data *data, unsigned long arg)
 {
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
         return -EINVAL;
@@ -730,10 +727,10 @@ static int ioctl_get_irq_count(
 
 /*!
  * ioctl_clear_irq_count() -
- *      static function for iotcl: GOWIN_CLEAR_IRQ_COUNT
+ *      static function for ioctl: GOWIN_CLEAR_IRQ_COUNT
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_clear_irq_count(
         struct gowin_bar_data *data, unsigned long arg)
@@ -748,10 +745,10 @@ static int ioctl_clear_irq_count(
 
 /*!
  * ioctl_enable_irq() -
- *      static function for iotcl: GOWIN_IRQ_ENABLE
+ *      static function for ioctl: GOWIN_IRQ_ENABLE
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_enable_irq(
         struct gowin_bar_data *data, unsigned long arg)
@@ -774,10 +771,10 @@ static int ioctl_enable_irq(
 
 /*!
  * ioctl_disable_irq() -
- *      static function for iotcl: GOWIN_IRQ_DISABLE
+ *      static function for ioctl: GOWIN_IRQ_DISABLE
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_disable_irq(
         struct gowin_bar_data *data, unsigned long arg)
@@ -799,18 +796,18 @@ static int ioctl_disable_irq(
 
 /*!
  * ioctl_thoughtput_test() -
- *      static function for iotcl: GOWIN_THROUGHPUT_TEST
+ *      static function for ioctl: GOWIN_THROUGHPUT_TEST
  *      Only for test.
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_thoughtput_test(
         struct gowin_bar_data *data, unsigned long arg)
 {
 #if 0
     int ret;
-    struct gowin_iotcl_param param;
+    struct gowin_ioctl_param param;
     struct device *dev;
 
     if (WARN_ON(!data) || WARN_ON(!data->pdev) || WARN_ON(!arg))
@@ -842,10 +839,10 @@ static int ioctl_thoughtput_test(
 
 /*!
  * ioctl_debug() -
- *      static function for iotcl: GOWIN_DEBUG_ONLY
+ *      static function for ioctl: GOWIN_DEBUG_ONLY
  * 
  * @param[in]   data:   pointer to struct gowin_bar_data
- * @param[inout] arg:   parameters for iotcl
+ * @param[inout] arg:   parameters for ioctl
  */
 static int ioctl_debug(
         struct gowin_bar_data *data, unsigned long arg)

@@ -1,11 +1,11 @@
+#include <unistd.h>
 
 #ifndef MAX_DMA_CTX_NUM
-#define MAX_DMA_CTX_NUM     16
+#define MAX_DMA_CTX_NUM 16
 #endif
 
-int dev_open(char * node);
+int dev_open(char *node);
 int dev_close(int fd);
-
 
 void bar_writel(int fd, int bar, uint32_t offset, uint32_t value);
 uint32_t bar_readl(int fd, int bar, uint32_t offset);

@@ -18,8 +18,8 @@ CFLAGS += -I. -I../include -I../libs
 CFLAGS += $(EXTRA_FLAGS)
 
 DMA-DEMO = dma_demo
-DMA-DEMO_OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
-DMA-DEMO_OBJS += $(patsubst %.c,%.o,$(wildcard ../libs/*.c))
+DMA-DEMO_SRCS := dma_demo.c $(wildcard ../libs/*.c)
+DMA-DEMO_OBJS := $(patsubst %.c,%.o,$(DMA-DEMO_SRCS))
 
 ifneq ($(CROSS_COMPILE_FLAG),)
 	CC=$(CROSS_COMPILE_FLAG)gcc

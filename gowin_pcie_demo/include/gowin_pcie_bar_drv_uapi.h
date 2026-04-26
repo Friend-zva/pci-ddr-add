@@ -37,7 +37,7 @@
 #define GOWIN_THROUGHPUT_TEST       _IOW ('G', 0x1E, unsigned long)
 #define GOWIN_DEBUG_ONLY            _IOWR('G', 0x1F, unsigned long)
 
-struct gowin_iotcl_param {
+struct gowin_ioctl_param {
     union {
         uint32_t argv[8];
         struct {
