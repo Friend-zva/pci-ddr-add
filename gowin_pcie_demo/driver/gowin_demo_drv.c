@@ -1016,33 +1016,30 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma)
         return -EINVAL;
     }
 
-    /*!
-     *  page must not be cached as this would result in cache line size
-     *  accesses to the end point
-     */
-    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-    /*!
-     * prevent touching the pages (byte access) for swap-in,
-     * and prevent the pages from being swapped out
-     */
-
-    // vm_flags_set(vma, VMEM_FLAGS);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
-    vm_flags_set(vma, VMEM_FLAGS);
-#else
-    vma->vm_flags |= VMEM_FLAGS;
-#endif
-
     if (data->mem_select == 0) {
+        /*!
+         * prevent touching the pages (byte access) for swap-in,
+         * and prevent the pages from being swapped out
+         */
+        vm_flags_set(vma, VMEM_FLAGS);
+        /*!
+         *  page must not be cached as this would result in cache line size
+         *  accesses to the end point
+         */
+        vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
         /*! make MMIO accessible to user space */
-        //! TODO
-        ret = io_remap_pfn_range(vma, vma->vm_start,
-                    phys >> PAGE_SHIFT, vsize, vma->vm_page_prot);
-    }
-    else {
-        // set_memory_uc(vir, vsize / PAGE_SIZE);
-        ret = remap_pfn_range(vma, vma->vm_start,
-                    phys >> PAGE_SHIFT, vsize, vma->vm_page_prot);
+        ret = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
+                                 vma->vm_page_prot);
+    } else {
+        if (0) {
+            vm_flags_set(vma, VMEM_FLAGS);
+            vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+            ret = remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
+                                 vma->vm_page_prot);
+        } else
+            ret = dma_mmap_coherent(dev, vma, data->dma_ctx[data->cur_dma].vir,
+                                data->dma_ctx[data->cur_dma].phy,
+                                data->dma_ctx[data->cur_dma].len);
     }
     if (ret)
         return -EAGAIN;
