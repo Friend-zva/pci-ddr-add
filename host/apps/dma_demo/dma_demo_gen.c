@@ -112,6 +112,7 @@ int main(int argc, char *argv[]) {
 
     if (DBG_INFO) {
         printf("*** Init: %i descriptors ***\n", num_desc);
+        fflush(stdout);
     }
 
     // ============================

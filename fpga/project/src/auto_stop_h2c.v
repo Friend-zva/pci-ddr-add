@@ -11,7 +11,7 @@ module auto_stop_h2c #(
     input resp_fire,
     input data_fire,
 
-    output reg axis_auto_data_tlast,
+    output axis_auto_data_tlast,
     output reg done
 );
 
@@ -22,26 +22,22 @@ module auto_stop_h2c #(
   wire [33:0] bytes_total = cfg_desc_num * cfg_desc_len;
   wire [26:0] target_beats = bytes_total >> 5;
 
+  assign axis_auto_data_tlast = (cfg_desc_num != 0 && !en_gen_mode) ? (beat_count + 1 == target_beats) : 1'b0;
+
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
       beat_count <= 0;
-      axis_auto_data_tlast <= 0;
     end else begin
       if (cfg_desc_num != 0 && !en_gen_mode) begin
         if (data_fire) begin
           if (beat_count + 1 == target_beats) begin
             beat_count <= 0;
-            axis_auto_data_tlast <= 1'b1;
           end else begin
             beat_count <= beat_count + 1;
-            axis_auto_data_tlast <= 0;
           end
-        end else begin
-          axis_auto_data_tlast <= 0;
         end
       end else begin
         beat_count <= 0;
-        axis_auto_data_tlast <= 0;
       end
     end
   end

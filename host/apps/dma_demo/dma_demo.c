@@ -141,6 +141,7 @@ int main(int argc, char *argv[]) {
                *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
                gwbar0->h2c[0].desc_count, desc_h2c_p[0].flags,
                desc_h2c_p[num_desc_adj].flags);
+        fflush(stdout);
     }
 
     // ====================
