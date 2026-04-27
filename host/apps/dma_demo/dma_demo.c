@@ -80,8 +80,8 @@ int main(int argc, char *argv[]) {
     uint32_t addr_ddr_h2c = 0x1000;
     uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
 
-    uint32_t cnt_dword = 64;
-    uint32_t length = cnt_dword * 4;
+    uint32_t cnt_dword = 32;
+    uint32_t length = cnt_dword * 4; // MaxPayload
 
     int size_data = DMA_SIZE / 2;
     int num_desc = size_data / length;
