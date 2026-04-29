@@ -286,6 +286,8 @@ module top (
   wire [        255 : 0] axis_gen_data_tdata;
   wire [         31 : 0] axis_gen_data_tkeep;
   wire                   axis_gen_data_tlast;
+  wire                   axi_pci_dma_awfire;
+  wire                   axi_pci_dma_bfire;
 
   generator_h2c #(
       .DATA_WIDTH(256),
@@ -301,7 +303,9 @@ module top (
       .m_axis_tkeep(axis_gen_data_tkeep),
       .m_axis_tvalid(axis_gen_data_tvalid),
       .m_axis_tready(axis_gen_data_tready),
-      .m_axis_tlast(axis_gen_data_tlast)
+      .m_axis_tlast(axis_gen_data_tlast),
+      .awfire(axi_pci_dma_awfire),
+      .bfire(axi_pci_dma_bfire)
   );
 
   /* Logic control BAR2 (Descriptors for DDR3) */
@@ -402,8 +406,7 @@ module top (
   );
 
   /* Auto stop for h2c mode */
-  wire pci_dma_resp_fire;
-  wire write_data_fire = axis_write_data_tvalid && axis_write_data_tready;
+  wire axis_write_data_fire = axis_write_data_tvalid && axis_write_data_tready;
 
   auto_stop_h2c #(
       .AXI_LEN_WIDTH(AXILENWIDTH)
@@ -413,8 +416,8 @@ module top (
       .cfg_desc_num(desc_num),
       .cfg_desc_len(axis_h2c_desc_len),
       .en_gen_mode(en_gen_mode),
-      .resp_fire(pci_dma_resp_fire),
-      .data_fire(write_data_fire),
+      .resp_fire(axi_pci_dma_bfire),
+      .data_fire(axis_write_data_fire),
       .axis_auto_data_tlast(axis_auto_data_tlast),
       .done(h2c_done)
   );
@@ -540,7 +543,8 @@ module top (
       .write_abort(1'b0)
   );
 
-  assign pci_dma_resp_fire = axi_pci_dma_bvalid && axi_pci_dma_bready;
+  assign axi_pci_dma_awfire = axi_pci_dma_awvalid && axi_pci_dma_awready;
+  assign axi_pci_dma_bfire  = axi_pci_dma_bvalid && axi_pci_dma_bready;
 
   // ==========
   // Logic Core
@@ -570,6 +574,10 @@ module top (
   wire                    axis_lad_tx_data_tlast;
   wire [AXIDATAWIDTH-1:0] axis_lad_tx_data_tdata;
   wire [AXISTRBWIDTH-1:0] axis_lad_tx_data_tkeep;
+  // AXI Monitor
+  wire                    axi_lad_dma_awfire;
+  wire                    axi_lad_dma_bfire;
+  wire                    axi_lad_dma_wfin;
 
   logic_adder #(
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
@@ -605,7 +613,10 @@ module top (
       .m_axis_tx_tkeep(axis_lad_tx_data_tkeep),
       .run(lad_run),
       .busy(lad_busy),
-      .done(lad_done)
+      .done(lad_done),
+      .awfire(axi_lad_dma_awfire),
+      .bfire(axi_lad_dma_bfire),
+      .wfin(axi_lad_dma_wfin)
   );
 
   /* AXI DMA */
@@ -728,6 +739,10 @@ module top (
       .write_enable(1'b1),
       .write_abort(1'b0)
   );
+
+  assign axi_lad_dma_awfire = axi_lad_dma_awvalid && axi_lad_dma_awready;
+  assign axi_lad_dma_bfire  = axi_lad_dma_bvalid && axi_lad_dma_bready;
+  assign axi_lad_dma_wfin   = !axi_lad_dma_awvalid && !axi_lad_dma_bvalid;
 
   // =========
   // DDR3 Core
