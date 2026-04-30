@@ -1,4 +1,22 @@
-// Kernel Version: 6.17.0
+// ===========Oooo==========================================Oooo========
+// =  Copyright (C) 2014 Shanghai Gowin Semiconductor Technology Co.,Ltd.
+// =                     All rights reserved.
+// =====================================================================
+//
+//  __      __      __
+//  \ \    /  \    / /   [File name   ] gowin_pcie_bar_chdev.v
+//   \ \  / /\ \  / /    [Description ] Source file for PCIE BAR driver
+//    \ \/ /  \ \/ /     [Timestamp   ] 2022/11/30
+//     \  /    \  /      [version     ] 1.0
+//      \/      \/
+// --------------------------------------------------------------------
+// Code Revision History :
+// --------------------------------------------------------------------
+// Ver: | Author        | Mod. Date  | Changes Made:
+// V1.0 | Huang Mingtao | 2022/11/30 | Initial version
+// ===========Oooo==========================================Oooo========
+
+// Kernel Version: 5.15.0
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -7,6 +25,7 @@
 #include <linux/pci.h>
 #include <linux/spinlock.h>
 #include <linux/version.h>
+#include <linux/wait.h>
 
 #include "../include/gowin_pcie_bar_drv_uapi.h"
 
@@ -18,7 +37,7 @@
 
 #define CLASS_NAME "gowin"
 #define DRIVER_NAME "gowin_pcie_demo"
-#define DRIVER_VERSION "0.2"
+#define DRIVER_VERSION "0.1"
 
 #define VMEM_FLAGS (VM_IO | VM_DONTEXPAND | VM_DONTDUMP)
 
@@ -30,7 +49,8 @@ struct dma_context {
 
 struct gowin_bar_data {
     struct pci_dev *pdev;
-    void __iomem *const *iomap;
+    void __iomem *base;
+    void __iomem *bar[PCI_STD_NUM_BARS];
 
     struct cdev gw_cdev;
     dev_t gw_devid;
@@ -66,7 +86,7 @@ static inline u32 gowin_readl(struct gowin_bar_data *data, u32 bar, u32 offset) 
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return 0;
     } else {
-        return readl(data->iomap[bar] + offset);
+        return readl(pcim_iomap_table(data->pdev)[bar] + offset);
     }
 }
 
@@ -84,7 +104,7 @@ static inline void gowin_writel(struct gowin_bar_data *data, u32 bar, u32 offset
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return;
     } else {
-        writel(value, data->iomap[bar] + offset);
+        writel(value, pcim_iomap_table(data->pdev)[bar] + offset);
     }
 }
 
@@ -100,7 +120,7 @@ static inline u16 gowin_readw(struct gowin_bar_data *data, u32 bar, u32 offset) 
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return 0;
     } else {
-        return readw(data->iomap[bar] + offset);
+        return readw(pcim_iomap_table(data->pdev)[bar] + offset);
     }
 }
 
@@ -118,7 +138,7 @@ static inline void gowin_writew(struct gowin_bar_data *data, u32 bar, u32 offset
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return;
     } else {
-        writew(value, data->iomap[bar] + offset);
+        writew(value, pcim_iomap_table(data->pdev)[bar] + offset);
     }
 }
 
@@ -134,7 +154,7 @@ static inline u8 gowin_readb(struct gowin_bar_data *data, u32 bar, u32 offset) {
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return 0;
     } else {
-        return readb(data->iomap[bar] + offset);
+        return readb(pcim_iomap_table(data->pdev)[bar] + offset);
     }
 }
 
@@ -152,7 +172,7 @@ static inline void gowin_writeb(struct gowin_bar_data *data, u32 bar, u32 offset
     if (WARN_ON(bar >= PCI_STD_NUM_BARS)) {
         return;
     } else {
-        writeb(value, data->iomap[bar] + offset);
+        writeb(value, pcim_iomap_table(data->pdev)[bar] + offset);
     }
 }
 
@@ -486,7 +506,7 @@ static int ioctl_switch_bar_mem(struct gowin_bar_data *data, unsigned long arg) 
             dev_err(dev, "Wrong parameter.");
             return -EINVAL;
         }
-        if (data->iomap[index] == NULL)
+        if (pcim_iomap_table(data->pdev)[index] == NULL)
             return -EINVAL;
 
         data->cur_bar = index;
@@ -654,25 +674,24 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
         dev_err(dev, "gowin_bar_mmap() failed.\n");
         return -EINVAL;
     }
+    /*!
+     *  page must not be cached as this would result in cache line size
+     *  accesses to the end point
+     */
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+    /*!
+     * prevent touching the pages (byte access) for swap-in,
+     * and prevent the pages from being swapped out
+     */
+    vma->vm_flags |= VMEM_FLAGS;
 
     if (data->mem_select == 0) {
-        /*!
-         * prevent touching the pages (byte access) for swap-in,
-         * and prevent the pages from being swapped out
-         */
-        vm_flags_set(vma, VMEM_FLAGS);
-        /*!
-         *  page must not be cached as this would result in cache line size
-         *  accesses to the end point
-         */
-        vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
         /*! make MMIO accessible to user space */
         ret = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
                                  vma->vm_page_prot);
     } else {
-        ret = dma_mmap_coherent(dev, vma, data->dma_ctx[data->cur_dma].vir,
-                                data->dma_ctx[data->cur_dma].phy,
-                                data->dma_ctx[data->cur_dma].len);
+        ret = remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
+                              vma->vm_page_prot);
     }
     if (ret)
         return -EAGAIN;
@@ -706,7 +725,7 @@ static const struct file_operations gowin_bar_fops = {
     .owner = THIS_MODULE,
     .unlocked_ioctl = gowin_bar_ioctl,
     .compat_ioctl = compat_ptr_ioctl,
-    .llseek = noop_llseek,
+    .llseek = no_llseek,
     .open = gowin_bar_open,
     .mmap = gowin_bar_mmap,
     .release = gowin_bar_release,
@@ -756,22 +775,15 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
     }
 
     /* Reserve BAR regions (bitmask: 1 << BAR0 = 1) */
-    err = pcim_iomap_regions(pdev, (1 << 0) | (1 << 2), DRIVER_NAME);
+    err = pcim_iomap_regions_request_all(pdev, (1 << 0) | (1 << 2), DRIVER_NAME);
     if (unlikely(err)) {
-        dev_err(dev, "pcim_iomap_regions() failed. (%d)\n", err);
+        dev_err(dev, "pcim_iomap_regions_request_all() failed. (%d)\n", err);
         return err;
-    }
-
-    /* Get I/O mapping table */
-    data->iomap = pcim_iomap_table(pdev);
-    if (!data->iomap) {
-        dev_err(dev, "pcim_iomap_table() returned NULL.\n");
-        return -ENOMEM;
     }
 
     data->cur_bar = -1;
     for (bar = 0; bar < PCI_STD_NUM_BARS; bar++) {
-        if (!data->iomap[bar])
+        if (!pcim_iomap_table(pdev)[bar])
             continue;
         if (data->cur_bar < 0)
             data->cur_bar = bar;
@@ -796,7 +808,7 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_unregister_chrdev_region;
     }
 
-    data->gw_class = class_create(CLASS_NAME);
+    data->gw_class = class_create(THIS_MODULE, CLASS_NAME);
 
     if (IS_ERR(data->gw_class)) {
         dev_err(dev, "class_create() failed.\n");
@@ -861,7 +873,7 @@ static struct pci_driver gowin_bar_driver = {
 
 module_pci_driver(gowin_bar_driver);
 
-MODULE_DESCRIPTION("PCIe BAR Ctrl Driver");
-MODULE_AUTHOR("Vladimir Zaikin <friend.zva@yandex.ru>");
+MODULE_DESCRIPTION("GoWin-PCIe BAR Ctrl Driver");
+MODULE_AUTHOR("Huang Mingtao <mingtao@gowinsemi.com>");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRIVER_VERSION);

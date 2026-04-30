@@ -187,28 +187,30 @@ int main(int argc, char *argv[]) {
     uint64_t da = proc->dma_dst + offset_data;
 
     for (int i = 0; i < num_desc_adj; i++) {
-        desc_c2h_p->flags =
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED;
-        desc_c2h_p->length = length;
+        desc_c2h_p->flags = __builtin_bswap32(
+            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
+        desc_c2h_p->length = __builtin_bswap32(length);
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
-        desc_c2h_p->addr_dst_lo = PP_ADDR_LO(da);
-        desc_c2h_p->addr_dst_hi = PP_ADDR_HI(da);
+        desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
+        desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
 
         uint64_t desc_next_a = proc->dma_dst + (i + 1) * SIZE_DESC;
-        desc_c2h_p->next_lo = FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0;
-        desc_c2h_p->next_hi = FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0;
+        desc_c2h_p->next_lo =
+            __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
+        desc_c2h_p->next_hi =
+            __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
 
         desc_c2h_p += 1;
         da += length;
     }
 
-    desc_c2h_p->flags = FLAG_LAST;
-    desc_c2h_p->length = length;
-    desc_c2h_p->addr_src_lo = PP_ADDR_LO(write_back_a);
-    desc_c2h_p->addr_src_hi = PP_ADDR_HI(write_back_a);
-    desc_c2h_p->addr_dst_lo = PP_ADDR_LO(da);
-    desc_c2h_p->addr_dst_hi = PP_ADDR_HI(da);
+    desc_c2h_p->flags = __builtin_bswap32(FLAG_LAST);
+    desc_c2h_p->length = __builtin_bswap32(length);
+    desc_c2h_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(write_back_a));
+    desc_c2h_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(write_back_a));
+    desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
+    desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
     desc_c2h_p->next_lo = 0x0;
     desc_c2h_p->next_hi = 0x0;
 
