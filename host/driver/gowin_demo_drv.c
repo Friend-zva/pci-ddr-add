@@ -681,7 +681,7 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
      * prevent touching the pages (byte access) for swap-in,
      * and prevent the pages from being swapped out
      */
-    vma->vm_flags |= VMEM_FLAGS;
+    vm_flags_set(vma, VMEM_FLAGS);
 
     if (data->mem_select == 0) {
         /*! make MMIO accessible to user space */
@@ -806,7 +806,7 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_unregister_chrdev_region;
     }
 
-    data->gw_class = class_create(THIS_MODULE, CLASS_NAME);
+    data->gw_class = class_create(CLASS_NAME);
 
     if (IS_ERR(data->gw_class)) {
         dev_err(dev, "class_create() failed.\n");
