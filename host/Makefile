@@ -1,7 +1,5 @@
-
 SHELL = /bin/bash
 
-#
 # makefile parameters:
 # - KDIR/KSRC/KOBJ=, optional
 # - install_path=,			override all install directories

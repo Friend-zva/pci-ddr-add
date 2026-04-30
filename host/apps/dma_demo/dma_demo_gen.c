@@ -137,6 +137,17 @@ int main(int argc, char *argv[]) {
 
     gwbar2->ctrl = BAR2_PCIE_WR_STOP;
 
+    if (DUMP_INFO) {
+        printf("=== Checking source data ===\n");
+        for (uint32_t i = 0; i < cnt_dword; i++) {
+            gwbar2->rsv_3c[1] = addr_ddr_h2c + i * 4;
+            usleep(1);
+            if (i < 8 || i > cnt_dword - 8) {
+                printf("SRC[%u]: 0x%08x\n", i, gwbar2->rsv_3c[2]);
+            }
+        }
+    }
+
     if (flag_exit) {
         dest_proc(proc);
         return 1;
@@ -162,6 +173,17 @@ int main(int argc, char *argv[]) {
     }
 
     gwbar2->ctrl = BAR2_LAD_STOP;
+
+    if (DUMP_INFO) {
+        printf("=== Checking destination data ===\n");
+        for (uint32_t i = 0; i < cnt_dword; i++) {
+            gwbar2->rsv_3c[3] = addr_ddr_c2h + i * 4;
+            usleep(1);
+            if (i < 8 || i > cnt_dword - 8) {
+                printf("DST[%u]: 0x%08x\n", i, gwbar2->rsv_3c[4]);
+            }
+        }
+    }
 
     if (flag_exit) {
         dest_proc(proc);

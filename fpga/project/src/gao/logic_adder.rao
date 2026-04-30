@@ -4,6 +4,9 @@
     <Mode>Standard</Mode>
     <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
         <SignalList>
+            <Signal capture_enable="true">axis_write_data_tvalid</Signal>
+            <Signal capture_enable="true">axis_write_data_tready</Signal>
+            <Signal capture_enable="true">axis_write_data_tlast</Signal>
             <Signal capture_enable="true">ddr_init</Signal>
             <Signal capture_enable="true">lad_run</Signal>
             <Signal capture_enable="true">axi_lad_dma_awvalid</Signal>
@@ -153,5 +156,5 @@
             <Expression>M0</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>1000101011110101</GAO_ID>
+    <GAO_ID>1111111111110010</GAO_ID>
 </GAO_CONFIG>

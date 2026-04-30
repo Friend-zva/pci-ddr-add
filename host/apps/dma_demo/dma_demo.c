@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     uint32_t addr_ddr_h2c = 0x1000;
     uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
 
-    uint32_t cnt_dword = 32;
+    uint32_t cnt_dword = 32;         //? 64
     uint32_t length = cnt_dword * 4; // MaxPayload
 
     int size_data = DMA_SIZE / 2;
@@ -180,7 +180,6 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
-    gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     if (DBG_INFO) {
         debug_dma(proc->fd, 0, 4 * sizeof(uint32_t));
@@ -190,6 +189,7 @@ int main(int argc, char *argv[]) {
     gwbar2->leng_ddr_h2c = size_data;
     gwbar2->rsv_08[0] = 0; //? Temp
     gwbar2->ctrl = BAR2_PCIE_WR_START;
+    gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     int timeout_h2c = TIMEOUT_POLL;
     while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
@@ -295,11 +295,11 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
     gwbar0->c2h[0].num_desc_adj = num_desc_adj;
-    gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
     gwbar2->ctrl = BAR2_PCIE_RD_START;
+    gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
     int timeout_c2h = TIMEOUT_POLL;
     while (!(*poll_c2h_p) && --timeout_c2h > 0 && !flag_exit) {
