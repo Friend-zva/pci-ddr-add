@@ -33,25 +33,16 @@ module logic_dma #(
     output reg [AXI_ADDR_WIDTH-1:0] lad_write_addr,
     output reg [ AXI_LEN_WIDTH-1:0] lad_len,
     output reg                      lad_run,
-    input                           lad_busy,
-    input                           lad_done,
-
-    output reg [AXI_LEN_WIDTH-1:0] gen_len,
-    output reg                     gen_run,
-    input                          gen_done,
-    output reg                     en_gen_mode,
-    output reg [            6 : 0] desc_num,
-    input                          h2c_done
+    input                           lad_done
 );
   //* All lengths in bytes.
 
   localparam integer RegCtrl = 8'h00;
   localparam integer RegStatus = 8'h04;
-  localparam integer RegNumDesc = 8'h08;  //? Temp
   localparam integer RegAddrDDRh2c = 8'h10;
   localparam integer RegLengDDRh2c = 8'h14;
-  localparam integer RegOverheadh2cLo = 8'h18;  //? Temp
-  localparam integer RegOverheadh2cHi = 8'h1C;  //? Temp
+  localparam integer RegOverheadh2cLo = 8'h18;
+  localparam integer RegOverheadh2cHi = 8'h1C;
   localparam integer RegAddrDDRc2h = 8'h20;
   localparam integer RegLengDDRc2h = 8'h24;
   localparam integer RegAddrLadRd = 8'h30;
@@ -63,33 +54,8 @@ module logic_dma #(
   wire [7:0] addr_reg = user_address[7:0];
 
   reg lad_done_latched;
-  reg gen_done_latched;
-  reg h2c_done_latched;
   reg lad_start_pulse;
   reg lad_stop_pulse;
-
-  // gen
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
-      gen_run <= 1'b0;
-      gen_len <= {AXI_LEN_WIDTH{1'b0}};
-      gen_done_latched <= 1'b0;
-    end else begin
-      if (en_gen_mode && m_axis_h2c_desc_valid && m_axis_h2c_desc_ready) begin
-        gen_run <= 1'b1;
-        gen_len <= m_axis_h2c_desc_len;
-      end
-
-      if (gen_done) begin
-        gen_run <= 1'b0;
-        gen_done_latched <= 1'b1;
-      end
-
-      if (wr_en && addr_reg == RegCtrl && user_wr_data[0]) begin
-        gen_done_latched <= 1'b0;
-      end
-    end
-  end
 
   // lad
   always @(posedge clk or negedge rstn) begin
@@ -113,20 +79,6 @@ module logic_dma #(
     end
   end
 
-  // h2c done
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
-      h2c_done_latched <= 1'b0;
-    end else begin
-      if (h2c_done) begin
-        h2c_done_latched <= 1'b1;
-      end
-      if (wr_en && addr_reg == RegCtrl && user_wr_data[0]) begin
-        h2c_done_latched <= 1'b0;
-      end
-    end
-  end
-
   // BAR2 host write
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
@@ -141,9 +93,6 @@ module logic_dma #(
       lad_read_addr <= {AXI_ADDR_WIDTH{1'b0}};
       lad_write_addr <= {AXI_ADDR_WIDTH{1'b0}};
       lad_len <= {AXI_LEN_WIDTH{1'b0}};
-
-      en_gen_mode <= 1'b0;
-      desc_num <= 7'd0;
 
       lad_start_pulse <= 1'b0;
       lad_stop_pulse <= 1'b0;
@@ -167,7 +116,6 @@ module logic_dma #(
             // bit3: stop  pcie read  descriptor
             // bit4: start logic adder
             // bit5: stop  logic adder
-            // bit6: enable gen write data
             if (user_wr_data[0]) begin
               m_axis_h2c_desc_valid <= 1'b1;
             end
@@ -186,13 +134,6 @@ module logic_dma #(
             if (user_wr_data[5]) begin
               lad_stop_pulse <= 1'b1;
             end
-            if (user_wr_data[6]) begin
-              en_gen_mode <= 1'b1;
-            end
-          end
-
-          RegNumDesc: begin
-            desc_num <= user_wr_data[6:0];
           end
 
           RegAddrDDRh2c: begin
@@ -245,9 +186,7 @@ module logic_dma #(
             user_rd_data[3] <= m_axis_h2c_desc_ready;
             user_rd_data[4] <= lad_run;
             user_rd_data[5] <= lad_done_latched;
-            user_rd_data[6] <= gen_done_latched;
-            user_rd_data[7] <= h2c_done_latched;
-            user_rd_data[31:8] <= 24'd0;
+            user_rd_data[31:6] <= 26'd0;
           end
 
           RegAddrDDRh2c: begin

@@ -276,38 +276,6 @@ module top (
       .c2h_run(c2h_run)
   );
 
-  /* Gen mode (alternative h2c) */
-  wire [AXILENWIDTH-1:0] gen_len;
-  wire                   gen_run;
-  wire                   gen_busy;
-  wire                   gen_done;
-  wire                   axis_gen_data_tready;
-  wire                   axis_gen_data_tvalid;
-  wire [        255 : 0] axis_gen_data_tdata;
-  wire [         31 : 0] axis_gen_data_tkeep;
-  wire                   axis_gen_data_tlast;
-  wire                   axi_pci_dma_awfire;
-  wire                   axi_pci_dma_bfire;
-
-  generator_h2c #(
-      .DATA_WIDTH(256),
-      .LEN_WIDTH (AXILENWIDTH)
-  ) u_generator_h2c (
-      .clk(tlp_clk),
-      .rstn(tlp_rst_n),
-      .gen_len(gen_len),
-      .gen_run(gen_run),
-      .gen_busy(gen_busy),
-      .gen_done(gen_done),
-      .m_axis_tdata(axis_gen_data_tdata),
-      .m_axis_tkeep(axis_gen_data_tkeep),
-      .m_axis_tvalid(axis_gen_data_tvalid),
-      .m_axis_tready(axis_gen_data_tready),
-      .m_axis_tlast(axis_gen_data_tlast),
-      .awfire(axi_pci_dma_awfire),
-      .bfire(axi_pci_dma_bfire)
-  );
-
   /* Logic control BAR2 (Descriptors for DDR3) */
   // h2c AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
@@ -315,8 +283,6 @@ module top (
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
   reg  [            63:0] h2c_overhead_reg;
-  wire                    h2c_done;
-  wire [             6:0] desc_num;
   // c2h AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
@@ -327,7 +293,6 @@ module top (
   wire [AXIADDRWIDTH-1:0] lad_cfg_write_addr;
   wire [ AXILENWIDTH-1:0] lad_cfg_len;
   wire                    lad_run;
-  wire                    lad_busy;
   wire                    lad_done;
 
   always @(posedge tlp_clk or negedge rst_n) begin
@@ -367,59 +332,7 @@ module top (
       .lad_write_addr(lad_cfg_write_addr),
       .lad_len(lad_cfg_len),
       .lad_run(lad_run),
-      .lad_busy(lad_busy),
-      .lad_done(lad_done),
-      .gen_len(gen_len),
-      .gen_run(gen_run),
-      .gen_done(gen_done),
-      .en_gen_mode(en_gen_mode),
-      .desc_num(desc_num),
-      .h2c_done(h2c_done)
-  );
-
-  /* Toggle gen and h2c mode */
-  wire [255 : 0] axis_write_data_tdata;
-  wire [ 31 : 0] axis_write_data_tkeep;
-  wire           axis_write_data_tvalid;
-  wire           axis_write_data_tready;
-  wire           axis_write_data_tlast;
-  wire           axis_auto_data_tlast;
-
-  controller_h2c u_controller_h2c (
-      .en_gen_mode(en_gen_mode),
-      .axis_gen_data_tdata(axis_gen_data_tdata),
-      .axis_gen_data_tkeep(axis_gen_data_tkeep),
-      .axis_gen_data_tvalid(axis_gen_data_tvalid),
-      .axis_gen_data_tready(axis_gen_data_tready),
-      .axis_gen_data_tlast(axis_gen_data_tlast),
-      .axis_h2c_data_tdata(axis_h2c_data_tdata),
-      .axis_h2c_data_tkeep(axis_h2c_data_tkeep),
-      .axis_h2c_data_tvalid(axis_h2c_data_tvalid),
-      .axis_h2c_data_tready(axis_h2c_data_tready),
-      .axis_h2c_data_tlast(axis_h2c_data_tlast),
-      .axis_auto_data_tlast(axis_auto_data_tlast),
-      .axis_write_data_tdata(axis_write_data_tdata),
-      .axis_write_data_tkeep(axis_write_data_tkeep),
-      .axis_write_data_tvalid(axis_write_data_tvalid),
-      .axis_write_data_tready(axis_write_data_tready),
-      .axis_write_data_tlast(axis_write_data_tlast)
-  );
-
-  /* Auto stop for h2c mode */
-  wire axis_write_data_fire = axis_write_data_tvalid && axis_write_data_tready;
-
-  auto_stop_h2c #(
-      .AXI_LEN_WIDTH(AXILENWIDTH)
-  ) u_auto_stop_h2c (
-      .clk(tlp_clk),
-      .rstn(tlp_rst_n),
-      .cfg_desc_num(desc_num),
-      .cfg_desc_len(axis_h2c_desc_len),
-      .en_gen_mode(en_gen_mode),
-      .resp_fire(axi_pci_dma_bfire),
-      .data_fire(axis_write_data_fire),
-      .axis_auto_data_tlast(axis_auto_data_tlast),
-      .done(h2c_done)
+      .lad_done(lad_done)
   );
 
   /* AXI DMA */
@@ -483,7 +396,7 @@ module top (
       .s_axis_read_desc_tag(8'd0),
       .s_axis_read_desc_id(8'd0),
       .s_axis_read_desc_dest(8'd0),
-      .s_axis_read_desc_user(32'd0),
+      .s_axis_read_desc_user(1'd0),
       .s_axis_read_desc_valid(axis_c2h_desc_valid),
       .s_axis_read_desc_ready(axis_c2h_desc_ready),
       .m_axis_read_data_tdata(axis_c2h_data_tdata),
@@ -496,11 +409,11 @@ module top (
       .s_axis_write_desc_tag(8'd0),
       .s_axis_write_desc_valid(axis_h2c_desc_valid),
       .s_axis_write_desc_ready(axis_h2c_desc_ready),
-      .s_axis_write_data_tdata(axis_write_data_tdata),
-      .s_axis_write_data_tkeep(axis_write_data_tkeep),
-      .s_axis_write_data_tvalid(axis_write_data_tvalid),
-      .s_axis_write_data_tready(axis_write_data_tready),
-      .s_axis_write_data_tlast(axis_write_data_tlast),
+      .s_axis_write_data_tdata(axis_h2c_data_tdata),
+      .s_axis_write_data_tkeep(axis_h2c_data_tkeep),
+      .s_axis_write_data_tvalid(axis_h2c_data_tvalid),
+      .s_axis_write_data_tready(axis_h2c_data_tready),
+      .s_axis_write_data_tlast(axis_h2c_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
       .m_axi_awid(axi_pci_dma_awid),
@@ -542,9 +455,6 @@ module top (
       .write_enable(1'b1),
       .write_abort(1'b0)
   );
-
-  assign axi_pci_dma_awfire = axi_pci_dma_awvalid && axi_pci_dma_awready;
-  assign axi_pci_dma_bfire  = axi_pci_dma_bvalid && axi_pci_dma_bready;
 
   // ==========
   // Logic Core
@@ -612,7 +522,6 @@ module top (
       .m_axis_tx_tdata(axis_lad_tx_data_tdata),
       .m_axis_tx_tkeep(axis_lad_tx_data_tkeep),
       .run(lad_run),
-      .busy(lad_busy),
       .done(lad_done),
       .awfire(axi_lad_dma_awfire),
       .bfire(axi_lad_dma_bfire),
@@ -680,7 +589,7 @@ module top (
       .s_axis_read_desc_tag(axis_lad_rd_desc_tag),
       .s_axis_read_desc_id(8'd0),
       .s_axis_read_desc_dest(8'd0),
-      .s_axis_read_desc_user(32'd0),
+      .s_axis_read_desc_user(1'd0),
       .s_axis_read_desc_valid(axis_lad_rd_desc_valid),
       .s_axis_read_desc_ready(axis_lad_rd_desc_ready),
       .m_axis_read_data_tdata(axis_lad_rx_data_tdata),

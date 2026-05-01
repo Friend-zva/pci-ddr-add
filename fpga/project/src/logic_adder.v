@@ -42,7 +42,6 @@ module logic_adder #(
 
     // Control
     input      run,
-    output reg busy,
     output reg done,
 
     // AXI Write monitor
@@ -103,7 +102,6 @@ module logic_adder #(
       state <= IDLE;
       m_axis_read_desc_valid <= 1'b0;
       m_axis_write_desc_valid <= 1'b0;
-      busy <= 1'b0;
       done <= 1'b0;
     end else begin
       done <= 1'b0;
@@ -118,7 +116,6 @@ module logic_adder #(
       case (state)
         IDLE: begin
           if (run) begin
-            busy <= 1'b1;
             m_axis_read_desc_valid <= 1'b1;
             m_axis_write_desc_valid <= 1'b1;
             state <= ISSUE_CMD;
@@ -146,7 +143,6 @@ module logic_adder #(
 
         DONE_STATE: begin
           if (!run) begin
-            busy  <= 1'b0;
             state <= IDLE;
           end
         end

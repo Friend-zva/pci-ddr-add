@@ -187,7 +187,6 @@ int main(int argc, char *argv[]) {
 
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
     gwbar2->leng_ddr_h2c = size_data;
-    gwbar2->rsv_08[0] = 0; //? Temp
     gwbar2->ctrl = BAR2_PCIE_WR_START;
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
@@ -199,16 +198,6 @@ int main(int argc, char *argv[]) {
                    gwbar0->h2c[0].desc_count, (desc_h2c_p - num_desc_adj)->flags,
                    desc_h2c_p->flags);
             fflush(stdout);
-        }
-        if (gwbar2->status & BAR2_H2C_DONE) {
-            printf("h2c: done\n");
-            fflush(stdout);
-            break;
-        }
-        if (gwbar0->h2c[0].desc_count == (num_desc + 1)) {
-            printf("h2c: must be polled\n");
-            fflush(stdout);
-            break;
         }
         if (gwbar0->h2c[0].status0 & DESC_COMPLETED) {
             printf("h2c: completed\n");
