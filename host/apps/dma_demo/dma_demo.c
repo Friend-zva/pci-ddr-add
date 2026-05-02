@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     uint32_t cnt_dword = 32;         //? 64
     uint32_t length = cnt_dword * 4; // MaxPayload
 
-    int size_data = DMA_SIZE / 2;
+    int size_data = DMA_SIZE / 2; // bytes
     int num_desc = size_data / length;
     int num_desc_adj = num_desc - 1;
 
@@ -199,16 +199,11 @@ int main(int argc, char *argv[]) {
                    desc_h2c_p->flags);
             fflush(stdout);
         }
-        if (gwbar0->h2c[0].status0 & DESC_COMPLETED) {
-            printf("h2c: completed\n");
-            fflush(stdout);
-            break;
-        }
         usleep(1);
     }
     if (DBG_INFO) {
-        printf("h2c: status: 0x%08x, overhead: %08x%08x\n", gwbar2->status,
-               gwbar2->rsv_18[1], gwbar2->rsv_18[0]);
+        printf("h2c: poll: 0x%08x, status: 0x%08x, overhead: %08x%08x\n",
+               *poll_h2c_p, gwbar2->status, gwbar2->rsv_18[1], gwbar2->rsv_18[0]);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
@@ -284,6 +279,7 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
     gwbar0->c2h[0].num_desc_adj = num_desc_adj;
+    gwbar0->c2h[0].credit = 0x1FF; // infinity
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
@@ -299,20 +295,11 @@ int main(int argc, char *argv[]) {
                    desc_c2h_p->flags);
             fflush(stdout);
         }
-        if (gwbar0->c2h[0].desc_count == (num_desc + 1)) {
-            printf("c2h: must be polled\n");
-            fflush(stdout);
-            break;
-        }
-        if (gwbar0->c2h[0].status0 & DESC_COMPLETED) {
-            printf("c2h: completed\n");
-            fflush(stdout);
-            break;
-        }
         usleep(1);
     }
     if (DBG_INFO) {
-        printf("c2h: write back: 0x%08x\n", *write_back_p);
+        printf("c2h: poll: 0x%08x, write back: 0x%08x\n", *poll_c2h_p,
+               *write_back_p);
     }
     if (timeout_c2h <= 0) {
         printf("c2h: timeout\n");
@@ -326,7 +313,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    for (int i = 0; i < size_data / 2; i++) {
+    for (int i = 0; i < size_data / 4; i++) {
         uint32_t d = ((uint32_t *)dp)[i];
         uint32_t s = ((uint16_t *)sp)[i * 2] + ((uint16_t *)sp)[i * 2 + 1];
         if (d != s) {
