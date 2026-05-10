@@ -1,5 +1,3 @@
-`define EN_GEN_H2C
-
 module top (
     input sys_clk_p,
     input pcie_rstn,
@@ -69,7 +67,7 @@ module top (
       .lock(pll_lock),
       .reset(~rst_n)
   );
-  assign ddr_clk = pll_50m_clk;  //? In DDR3 IP User Guide recommended
+  assign ddr_clk = pll_50m_clk;
   assign sys_clk = pll_200m_clk;
   assign memory_clk = pll_400m_clk;
 
@@ -282,6 +280,7 @@ module top (
   wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
+  wire                    axis_h2c_desc_status_valid;
   reg  [            63:0] h2c_overhead_reg;
   // c2h AXI stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
@@ -416,6 +415,7 @@ module top (
       .s_axis_write_data_tlast(axis_h2c_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
+      .m_axis_write_desc_status_valid(axis_h2c_desc_status_valid),
       .m_axi_awid(axi_pci_dma_awid),
       .m_axi_awaddr(axi_pci_dma_awaddr),
       .m_axi_awlen(axi_pci_dma_awlen),
@@ -472,6 +472,7 @@ module top (
   wire [             7:0] axis_lad_wr_desc_tag;
   wire                    axis_lad_wr_desc_valid;
   wire                    axis_lad_wr_desc_ready;
+  wire                    axis_lad_wr_desc_status_valid;
   // Receive data
   wire                    axis_lad_rx_data_tready;
   wire                    axis_lad_rx_data_tvalid;
@@ -484,10 +485,6 @@ module top (
   wire                    axis_lad_tx_data_tlast;
   wire [AXIDATAWIDTH-1:0] axis_lad_tx_data_tdata;
   wire [AXISTRBWIDTH-1:0] axis_lad_tx_data_tkeep;
-  // AXI Monitor
-  wire                    axi_lad_dma_awfire;
-  wire                    axi_lad_dma_bfire;
-  wire                    axi_lad_dma_wfin;
 
   logic_adder #(
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
@@ -511,6 +508,7 @@ module top (
       .m_axis_write_desc_addr(axis_lad_wr_desc_addr),
       .m_axis_write_desc_len(axis_lad_wr_desc_len),
       .m_axis_write_desc_tag(axis_lad_wr_desc_tag),
+      .s_axis_write_desc_status_valid(axis_lad_wr_desc_status_valid),
       .s_axis_rx_tready(axis_lad_rx_data_tready),
       .s_axis_rx_tvalid(axis_lad_rx_data_tvalid),
       .s_axis_rx_tdata(axis_lad_rx_data_tdata),
@@ -522,10 +520,7 @@ module top (
       .m_axis_tx_tdata(axis_lad_tx_data_tdata),
       .m_axis_tx_tkeep(axis_lad_tx_data_tkeep),
       .run(lad_run),
-      .done(lad_done),
-      .awfire(axi_lad_dma_awfire),
-      .bfire(axi_lad_dma_bfire),
-      .wfin(axi_lad_dma_wfin)
+      .done(lad_done)
   );
 
   /* AXI DMA */
@@ -609,6 +604,7 @@ module top (
       .s_axis_write_data_tlast(axis_lad_tx_data_tlast),
       .s_axis_write_data_tid(8'd0),
       .s_axis_write_data_tdest(8'd0),
+      .m_axis_write_desc_status_valid(axis_lad_wr_desc_status_valid),
       .m_axi_awid(axi_lad_dma_awid),
       .m_axi_awaddr(axi_lad_dma_awaddr),
       .m_axi_awlen(axi_lad_dma_awlen),
@@ -648,10 +644,6 @@ module top (
       .write_enable(1'b1),
       .write_abort(1'b0)
   );
-
-  assign axi_lad_dma_awfire = axi_lad_dma_awvalid && axi_lad_dma_awready;
-  assign axi_lad_dma_bfire  = axi_lad_dma_bvalid && axi_lad_dma_bready;
-  assign axi_lad_dma_wfin   = !axi_lad_dma_awvalid && !axi_lad_dma_bvalid;
 
   // =========
   // DDR3 Core

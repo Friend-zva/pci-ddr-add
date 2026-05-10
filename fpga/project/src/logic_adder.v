@@ -26,6 +26,7 @@ module logic_adder #(
     output     [AXI_ADDR_WIDTH-1:0] m_axis_write_desc_addr,
     output     [ AXI_LEN_WIDTH-1:0] m_axis_write_desc_len,
     output     [               7:0] m_axis_write_desc_tag,
+    input                           s_axis_write_desc_status_valid,
 
     // Receive
     output                      s_axis_rx_tready,
@@ -42,12 +43,7 @@ module logic_adder #(
 
     // Control
     input      run,
-    output reg done,
-
-    // AXI Write monitor
-    input awfire,
-    input bfire,
-    input wfin
+    output reg done
 );
 
   assign m_axis_read_desc_addr  = cfg_read_addr;
@@ -68,23 +64,6 @@ module logic_adder #(
       assign tx_data_add16[tx_dw*32+:32] = {15'd0, sum16};
     end
   endgenerate
-
-  // AXI B-Channel Tracker
-  reg [15:0] b_inflight;
-
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
-      b_inflight <= 0;
-    end else begin
-      case ({
-        awfire, bfire
-      })
-        2'b10:   b_inflight <= b_inflight + 1;
-        2'b01:   b_inflight <= b_inflight - 1;
-        default: b_inflight <= b_inflight;
-      endcase
-    end
-  end
 
   // FSM
   localparam IDLE = 3'd0;
@@ -135,7 +114,7 @@ module logic_adder #(
         end
 
         WAIT_AXI: begin
-          if (b_inflight == 0 && wfin) begin
+          if (s_axis_write_desc_status_valid) begin
             done  <= 1'b1;
             state <= DONE_STATE;
           end
