@@ -1,5 +1,3 @@
-// Kernel Version: 6.17.0
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 
@@ -655,24 +653,30 @@ static int gowin_bar_mmap(struct file *filp, struct vm_area_struct *vma) {
         return -EINVAL;
     }
 
+    /*!
+     *  page must not be cached as this would result in cache line size
+     *  accesses to the end point
+     */
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+    /*!
+     * prevent touching the pages (byte access) for swap-in,
+     * and prevent the pages from being swapped out
+     */
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+    vm_flags_set(vma, VMEM_FLAGS);
+#else
+    vma->vm_flags |= VMEM_FLAGS;
+#endif
+
     if (data->mem_select == 0) {
-        /*!
-         * prevent touching the pages (byte access) for swap-in,
-         * and prevent the pages from being swapped out
-         */
-        vm_flags_set(vma, VMEM_FLAGS);
-        /*!
-         *  page must not be cached as this would result in cache line size
-         *  accesses to the end point
-         */
-        vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
         /*! make MMIO accessible to user space */
         ret = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
                                  vma->vm_page_prot);
     } else {
-        ret = dma_mmap_coherent(dev, vma, data->dma_ctx[data->cur_dma].vir,
-                                data->dma_ctx[data->cur_dma].phy,
-                                data->dma_ctx[data->cur_dma].len);
+        ret = remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, vsize,
+                              vma->vm_page_prot);
     }
     if (ret)
         return -EAGAIN;
@@ -796,7 +800,11 @@ static int gowin_bar_probe(struct pci_dev *pdev, const struct pci_device_id *did
         goto err_unregister_chrdev_region;
     }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
     data->gw_class = class_create(CLASS_NAME);
+#else
+    data->gw_class = class_create(THIS_MODULE, CLASS_NAME);
+#endif
 
     if (IS_ERR(data->gw_class)) {
         dev_err(dev, "class_create() failed.\n");
