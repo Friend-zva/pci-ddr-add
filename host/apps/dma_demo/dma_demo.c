@@ -39,7 +39,13 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     volatile int val;
 
-    Process *proc = init_proc();
+    uint32_t size_data = 2048; // bytes
+    uint32_t size_block = 256; // bytes
+    uint32_t num_desc = size_data / size_block;
+    uint32_t size_descs = num_desc * SIZE_DESC;
+    uint32_t num_desc_adj = (num_desc == 0) ? 0 : (num_desc - 1);
+
+    Process *proc = init_proc(size_data, size_descs);
     if (proc == NULL) {
         return -1;
     }
@@ -59,7 +65,7 @@ int main(int argc, char *argv[]) {
     gwbar0->ctrl.ctrl_init = 1;
     while (gwbar0->ctrl.stat_init != PCIE_READY) {
         if (flag_exit) {
-            dest_proc(proc);
+            dest_proc(proc, size_data, size_descs);
             return -1;
         }
     }
@@ -73,42 +79,29 @@ int main(int argc, char *argv[]) {
     val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
     if (val) {
         printf("Failed to check link status\n");
-        dest_proc(proc);
+        dest_proc(proc, size_data, size_descs);
         return -1;
     }
 
     uint32_t addr_ddr_h2c = 0x1000;
-    uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
-
-    uint32_t cnt_dword = 32;         //? 64
-    uint32_t length = cnt_dword * 4; // MaxPayload
-
-    int size_data = DMA_SIZE / 2; // bytes
-    int num_desc = size_data / length;
-    int num_desc_adj = num_desc - 1;
+    uint32_t addr_ddr_c2h = 0x2000 + size_data;
 
     uint32_t offset_safe = 32;
     uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
     uint32_t offset_wb = offset_poll + offset_safe;
-    uint32_t offset_data = offset_wb + 2 * offset_safe;
-    if (offset_data + size_data > DMA_SIZE) {
-        printf("Failed to distributed dma area\n");
-        dest_proc(proc);
-        return -1;
-    }
 
     // h2c
 
-    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mem_src;
+    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mdesc_src;
     memset((void *)desc_h2c_p, 0, offset_poll);
-    uint64_t desc_h2c_a = proc->dma_src;
+    uint64_t desc_h2c_a = proc->desc_src;
 
-    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mem_src + offset_poll);
+    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mdesc_src + offset_poll);
     *poll_h2c_p = 0;
-    uint64_t poll_h2c_a = proc->dma_src + offset_poll;
+    uint64_t poll_h2c_a = proc->desc_src + offset_poll;
 
-    volatile uint8_t *sp = proc->mem_src + offset_data;
-    uint64_t sa = proc->dma_src + offset_data;
+    volatile uint8_t *sp = proc->mdata_src;
+    uint64_t sa = proc->data_src;
 
     for (int i = 0; i < size_data / 2; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
@@ -117,20 +110,20 @@ int main(int argc, char *argv[]) {
 
     // c2h
 
-    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mem_dst;
+    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mdesc_dst;
     memset((void *)desc_c2h_p, 0, offset_poll);
-    uint64_t desc_c2h_a = proc->dma_dst;
+    uint64_t desc_c2h_a = proc->desc_dst;
 
-    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mem_dst + offset_poll);
+    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mdesc_dst + offset_poll);
     *poll_c2h_p = 0;
-    uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
+    uint64_t poll_c2h_a = proc->desc_dst + offset_poll;
 
-    volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_wb);
+    volatile uint32_t *write_back_p = (uint32_t *)(proc->mdesc_dst + offset_wb);
     *write_back_p = 0;
-    uint64_t write_back_a = proc->dma_dst + offset_wb;
+    uint64_t write_back_a = proc->desc_dst + offset_wb;
 
-    volatile uint8_t *dp = proc->mem_dst + offset_data;
-    uint64_t da = proc->dma_dst + offset_data;
+    volatile uint8_t *dp = proc->mdata_dst;
+    uint64_t da = proc->data_dst;
 
     if (DBG_INFO) {
         printf("*** Init: %i descriptors ***\n", num_desc);
@@ -150,24 +143,24 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_desc_adj; i++) {
         desc_h2c_p->flags = __builtin_bswap32(
             (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
-        desc_h2c_p->length = __builtin_bswap32(length);
+        desc_h2c_p->length = __builtin_bswap32(size_block);
         desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
         desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
         desc_h2c_p->addr_dst_lo = 0x0;
         desc_h2c_p->addr_dst_hi = 0x0;
 
-        uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
+        uint64_t desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
         desc_h2c_p->next_lo =
             __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
         desc_h2c_p->next_hi =
             __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
 
         desc_h2c_p += 1;
-        sa += length;
+        sa += size_block;
     }
 
     desc_h2c_p->flags = __builtin_bswap32(FLAG_LAST);
-    desc_h2c_p->length = __builtin_bswap32(length);
+    desc_h2c_p->length = __builtin_bswap32(size_block);
     desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
     desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
     desc_h2c_p->addr_dst_lo = 0x01234567;
@@ -213,7 +206,7 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_PCIE_WR_STOP;
 
     if (flag_exit) {
-        dest_proc(proc);
+        dest_proc(proc, size_data, size_descs);
         return 1;
     }
 
@@ -239,7 +232,7 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_LAD_STOP;
 
     if (flag_exit) {
-        dest_proc(proc);
+        dest_proc(proc, size_data, size_descs);
         return 1;
     }
 
@@ -249,24 +242,24 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_desc_adj; i++) {
         desc_c2h_p->flags = __builtin_bswap32(
             (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
-        desc_c2h_p->length = __builtin_bswap32(length);
+        desc_c2h_p->length = __builtin_bswap32(size_block);
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
         desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
         desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
 
-        uint64_t desc_next_a = proc->dma_dst + (i + 1) * SIZE_DESC;
+        uint64_t desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
         desc_c2h_p->next_lo =
             __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
         desc_c2h_p->next_hi =
             __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
 
         desc_c2h_p += 1;
-        da += length;
+        da += size_block;
     }
 
     desc_c2h_p->flags = __builtin_bswap32(FLAG_LAST);
-    desc_c2h_p->length = __builtin_bswap32(length);
+    desc_c2h_p->length = __builtin_bswap32(size_block);
     desc_c2h_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(write_back_a));
     desc_c2h_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(write_back_a));
     desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
@@ -309,7 +302,7 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_PCIE_RD_STOP;
 
     if (flag_exit) {
-        dest_proc(proc);
+        dest_proc(proc, size_data, size_descs);
         return 1;
     }
 
@@ -323,6 +316,6 @@ int main(int argc, char *argv[]) {
     }
     dump_destination(da, dp);
 
-    dest_proc(proc);
+    dest_proc(proc, size_data, size_descs);
     return 0;
 }
