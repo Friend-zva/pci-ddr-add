@@ -16,6 +16,7 @@
 #include "../../include/gowin_bar2.h"
 #include "../../include/gowin_descriptor.h"
 #include "../../include/gowin_pcie_bar_drv_uapi.h"
+#include "../libs/config.h"
 #include "../libs/dump.h"
 #include "../libs/gowin_utils.h"
 #include "../libs/process.h"
@@ -39,8 +40,10 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     volatile int val;
 
-    uint32_t size_data = 2048; // bytes
-    uint32_t size_block = 256; // bytes
+    Config config = init_config(argc, argv);
+    uint32_t size_data = config.size_data;
+    uint32_t size_block = config.size_block;
+
     uint32_t num_desc = size_data / size_block;
     uint32_t size_descs = num_desc * SIZE_DESC;
     uint32_t num_desc_adj = (num_desc == 0) ? 0 : (num_desc - 1);
@@ -87,7 +90,7 @@ int main(int argc, char *argv[]) {
     uint32_t addr_ddr_c2h = 0x2000 + size_data;
 
     uint32_t offset_safe = 32;
-    uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
+    uint32_t offset_poll = size_descs + offset_safe;
     uint32_t offset_wb = offset_poll + offset_safe;
 
     // h2c
@@ -106,7 +109,9 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < size_data / 2; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
-    dump_source(sa, sp);
+    if (config.en_dumping) {
+        dump_source(sa, sp);
+    }
 
     // c2h
 
@@ -142,7 +147,8 @@ int main(int argc, char *argv[]) {
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
         desc_h2c_p->flags = __builtin_bswap32(
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
+            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) |
+            (i & 0x7F ? SET_FLAG_COMP : 0x0));
         desc_h2c_p->length = __builtin_bswap32(size_block);
         desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
         desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
@@ -150,10 +156,10 @@ int main(int argc, char *argv[]) {
         desc_h2c_p->addr_dst_hi = 0x0;
 
         uint64_t desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
-        desc_h2c_p->next_lo =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
-        desc_h2c_p->next_hi =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
+        desc_h2c_p->next_lo = __builtin_bswap32(
+            (FILL_NEXT | i & 0x7F) ? PP_ADDR_LO(desc_next_a) : 0x0);
+        desc_h2c_p->next_hi = __builtin_bswap32(
+            (FILL_NEXT | i & 0x7F) ? PP_ADDR_HI(desc_next_a) : 0x0);
 
         desc_h2c_p += 1;
         sa += size_block;
@@ -241,7 +247,8 @@ int main(int argc, char *argv[]) {
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
         desc_c2h_p->flags = __builtin_bswap32(
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
+            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) |
+            (i & 0x7F ? SET_FLAG_COMP : 0x0));
         desc_c2h_p->length = __builtin_bswap32(size_block);
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
@@ -249,10 +256,10 @@ int main(int argc, char *argv[]) {
         desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
 
         uint64_t desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
-        desc_c2h_p->next_lo =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
-        desc_c2h_p->next_hi =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
+        desc_c2h_p->next_lo = __builtin_bswap32(
+            (FILL_NEXT | i & 0x7F) ? PP_ADDR_LO(desc_next_a) : 0x0);
+        desc_c2h_p->next_hi = __builtin_bswap32(
+            (FILL_NEXT | i & 0x7F) ? PP_ADDR_HI(desc_next_a) : 0x0);
 
         desc_c2h_p += 1;
         da += size_block;
@@ -314,7 +321,9 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
-    dump_destination(da, dp);
+    if (config.en_dumping) {
+        dump_destination(da, dp);
+    }
 
     dest_proc(proc, size_data, size_descs);
     return 0;

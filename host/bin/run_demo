@@ -2,41 +2,99 @@
 
 bindir="$(dirname $0)"
 
-clear
-
-echo -e '\e[36m###########################################################################'
-echo -e '\e[36m#                                                                         #'
-echo -e '\e[36m# \e[36m                                   /\      /\                          \e[36m #'
-echo -e '\e[36m# \e[36m                                  /**\    /**\                         \e[36m #'
-echo -e '\e[36m# \e[36m                                 /\**/\  /\**/\                        \e[36m #'
-echo -e '\e[36m# \e[36m                                /**\/**\/**\/**\                       \e[36m #'
-echo -e '\e[36m# \e[34m    ,ad###ba,     ,ad###ba,    /\\\e[36m**/\**\e[34m/\\\e[36m**/\**\e[34m/\   ###  ####.    ### \e[36m  #'
-echo -e '\e[36m# \e[34m   ####"""#      ####"""####  /##\\\e[36m/**\\\e[34m/##\\\e[36m/**\\\e[34m/##\  ###  #####.   ### \e[36m  #'
-echo -e '\e[36m# \e[34m  ###"          ###"     "### \###\\\e[36m**\e[34m/####\\\e[36m**\e[34m/###/  ###  ######.  ### \e[36m  #'
-echo -e '\e[36m# \e[34m  ###     ..... ###       ###  \###\/######\/###/   ###  ###`###. ### \e[36m  #'
-echo -e '\e[36m# \e[34m  ###     ##### ###       ###   \######/\######/    ###  ### `###.### \e[36m  #'
-echo -e '\e[36m# \e[34m  ###,     ,### ###,     ,###    \####/  \####/     ###  ###  `###### \e[36m  #'
-echo -e '\e[36m# \e[34m   ####...####   ####...####      \##/    \##/      ###  ###   `##### \e[36m  #'
-echo -e '\e[36m# \e[34m    `"Y###Y"`     `"Y###Y"`        \/      \/       ###  ###    `#### \e[36m  #'
-echo -e '\e[36m#                                                                         #'
-echo -e '\e[36m###########################################################################\e[0m'
-
 dev=$(lspci -d 22c2:1100)
 
 [ -z "$dev" ] && {
-    echo "Could not find the Gowin's PCIe demo device."
-    exit 1
+  echo "Could not find the Gowin's PCIe demo device."
+  # exit 1
 }
 
 echo -e "Find PCIe device:\n$dev\n"
 
-grep -e 'Gowin' -e 'GOWIN'  /usr/share/misc/pci.ids -q || {
+grep -e 'Gowin' -e 'GOWIN' /usr/share/misc/pci.ids -q || {
   sudo sed -i '/Illegal Vendor ID/i\
 22c2  Gowin Semiconductor Corporation' /usr/share/misc/pci.ids
 }
 
 lsmod | grep -q 'gowin_demo' || {
-    sudo insmod ${bindir}/../driver/gowin_demo.ko
+  sudo insmod ${bindir}/../driver/gowin_demo.ko
 }
 
-sudo ${bindir}/dma_demo
+data=4096
+block=128
+dump=0
+
+if [ $# -ge 1 ]; then
+  data=$1
+  block=$2
+  dump=$3
+else
+  echo '*  Data   size (bytes) :'
+  echo '1. 32B  2. 1KB  3. 4KB  4. 16KB  5. 1MB  6. 16MB  7. 128MB  8. 512MB'
+  echo -n "Please enter your choice (1-5): "
+  while true; do
+    read -n 1 b
+    [ "$b" -ge 1 ] && [ "$b" -le 8 ] && {
+      data=$b
+      break
+    }
+    echo -n " Invalid choice, try again: "
+  done
+  echo ''
+
+  echo '*  Block  size (bytes) :'
+  echo '1. 32  2. 64  3. 128  4. 256  5. 512  6. 1024  7. 2048  8. 4096'
+  echo -n "Please enter your choice (1-5): "
+  while true; do
+    read -n 1 b
+    [ "$b" -ge 1 ] && [ "$b" -le 8 ] && {
+      block=$b
+      break
+    }
+    echo -n " Invalid choice, try again: "
+  done
+  echo ''
+
+  echo '*  Enable   dump (int) :'
+  echo '1. Yes  2. No'
+  echo -n "Please enter your choice (1-2): "
+  while true; do
+    read -n 1 d
+    case "$d" in
+    1 | y | Y)
+      dump=1
+      break
+      ;;
+    2 | n | N)
+      dump=0
+      break
+      ;;
+    *) echo -n " Invalid choice, try again: " ;;
+    esac
+  done
+  echo ''
+fi
+
+case $data in
+1) size=32 ;;
+2) size=1024 ;;
+3) size=4096 ;;
+3) size=65_536 ;;
+4) size=1_048_576 ;;
+5) size=16_777_216 ;;
+6) size=134_217_728 ;;
+*) size=536_870_912 ;;
+esac
+
+case $block in
+1) size=32 ;;
+2) size=64 ;;
+3) size=128 ;;
+4) size=256 ;;
+5) size=512 ;;
+6) size=1024 ;;
+7) size=2048 ;;
+*) size=4096 ;;
+esac
+
+sudo ${bindir}/dma_demo ${data} ${block} ${dump}
