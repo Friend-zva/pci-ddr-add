@@ -5,16 +5,16 @@
 
 typedef struct process {
     uint64_t desc_src;
-    uint8_t *mdesc_src;
+    uint8_t *desc_src_m;
 
     uint64_t data_src;
-    uint8_t *mdata_src;
+    uint8_t *data_src_m;
 
     uint64_t desc_dst;
-    uint8_t *mdesc_dst;
+    uint8_t *desc_dst_m;
 
     uint64_t data_dst;
-    uint8_t *mdata_dst;
+    uint8_t *data_dst_m;
 
     int fd;
     GowinBar0 *gwbar0;

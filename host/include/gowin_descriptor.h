@@ -7,7 +7,8 @@
 #define SET_FLAG_EOP (1 << 1)
 #define SET_FLAG_COMP (1 << 2)
 #define SET_FLAG_NUM_DESC(num_desc) (((uint32_t)(num_desc) & 0x7F) << 8)
-#define DESC_COMPLETED (1 << 4)
+#define IS_DESC_COMPLETED (1 << 4)
+#define IS_LAST_DESC(i) (((uint32_t)i & 0x7F) == 0x7F)
 
 typedef struct __attribute__((packed, aligned(32))) {
     //* 0x00 - Stop[0], Eop[1], Completed[2], AdjDescNum[14:8]
@@ -24,6 +25,6 @@ typedef struct __attribute__((packed, aligned(32))) {
     volatile uint32_t next_hi; //* 0x1C - Next Descriptor High Address
 } GowinDescriptor;
 
-const size_t SIZE_DESC = sizeof(GowinDescriptor);
+#define SIZE_DESC sizeof(GowinDescriptor)
 
 #endif // GOWIN_DESCRIPTOR_H

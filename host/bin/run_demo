@@ -76,25 +76,27 @@ else
 fi
 
 case $data in
-1) size=32 ;;
-2) size=1024 ;;
-3) size=4096 ;;
-3) size=65_536 ;;
-4) size=1_048_576 ;;
-5) size=16_777_216 ;;
-6) size=134_217_728 ;;
-*) size=536_870_912 ;;
+1) size_data=32 ;;
+2) size_data=1024 ;;
+3) size_data=4096 ;;
+4) size_data=65536 ;;
+5) size_data=1048576 ;;
+6) size_data=16777216 ;;
+7) size_data=134217728 ;;
+*) size_data=536870912 ;;
 esac
 
 case $block in
-1) size=32 ;;
-2) size=64 ;;
-3) size=128 ;;
-4) size=256 ;;
-5) size=512 ;;
-6) size=1024 ;;
-7) size=2048 ;;
-*) size=4096 ;;
+1) size_block=32 ;;
+2) size_block=64 ;;
+3) size_block=128 ;;
+4) size_block=256 ;;
+5) size_block=512 ;;
+6) size_block=1024 ;;
+7) size_block=2048 ;;
+*) size_block=4096 ;;
 esac
 
-sudo ${bindir}/dma_demo ${data} ${block} ${dump}
+echo "size_data=$size_data size_block=$size_block"
+
+sudo ${bindir}/dma_demo ${size_data} ${size_block} ${dump}

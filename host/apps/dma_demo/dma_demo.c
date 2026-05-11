@@ -32,8 +32,8 @@ void handle_sigint(int sig) { flag_exit = 1; }
 static int DBG_INFO = 1;
 
 static int FILL_NEXT = 0;
-static int FILL_FLAG_NUMS = 0;
-static int FLAG_MED = 0; // or SET_FLAG_COMP
+static int FILL_FLAG_NUMS = 0; //* if 1, change num_desc_adj to blocks in chain
+static int FLAG_MED = 0;       // or SET_FLAG_COMP
 static int FLAG_LAST = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
 
 int main(int argc, char *argv[]) {
@@ -45,8 +45,14 @@ int main(int argc, char *argv[]) {
     uint32_t size_block = config.size_block;
 
     uint32_t num_desc = size_data / size_block;
-    uint32_t size_descs = num_desc * SIZE_DESC;
     uint32_t num_desc_adj = (num_desc == 0) ? 0 : (num_desc - 1);
+    uint32_t _num_desc_swap = __builtin_bswap32(num_desc);
+
+    uint32_t offset_safe = 32;
+    uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
+    uint32_t offset_wb = offset_poll + offset_safe;
+
+    uint32_t size_descs = ROUND2_TO(offset_wb, 4096);
 
     Process *proc = init_proc(size_data, size_descs);
     if (proc == NULL) {
@@ -86,24 +92,22 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    // ddr
+
     uint32_t addr_ddr_h2c = 0x1000;
     uint32_t addr_ddr_c2h = 0x2000 + size_data;
 
-    uint32_t offset_safe = 32;
-    uint32_t offset_poll = size_descs + offset_safe;
-    uint32_t offset_wb = offset_poll + offset_safe;
-
     // h2c
 
-    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mdesc_src;
+    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->desc_src_m;
     memset((void *)desc_h2c_p, 0, offset_poll);
     uint64_t desc_h2c_a = proc->desc_src;
 
-    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mdesc_src + offset_poll);
+    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->desc_src_m + offset_poll);
     *poll_h2c_p = 0;
     uint64_t poll_h2c_a = proc->desc_src + offset_poll;
 
-    volatile uint8_t *sp = proc->mdata_src;
+    volatile uint8_t *sp = proc->data_src_m;
     uint64_t sa = proc->data_src;
 
     for (int i = 0; i < size_data / 2; i++) {
@@ -115,23 +119,24 @@ int main(int argc, char *argv[]) {
 
     // c2h
 
-    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mdesc_dst;
+    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->desc_dst_m;
     memset((void *)desc_c2h_p, 0, offset_poll);
     uint64_t desc_c2h_a = proc->desc_dst;
 
-    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mdesc_dst + offset_poll);
+    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->desc_dst_m + offset_poll);
     *poll_c2h_p = 0;
     uint64_t poll_c2h_a = proc->desc_dst + offset_poll;
 
-    volatile uint32_t *write_back_p = (uint32_t *)(proc->mdesc_dst + offset_wb);
+    volatile uint32_t *write_back_p = (uint32_t *)(proc->desc_dst_m + offset_wb);
     *write_back_p = 0;
     uint64_t write_back_a = proc->desc_dst + offset_wb;
 
-    volatile uint8_t *dp = proc->mdata_dst;
+    volatile uint8_t *dp = proc->data_dst_m;
     uint64_t da = proc->data_dst;
 
     if (DBG_INFO) {
-        printf("*** Init: %i descriptors ***\n", num_desc);
+        printf("*** Init: %i descriptors (%d/%d) ***\n", num_desc, size_data,
+               size_block);
     }
 
     if (DBG_INFO) {
@@ -148,18 +153,18 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_desc_adj; i++) {
         desc_h2c_p->flags = __builtin_bswap32(
             (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) |
-            (i & 0x7F ? SET_FLAG_COMP : 0x0));
+            (IS_LAST_DESC(i) ? SET_FLAG_COMP : 0x0));
         desc_h2c_p->length = __builtin_bswap32(size_block);
         desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
         desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
         desc_h2c_p->addr_dst_lo = 0x0;
         desc_h2c_p->addr_dst_hi = 0x0;
 
-        uint64_t desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
-        desc_h2c_p->next_lo = __builtin_bswap32(
-            (FILL_NEXT | i & 0x7F) ? PP_ADDR_LO(desc_next_a) : 0x0);
-        desc_h2c_p->next_hi = __builtin_bswap32(
-            (FILL_NEXT | i & 0x7F) ? PP_ADDR_HI(desc_next_a) : 0x0);
+        uint64_t desc_next_a = (FILL_NEXT | IS_LAST_DESC(i))
+                                   ? (proc->desc_src + (i + 1) * SIZE_DESC)
+                                   : 0x0;
+        desc_h2c_p->next_lo = __builtin_bswap32(PP_ADDR_LO(desc_next_a));
+        desc_h2c_p->next_hi = __builtin_bswap32(PP_ADDR_HI(desc_next_a));
 
         desc_h2c_p += 1;
         sa += size_block;
@@ -181,7 +186,8 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
 
     if (DBG_INFO) {
-        debug_dma(proc->fd, 0, 4 * sizeof(uint32_t));
+        debug_dma(proc->fd, 0, 128 + 16);
+        debug_dma(proc->fd, 1, 16);
     }
 
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
@@ -190,7 +196,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     int timeout_h2c = TIMEOUT_POLL;
-    while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
+    while ((*poll_h2c_p != _num_desc_swap) && --timeout_h2c > 0 && !flag_exit) {
         if (DBG_INFO) {
             printf("Status_h2c: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
@@ -203,9 +209,11 @@ int main(int argc, char *argv[]) {
     if (DBG_INFO) {
         printf("h2c: poll: 0x%08x, status: 0x%08x, overhead: %08x%08x\n",
                *poll_h2c_p, gwbar2->status, gwbar2->rsv_18[1], gwbar2->rsv_18[0]);
+        fflush(stdout);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
+        fflush(stdout);
     }
 
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
@@ -248,18 +256,18 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_desc_adj; i++) {
         desc_c2h_p->flags = __builtin_bswap32(
             (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) |
-            (i & 0x7F ? SET_FLAG_COMP : 0x0));
+            (IS_LAST_DESC(i) ? SET_FLAG_COMP : 0x0));
         desc_c2h_p->length = __builtin_bswap32(size_block);
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
         desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
         desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
 
-        uint64_t desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
-        desc_c2h_p->next_lo = __builtin_bswap32(
-            (FILL_NEXT | i & 0x7F) ? PP_ADDR_LO(desc_next_a) : 0x0);
-        desc_c2h_p->next_hi = __builtin_bswap32(
-            (FILL_NEXT | i & 0x7F) ? PP_ADDR_HI(desc_next_a) : 0x0);
+        uint64_t desc_next_a = (FILL_NEXT | IS_LAST_DESC(i))
+                                   ? (proc->desc_dst + (i + 1) * SIZE_DESC)
+                                   : 0x0;
+        desc_c2h_p->next_lo = __builtin_bswap32(PP_ADDR_LO(desc_next_a));
+        desc_c2h_p->next_hi = __builtin_bswap32(PP_ADDR_HI(desc_next_a));
 
         desc_c2h_p += 1;
         da += size_block;
@@ -287,7 +295,7 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
     int timeout_c2h = TIMEOUT_POLL;
-    while (!(*poll_c2h_p) && --timeout_c2h > 0 && !flag_exit) {
+    while ((*poll_c2h_p != _num_desc_swap) && --timeout_c2h > 0 && !flag_exit) {
         if (DBG_INFO) {
             printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,

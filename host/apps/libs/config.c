@@ -9,18 +9,18 @@ Config init_config(int argc, char *argv[]) {
     int en_dumping = 0;
 
     if (argc > 1) {
-        size_data = strtol(argv[2], NULL, 0);
+        size_data = strtol(argv[1], NULL, 0);
         if (size_data <= 0) {
             size_data = 4096;
         }
-        size_data = (size_data + 1023) & (~1023);
+        size_data = ROUND2_TO(size_data, 4096);
     }
     if (argc > 2) {
-        size_block = strtol(argv[1], NULL, 0);
+        size_block = strtol(argv[2], NULL, 0);
         if (size_block <= 0) {
             size_block = 128;
         }
-        size_block = (size_block + 31) & (~31);
+        size_block = ROUND2_TO(size_block, 32);
     }
     if (argc > 3) {
         if (!strcmp(argv[3], "y") || !strcmp(argv[3], "1")) {
@@ -28,7 +28,7 @@ Config init_config(int argc, char *argv[]) {
         }
     }
 
-    return (Config){.size_block = (uint32_t)size_block,
-                    .size_data = (uint32_t)size_data,
+    return (Config){.size_data = (uint32_t)size_data,
+                    .size_block = (uint32_t)size_block,
                     .en_dumping = en_dumping};
 }

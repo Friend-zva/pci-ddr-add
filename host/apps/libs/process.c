@@ -26,16 +26,16 @@ Process *init_proc(uint32_t size_data, uint32_t size_descs) {
     if (proc->desc_src == 0) {
         return NULL;
     }
-    proc->mdesc_src = mmap_mem(fd, 0, size_descs);
-    if (proc->mdesc_src == NULL) {
+    proc->desc_src_m = mmap_mem(fd, 0, size_descs);
+    if (proc->desc_src_m == NULL) {
         return NULL;
     }
     proc->data_src = request_mem(fd, 1, size_data);
     if (proc->data_src == 0) {
         return NULL;
     }
-    proc->mdata_src = mmap_mem(fd, 1, size_data);
-    if (proc->mdata_src == NULL) {
+    proc->data_src_m = mmap_mem(fd, 1, size_data);
+    if (proc->data_src_m == NULL) {
         return NULL;
     }
 
@@ -43,16 +43,16 @@ Process *init_proc(uint32_t size_data, uint32_t size_descs) {
     if (proc->desc_dst == 0) {
         return NULL;
     }
-    proc->mdesc_dst = mmap_mem(fd, 2, size_descs);
-    if (proc->mdesc_dst == NULL) {
+    proc->desc_dst_m = mmap_mem(fd, 2, size_descs);
+    if (proc->desc_dst_m == NULL) {
         return NULL;
     }
     proc->data_dst = request_mem(fd, 3, size_data);
     if (proc->data_dst == 0) {
         return NULL;
     }
-    proc->mdata_dst = mmap_mem(fd, 3, size_data);
-    if (proc->mdata_dst == NULL) {
+    proc->data_dst_m = mmap_mem(fd, 3, size_data);
+    if (proc->data_dst_m == NULL) {
         return NULL;
     }
 
@@ -90,27 +90,27 @@ void dest_proc(Process *proc, uint32_t size_data, uint32_t size_descs) {
         munmap(proc->gwbar2, BAR2_SIZE);
     }
 
-    if (proc->mdata_dst) {
-        munmap(proc->mdata_dst, size_data);
+    if (proc->data_dst_m) {
+        munmap(proc->data_dst_m, size_data);
     }
     if (proc->data_dst) {
         release_mem(proc->fd, 3);
     }
-    if (proc->mdesc_dst) {
-        munmap(proc->mdesc_dst, size_descs);
+    if (proc->desc_dst_m) {
+        munmap(proc->desc_dst_m, size_descs);
     }
     if (proc->desc_dst) {
         release_mem(proc->fd, 2);
     }
 
-    if (proc->mdata_src) {
-        munmap(proc->mdata_src, size_data);
+    if (proc->data_src_m) {
+        munmap(proc->data_src_m, size_data);
     }
     if (proc->data_src) {
         release_mem(proc->fd, 1);
     }
-    if (proc->mdesc_src) {
-        munmap(proc->mdesc_src, size_descs);
+    if (proc->desc_src_m) {
+        munmap(proc->desc_src_m, size_descs);
     }
     if (proc->desc_src) {
         release_mem(proc->fd, 0);
