@@ -7,8 +7,11 @@
 #define SET_FLAG_EOP (1 << 1)
 #define SET_FLAG_COMP (1 << 2)
 #define SET_FLAG_NUM_DESC(num_desc) (((uint32_t)(num_desc) & 0x7F) << 8)
+
 #define IS_DESC_COMPLETED (1 << 4)
 #define IS_LAST_DESC(i) (((uint32_t)i & 0x7F) == 0x7F)
+
+#define MAX_DESC_IN_BLOCK 128
 
 typedef struct __attribute__((packed, aligned(32))) {
     //* 0x00 - Stop[0], Eop[1], Completed[2], AdjDescNum[14:8]

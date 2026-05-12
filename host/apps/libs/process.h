@@ -4,6 +4,9 @@
 #include "../../include/gowin_bar2.h"
 
 typedef struct process {
+    uint32_t size_data;
+    uint32_t size_descs;
+
     uint64_t desc_src;
     uint8_t *desc_src_m;
 
@@ -23,4 +26,4 @@ typedef struct process {
 
 Process *init_proc(uint32_t size_data, uint32_t size_descs);
 
-void dest_proc(Process *proc, uint32_t size_data, uint32_t size_descs);
+void dest_proc(Process *proc);

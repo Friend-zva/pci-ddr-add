@@ -31,9 +31,6 @@ void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
 
-static int FILL_NEXT = 0;
-static int FILL_FLAG_NUMS = 0; //* if 1, change num_desc_adj to blocks in chain
-static int FLAG_MED = 0;       // or SET_FLAG_COMP
 static int FLAG_LAST = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
 
 int main(int argc, char *argv[]) {
@@ -52,9 +49,7 @@ int main(int argc, char *argv[]) {
     uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
     uint32_t offset_wb = offset_poll + offset_safe;
 
-    uint32_t size_descs = ROUND2_TO(offset_wb, 4096);
-
-    Process *proc = init_proc(size_data, size_descs);
+    Process *proc = init_proc(size_data, offset_wb);
     if (proc == NULL) {
         return -1;
     }
@@ -74,7 +69,7 @@ int main(int argc, char *argv[]) {
     gwbar0->ctrl.ctrl_init = 1;
     while (gwbar0->ctrl.stat_init != PCIE_READY) {
         if (flag_exit) {
-            dest_proc(proc, size_data, size_descs);
+            dest_proc(proc);
             return -1;
         }
     }
@@ -88,7 +83,7 @@ int main(int argc, char *argv[]) {
     val = ioctl(proc->fd, GOWIN_CONFIG_READ_DWORD, &param);
     if (val) {
         printf("Failed to check link status\n");
-        dest_proc(proc, size_data, size_descs);
+        dest_proc(proc);
         return -1;
     }
 
@@ -151,18 +146,22 @@ int main(int argc, char *argv[]) {
     // Host PC -> FPGA DDR3
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
-        desc_h2c_p->flags = __builtin_bswap32(
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) |
-            (IS_LAST_DESC(i) ? SET_FLAG_COMP : 0x0));
+        uint32_t flags = 0x0;
+        uint64_t desc_next_a = 0x0;
+        if (IS_LAST_DESC(i)) {
+            uint32_t num_desc_adj_next = ((num_desc - (i + 1)) > MAX_DESC_IN_BLOCK)
+                                             ? MAX_DESC_IN_BLOCK
+                                             : (num_desc - (i + 1));
+            flags = SET_FLAG_COMP | SET_FLAG_NUM_DESC(num_desc_adj_next - 1);
+            desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
+        };
+
+        desc_h2c_p->flags = __builtin_bswap32(flags);
         desc_h2c_p->length = __builtin_bswap32(size_block);
         desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
         desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
         desc_h2c_p->addr_dst_lo = 0x0;
         desc_h2c_p->addr_dst_hi = 0x0;
-
-        uint64_t desc_next_a = (FILL_NEXT | IS_LAST_DESC(i))
-                                   ? (proc->desc_src + (i + 1) * SIZE_DESC)
-                                   : 0x0;
         desc_h2c_p->next_lo = __builtin_bswap32(PP_ADDR_LO(desc_next_a));
         desc_h2c_p->next_hi = __builtin_bswap32(PP_ADDR_HI(desc_next_a));
 
@@ -208,7 +207,7 @@ int main(int argc, char *argv[]) {
     }
     if (DBG_INFO) {
         printf("h2c: poll: 0x%08x, status: 0x%08x, overhead: %08x%08x\n",
-               *poll_h2c_p, gwbar2->status, gwbar2->rsv_18[1], gwbar2->rsv_18[0]);
+               *poll_h2c_p, gwbar2->status, gwbar2->rsv_18[0], gwbar2->rsv_18[1]);
         fflush(stdout);
     }
     if (timeout_h2c <= 0) {
@@ -220,7 +219,7 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_PCIE_WR_STOP;
 
     if (flag_exit) {
-        dest_proc(proc, size_data, size_descs);
+        dest_proc(proc);
         return 1;
     }
 
@@ -246,7 +245,7 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_LAD_STOP;
 
     if (flag_exit) {
-        dest_proc(proc, size_data, size_descs);
+        dest_proc(proc);
         return 1;
     }
 
@@ -254,18 +253,22 @@ int main(int argc, char *argv[]) {
     // FPGA DDR3 -> Host PC
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
-        desc_c2h_p->flags = __builtin_bswap32(
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) |
-            (IS_LAST_DESC(i) ? SET_FLAG_COMP : 0x0));
+        uint32_t flags = 0x0;
+        uint64_t desc_next_a = 0x0;
+        if (IS_LAST_DESC(i)) {
+            uint32_t num_desc_adj_next = ((num_desc - (i + 1)) > MAX_DESC_IN_BLOCK)
+                                             ? MAX_DESC_IN_BLOCK
+                                             : (num_desc - (i + 1));
+            flags = SET_FLAG_COMP | SET_FLAG_NUM_DESC(num_desc_adj_next - 1);
+            desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
+        };
+
+        desc_c2h_p->flags = __builtin_bswap32(flags);
         desc_c2h_p->length = __builtin_bswap32(size_block);
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
         desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
         desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
-
-        uint64_t desc_next_a = (FILL_NEXT | IS_LAST_DESC(i))
-                                   ? (proc->desc_dst + (i + 1) * SIZE_DESC)
-                                   : 0x0;
         desc_c2h_p->next_lo = __builtin_bswap32(PP_ADDR_LO(desc_next_a));
         desc_c2h_p->next_hi = __builtin_bswap32(PP_ADDR_HI(desc_next_a));
 
@@ -317,7 +320,7 @@ int main(int argc, char *argv[]) {
     gwbar2->ctrl = BAR2_PCIE_RD_STOP;
 
     if (flag_exit) {
-        dest_proc(proc, size_data, size_descs);
+        dest_proc(proc);
         return 1;
     }
 
@@ -333,6 +336,6 @@ int main(int argc, char *argv[]) {
         dump_destination(da, dp);
     }
 
-    dest_proc(proc, size_data, size_descs);
+    dest_proc(proc);
     return 0;
 }

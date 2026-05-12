@@ -6,6 +6,7 @@
 
 #include <sys/mman.h>
 
+#include "config.h"
 #include "gowin_utils.h"
 #include "process.h"
 
@@ -22,36 +23,39 @@ Process *init_proc(uint32_t size_data, uint32_t size_descs) {
         return NULL;
     }
 
-    proc->desc_src = request_mem(fd, 0, size_descs);
+    proc->size_data = ROUND2_TO(size_data, 4096);
+    proc->size_descs = ROUND2_TO(size_descs, 4096);
+
+    proc->desc_src = request_mem(fd, 0, proc->size_descs);
     if (proc->desc_src == 0) {
         return NULL;
     }
-    proc->desc_src_m = mmap_mem(fd, 0, size_descs);
+    proc->desc_src_m = mmap_mem(fd, 0, proc->size_descs);
     if (proc->desc_src_m == NULL) {
         return NULL;
     }
-    proc->data_src = request_mem(fd, 1, size_data);
+    proc->data_src = request_mem(fd, 1, proc->size_data);
     if (proc->data_src == 0) {
         return NULL;
     }
-    proc->data_src_m = mmap_mem(fd, 1, size_data);
+    proc->data_src_m = mmap_mem(fd, 1, proc->size_data);
     if (proc->data_src_m == NULL) {
         return NULL;
     }
 
-    proc->desc_dst = request_mem(fd, 2, size_descs);
+    proc->desc_dst = request_mem(fd, 2, proc->size_descs);
     if (proc->desc_dst == 0) {
         return NULL;
     }
-    proc->desc_dst_m = mmap_mem(fd, 2, size_descs);
+    proc->desc_dst_m = mmap_mem(fd, 2, proc->size_descs);
     if (proc->desc_dst_m == NULL) {
         return NULL;
     }
-    proc->data_dst = request_mem(fd, 3, size_data);
+    proc->data_dst = request_mem(fd, 3, proc->size_data);
     if (proc->data_dst == 0) {
         return NULL;
     }
-    proc->data_dst_m = mmap_mem(fd, 3, size_data);
+    proc->data_dst_m = mmap_mem(fd, 3, proc->size_data);
     if (proc->data_dst_m == NULL) {
         return NULL;
     }
@@ -75,7 +79,7 @@ Process *init_proc(uint32_t size_data, uint32_t size_descs) {
     return proc;
 }
 
-void dest_proc(Process *proc, uint32_t size_data, uint32_t size_descs) {
+void dest_proc(Process *proc) {
     if (proc == NULL) {
         return;
     }
@@ -91,26 +95,26 @@ void dest_proc(Process *proc, uint32_t size_data, uint32_t size_descs) {
     }
 
     if (proc->data_dst_m) {
-        munmap(proc->data_dst_m, size_data);
+        munmap(proc->data_dst_m, proc->size_data);
     }
     if (proc->data_dst) {
         release_mem(proc->fd, 3);
     }
     if (proc->desc_dst_m) {
-        munmap(proc->desc_dst_m, size_descs);
+        munmap(proc->desc_dst_m, proc->size_descs);
     }
     if (proc->desc_dst) {
         release_mem(proc->fd, 2);
     }
 
     if (proc->data_src_m) {
-        munmap(proc->data_src_m, size_data);
+        munmap(proc->data_src_m, proc->size_data);
     }
     if (proc->data_src) {
         release_mem(proc->fd, 1);
     }
     if (proc->desc_src_m) {
-        munmap(proc->desc_src_m, size_descs);
+        munmap(proc->desc_src_m, proc->size_descs);
     }
     if (proc->desc_src) {
         release_mem(proc->fd, 0);
