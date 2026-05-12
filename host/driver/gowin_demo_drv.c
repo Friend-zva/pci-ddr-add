@@ -1,3 +1,23 @@
+// ===========Oooo==========================================Oooo===============
+//     Copyright (C) 2014 Shanghai Gowin Semiconductor Technology Co.,Ltd.
+//                      All rights reserved.
+// ============================================================================
+//     Copyright (C) 2026 Vladimir Zaikin <friend.zva@yandex.ru>
+// ============================================================================
+//  __      __      __
+//  \ \    /  \    / /   [File name   ] gowin_demo_drv.v
+//   \ \  / /\ \  / /    [Description ] Source file for PCIE BAR driver
+//    \ \/ /  \ \/ /     [Timestamp   ] 2022/11/30
+//     \  /    \  /      [version     ] 1.0
+//      \/      \/
+// ----------------------------------------------------------------------------
+// Code Revision History :
+// ----------------------------------------------------------------------------
+// Ver: | Author          | Mod. Date  | Changes Made:
+// V1.0 | Huang Mingtao   | 2022/11/30 | Initial version
+// V2.0 | Vladimir Zaikin | 2026/05/12 | Adapt to kernel versions and a new app
+// ===========Oooo==========================================Oooo===============
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 
@@ -870,6 +890,7 @@ static struct pci_driver gowin_bar_driver = {
 module_pci_driver(gowin_bar_driver);
 
 MODULE_DESCRIPTION("PCIe BAR Ctrl Driver");
-MODULE_AUTHOR("Vladimir Zaikin <friend.zva@yandex.ru>");
+MODULE_AUTHOR(
+    "Huang Mingtao <mingtao@gowinsemi.com>, Vladimir Zaikin <friend.zva@yandex.ru>");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRIVER_VERSION);
