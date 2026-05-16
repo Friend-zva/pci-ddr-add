@@ -37,7 +37,7 @@ module top (
   localparam integer AXIBURSTLEN = 8;
   // DDR
   localparam integer AXIADDRWIDTH = 29;
-  localparam integer AXILENWIDTH = 20;
+  localparam integer AXILENWIDTH = AXIADDRWIDTH + 1;
 
   // ===============
   // Clocks & Resets

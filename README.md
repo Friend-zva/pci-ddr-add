@@ -35,17 +35,17 @@ This project is a demonstration of SerDes, PCIe SGDMA, and DDR3 memory on the [S
   - `pci=realloc=on`, `iommu=pt`.
   - **Secure Boot**: Must be **disabled**. Unsigned kernel modules will be blocked by UEFI Secure Boot unless you manually sign them and enroll the key in MOK.
 
-> Working Scenario: laptop with Gowin IDE V1.9.12.02 for programming & PC with Ubuntu 24.04 6.17.0-22-generic (also Ubuntu 22.04 5.15.0-73-generic without `pci=realloc=on`) as host.
+> Working Scenario: laptop with Gowin IDE V1.9.12.02 for programming & PC with Ubuntu 24.04 6.17.0-22-generic (also Ubuntu 22.04 5.15.0-73-generic, 6.8.0-110-generic without `pci=realloc=on`) as host.
 
 ### Build & Load FPGA
 
-0. Unarchive pre-build bitstream `fpga/project/fpga_project.fs.7z` and goto step 4.
+0. Unzip prebuild bitstream `fpga/project/fpga_project.fs.7z` and goto step 4.
 1. Restore archived project `fpga/project/fpga_project.gar` in tools Gowin IDE.
 2. Verify **Project-Configuration**:
    - **Place**: Place option: 4, SerDes Retiming: True.
    - **Route**: Route Order: 1, Route option: 1.
    - **Dual-Purpose Pin**: Enable `Use SSPI as regular IO` and `Use CPU as regular IO`.
-3. Synthesize and generate Bitstream (`.fs`).
+3. Synthesize and generate bitstream (`.fs`).
 4. Load to board via **Gowin Programmer** or **openFPGAloader**.
    > _Note: After program the board reboot the PC._
 
