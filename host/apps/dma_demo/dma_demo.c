@@ -149,10 +149,8 @@ int main(int argc, char *argv[]) {
         uint32_t flags = 0x0;
         uint64_t desc_next_a = 0x0;
         if (IS_LAST_DESC(i)) {
-            uint32_t num_desc_adj_next = ((num_desc - (i + 1)) > MAX_DESC_IN_BLOCK)
-                                             ? MAX_DESC_IN_BLOCK
-                                             : (num_desc - (i + 1));
-            flags = SET_FLAG_COMP | SET_FLAG_NUM_DESC(num_desc_adj_next - 1);
+            uint32_t num_desc_adj_next = num_desc - (i + 1);
+            flags = SET_FLAG_NUM_DESC(DESC_MODULE(num_desc_adj_next - 1));
             desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
         };
 
@@ -173,8 +171,8 @@ int main(int argc, char *argv[]) {
     desc_h2c_p->length = __builtin_bswap32(size_block);
     desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
     desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
-    desc_h2c_p->addr_dst_lo = 0x01234567;
-    desc_h2c_p->addr_dst_hi = 0x89ABCDEF;
+    desc_h2c_p->addr_dst_lo = __builtin_bswap32(0x01234567);
+    desc_h2c_p->addr_dst_hi = __builtin_bswap32(0x89ABCDEF);
     desc_h2c_p->next_lo = 0x0;
     desc_h2c_p->next_hi = 0x0;
 
@@ -185,7 +183,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].num_desc_adj = num_desc_adj;
 
     if (DBG_INFO) {
-        debug_dma(proc->fd, 0, 128 + 16);
+        debug_dma(proc->fd, 0, 32);
         debug_dma(proc->fd, 1, 16);
     }
 
@@ -256,10 +254,8 @@ int main(int argc, char *argv[]) {
         uint32_t flags = 0x0;
         uint64_t desc_next_a = 0x0;
         if (IS_LAST_DESC(i)) {
-            uint32_t num_desc_adj_next = ((num_desc - (i + 1)) > MAX_DESC_IN_BLOCK)
-                                             ? MAX_DESC_IN_BLOCK
-                                             : (num_desc - (i + 1));
-            flags = SET_FLAG_COMP | SET_FLAG_NUM_DESC(num_desc_adj_next - 1);
+            uint32_t num_desc_adj_next = num_desc - (i + 1);
+            flags = SET_FLAG_NUM_DESC(DESC_MODULE(num_desc_adj_next - 1));
             desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
         };
 

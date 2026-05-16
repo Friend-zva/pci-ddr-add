@@ -55,7 +55,7 @@ else
   done
   echo ''
 
-  echo '*  Enable   dump (int) :'
+  echo '*  Enable  dump (bool) :'
   echo '1. Yes  2. No'
   echo -n "Please enter your choice (1-2): "
   while true; do
@@ -79,7 +79,7 @@ case $data in
 1) size_data=32 ;;
 2) size_data=1024 ;;
 3) size_data=4096 ;;
-4) size_data=65536 ;;
+4) size_data=16384 ;;
 5) size_data=1048576 ;;
 6) size_data=16777216 ;;
 7) size_data=134217728 ;;
