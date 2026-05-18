@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_desc_hi = PP_ADDR_HI(desc_h2c_a);
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
-    gwbar0->h2c[0].num_desc_adj = num_desc_adj;
+    gwbar0->h2c[0].num_desc_adj = num_desc_adj; //? DESC_MODULE()
 
     if (DBG_INFO) {
         debug_dma(proc->fd, 0, 32);
@@ -285,8 +285,8 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(desc_c2h_a);
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
-    gwbar0->c2h[0].num_desc_adj = num_desc_adj;
-    gwbar0->c2h[0].credit = 0x1FF; // infinity
+    gwbar0->c2h[0].num_desc_adj = num_desc_adj; //? DESC_MODULE()
+    gwbar0->c2h[0].credit = CREDIT_MAX;
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
@@ -302,6 +302,7 @@ int main(int argc, char *argv[]) {
                    desc_c2h_p->flags);
             fflush(stdout);
         }
+        //? gwbar0->c2h[0].credit = CREDIT_MAX;
         usleep(1);
     }
     if (DBG_INFO) {

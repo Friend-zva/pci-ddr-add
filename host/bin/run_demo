@@ -30,11 +30,11 @@ if [ $# -ge 1 ]; then
   dump=$3
 else
   echo '*  Data   size (bytes) :'
-  echo '1. 32B  2. 1KB  3. 4KB  4. 16KB  5. 1MB  6. 16MB  7. 128MB  8. 512MB'
+  echo '0. default  1. 32B  2. 1KB  3. 4KB  4. 16KB  5. 1MB  6. 16MB  7. 128MB  8. 512MB'
   echo -n "Please enter your choice (1-5): "
   while true; do
     read -n 1 b
-    [ "$b" -ge 1 ] && [ "$b" -le 8 ] && {
+    [ "$b" -ge 0 ] && [ "$b" -le 8 ] && {
       data=$b
       break
     }
@@ -43,11 +43,11 @@ else
   echo ''
 
   echo '*  Block  size (bytes) :'
-  echo '1. 32  2. 64  3. 128  4. 256  5. 512  6. 1024  7. 2048  8. 4096'
+  echo '0. default  1. 32  2. 64  3. 128  4. 256  5. 512  6. 1024  7. 2048  8. 4096'
   echo -n "Please enter your choice (1-5): "
   while true; do
     read -n 1 b
-    [ "$b" -ge 1 ] && [ "$b" -le 8 ] && {
+    [ "$b" -ge 0 ] && [ "$b" -le 8 ] && {
       block=$b
       break
     }
@@ -83,7 +83,8 @@ case $data in
 5) size_data=1048576 ;;
 6) size_data=16777216 ;;
 7) size_data=134217728 ;;
-*) size_data=536870912 ;;
+8) size_data=536870912 ;;
+*) size_data=4096 ;;
 esac
 
 case $block in
@@ -94,7 +95,8 @@ case $block in
 5) size_block=512 ;;
 6) size_block=1024 ;;
 7) size_block=2048 ;;
-*) size_block=4096 ;;
+8) size_block=4096 ;;
+*) size_block=128 ;;
 esac
 
 echo "size_data=$size_data size_block=$size_block"
