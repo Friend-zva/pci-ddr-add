@@ -38,7 +38,17 @@
                 <Signal>lad_cfg_read_addr[1]</Signal>
                 <Signal>lad_cfg_read_addr[0]</Signal>
             </Bus>
-            <Bus capture_enable="true" name="lad_cfg_len[19:0]">
+            <Bus capture_enable="true" name="lad_cfg_len[29:0]">
+                <Signal>lad_cfg_len[29]</Signal>
+                <Signal>lad_cfg_len[28]</Signal>
+                <Signal>lad_cfg_len[27]</Signal>
+                <Signal>lad_cfg_len[26]</Signal>
+                <Signal>lad_cfg_len[25]</Signal>
+                <Signal>lad_cfg_len[24]</Signal>
+                <Signal>lad_cfg_len[23]</Signal>
+                <Signal>lad_cfg_len[22]</Signal>
+                <Signal>lad_cfg_len[21]</Signal>
+                <Signal>lad_cfg_len[20]</Signal>
                 <Signal>lad_cfg_len[19]</Signal>
                 <Signal>lad_cfg_len[18]</Signal>
                 <Signal>lad_cfg_len[17]</Signal>
@@ -227,5 +237,5 @@
             <Expression>M0</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>1111110100011110</GAO_ID>
+    <GAO_ID>0100010110011010</GAO_ID>
 </GAO_CONFIG>

@@ -2,8 +2,6 @@
 
 #include "dump.h"
 
-static int DUMP_INFO = 1;
-
 static const int SIZE_DUMP = 32;
 
 void dump_source(uint64_t sa, volatile uint8_t *sp) {

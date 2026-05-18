@@ -135,10 +135,10 @@ void *mmap_bar(int fd, int index, size_t length) {
     return (ptr == MAP_FAILED) ? NULL : ptr;
 }
 
-void debug_dma(int fd, int index, uint32_t size) {
+void debug_dma(int fd, int index, uint32_t cnt_dword) {
     struct gowin_ioctl_param param = {0};
     param.dma_idx = index;
-    param.dma_size = size;
+    param.dma_size = cnt_dword;
 
     if (ioctl(fd, GOWIN_DEBUG_ONLY, &param)) {
         fprintf(stderr, "ioctl: %s\n", strerror(errno));

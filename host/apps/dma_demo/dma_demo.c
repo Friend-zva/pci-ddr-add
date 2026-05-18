@@ -16,6 +16,7 @@
 #include "../../include/gowin_bar2.h"
 #include "../../include/gowin_descriptor.h"
 #include "../../include/gowin_pcie_bar_drv_uapi.h"
+#include "../libs/config.h"
 #include "../libs/dump.h"
 #include "../libs/gowin_utils.h"
 #include "../libs/process.h"
@@ -30,16 +31,25 @@ void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
 
-static int FILL_NEXT = 0;
-static int FILL_FLAG_NUMS = 0;
-static int FLAG_MED = 0; // or SET_FLAG_COMP
 static int FLAG_LAST = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     volatile int val;
 
-    Process *proc = init_proc();
+    Config config = init_config(argc, argv);
+    uint32_t size_data = config.size_data;
+    uint32_t size_block = config.size_block;
+
+    uint32_t num_desc = size_data / size_block;
+    uint32_t num_desc_adj = (num_desc == 0) ? 0 : (num_desc - 1);
+    uint32_t _num_desc_swap = __builtin_bswap32(num_desc);
+
+    uint32_t offset_safe = 32;
+    uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
+    uint32_t offset_wb = offset_poll + offset_safe;
+
+    Process *proc = init_proc(size_data, offset_wb);
     if (proc == NULL) {
         return -1;
     }
@@ -77,63 +87,51 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    // ddr
+
     uint32_t addr_ddr_h2c = 0x1000;
-    uint32_t addr_ddr_c2h = 0x2000 + DMA_SIZE;
-
-    uint32_t cnt_dword = 32;         //? 64
-    uint32_t length = cnt_dword * 4; // MaxPayload
-
-    int size_data = DMA_SIZE / 2; // bytes
-    int num_desc = size_data / length;
-    int num_desc_adj = num_desc - 1;
-
-    uint32_t offset_safe = 32;
-    uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
-    uint32_t offset_wb = offset_poll + offset_safe;
-    uint32_t offset_data = offset_wb + 2 * offset_safe;
-    if (offset_data + size_data > DMA_SIZE) {
-        printf("Failed to distributed dma area\n");
-        dest_proc(proc);
-        return -1;
-    }
+    uint32_t addr_ddr_c2h = 0x2000 + size_data;
 
     // h2c
 
-    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->mem_src;
+    volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->desc_src_m;
     memset((void *)desc_h2c_p, 0, offset_poll);
-    uint64_t desc_h2c_a = proc->dma_src;
+    uint64_t desc_h2c_a = proc->desc_src;
 
-    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->mem_src + offset_poll);
+    volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->desc_src_m + offset_poll);
     *poll_h2c_p = 0;
-    uint64_t poll_h2c_a = proc->dma_src + offset_poll;
+    uint64_t poll_h2c_a = proc->desc_src + offset_poll;
 
-    volatile uint8_t *sp = proc->mem_src + offset_data;
-    uint64_t sa = proc->dma_src + offset_data;
+    volatile uint8_t *sp = proc->data_src_m;
+    uint64_t sa = proc->data_src;
 
     for (int i = 0; i < size_data / 2; i++) {
         *(uint16_t *)(&sp[i * 2]) = i % 65536;
     }
-    dump_source(sa, sp);
+    if (config.en_dumping) {
+        dump_source(sa, sp);
+    }
 
     // c2h
 
-    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->mem_dst;
+    volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->desc_dst_m;
     memset((void *)desc_c2h_p, 0, offset_poll);
-    uint64_t desc_c2h_a = proc->dma_dst;
+    uint64_t desc_c2h_a = proc->desc_dst;
 
-    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->mem_dst + offset_poll);
+    volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->desc_dst_m + offset_poll);
     *poll_c2h_p = 0;
-    uint64_t poll_c2h_a = proc->dma_dst + offset_poll;
+    uint64_t poll_c2h_a = proc->desc_dst + offset_poll;
 
-    volatile uint32_t *write_back_p = (uint32_t *)(proc->mem_dst + offset_wb);
+    volatile uint32_t *write_back_p = (uint32_t *)(proc->desc_dst_m + offset_wb);
     *write_back_p = 0;
-    uint64_t write_back_a = proc->dma_dst + offset_wb;
+    uint64_t write_back_a = proc->desc_dst + offset_wb;
 
-    volatile uint8_t *dp = proc->mem_dst + offset_data;
-    uint64_t da = proc->dma_dst + offset_data;
+    volatile uint8_t *dp = proc->data_dst_m;
+    uint64_t da = proc->data_dst;
 
     if (DBG_INFO) {
-        printf("*** Init: %i descriptors ***\n", num_desc);
+        printf("*** Init: %i descriptors (%d/%d) ***\n", num_desc, size_data,
+               size_block);
     }
 
     if (DBG_INFO) {
@@ -148,30 +146,33 @@ int main(int argc, char *argv[]) {
     // Host PC -> FPGA DDR3
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
-        desc_h2c_p->flags = __builtin_bswap32(
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
-        desc_h2c_p->length = __builtin_bswap32(length);
+        uint32_t flags = 0x0;
+        uint64_t desc_next_a = 0x0;
+        if (IS_LAST_DESC(i)) {
+            uint32_t num_desc_adj_next = num_desc - (i + 1);
+            flags = SET_FLAG_NUM_DESC(DESC_MODULE(num_desc_adj_next - 1));
+            desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
+        };
+
+        desc_h2c_p->flags = __builtin_bswap32(flags);
+        desc_h2c_p->length = __builtin_bswap32(size_block);
         desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
         desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
         desc_h2c_p->addr_dst_lo = 0x0;
         desc_h2c_p->addr_dst_hi = 0x0;
-
-        uint64_t desc_next_a = proc->dma_src + (i + 1) * SIZE_DESC;
-        desc_h2c_p->next_lo =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
-        desc_h2c_p->next_hi =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
+        desc_h2c_p->next_lo = __builtin_bswap32(PP_ADDR_LO(desc_next_a));
+        desc_h2c_p->next_hi = __builtin_bswap32(PP_ADDR_HI(desc_next_a));
 
         desc_h2c_p += 1;
-        sa += length;
+        sa += size_block;
     }
 
     desc_h2c_p->flags = __builtin_bswap32(FLAG_LAST);
-    desc_h2c_p->length = __builtin_bswap32(length);
+    desc_h2c_p->length = __builtin_bswap32(size_block);
     desc_h2c_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(sa));
     desc_h2c_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(sa));
-    desc_h2c_p->addr_dst_lo = 0x01234567;
-    desc_h2c_p->addr_dst_hi = 0x89ABCDEF;
+    desc_h2c_p->addr_dst_lo = __builtin_bswap32(0x01234567);
+    desc_h2c_p->addr_dst_hi = __builtin_bswap32(0x89ABCDEF);
     desc_h2c_p->next_lo = 0x0;
     desc_h2c_p->next_hi = 0x0;
 
@@ -179,10 +180,11 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_desc_hi = PP_ADDR_HI(desc_h2c_a);
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
-    gwbar0->h2c[0].num_desc_adj = num_desc_adj;
+    gwbar0->h2c[0].num_desc_adj = num_desc_adj; //? DESC_MODULE()
 
     if (DBG_INFO) {
-        debug_dma(proc->fd, 0, 4 * sizeof(uint32_t));
+        debug_dma(proc->fd, 0, 32);
+        debug_dma(proc->fd, 1, 16);
     }
 
     gwbar2->addr_ddr_h2c = PP_ADDR_LO(addr_ddr_h2c);
@@ -191,7 +193,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].ctrl = SGDMA_START_POLL;
 
     int timeout_h2c = TIMEOUT_POLL;
-    while (!(*poll_h2c_p) && --timeout_h2c > 0 && !flag_exit) {
+    while ((*poll_h2c_p != _num_desc_swap) && --timeout_h2c > 0 && !flag_exit) {
         if (DBG_INFO) {
             printf("Status_h2c: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_h2c_p, gwbar0->h2c[0].ctrl, gwbar0->h2c[0].status0,
@@ -203,10 +205,12 @@ int main(int argc, char *argv[]) {
     }
     if (DBG_INFO) {
         printf("h2c: poll: 0x%08x, status: 0x%08x, overhead: %08x%08x\n",
-               *poll_h2c_p, gwbar2->status, gwbar2->rsv_18[1], gwbar2->rsv_18[0]);
+               *poll_h2c_p, gwbar2->status, gwbar2->rsv_18[0], gwbar2->rsv_18[1]);
+        fflush(stdout);
     }
     if (timeout_h2c <= 0) {
         printf("h2c: timeout\n");
+        fflush(stdout);
     }
 
     gwbar0->h2c[0].ctrl = SGDMA_STOP;
@@ -247,26 +251,29 @@ int main(int argc, char *argv[]) {
     // FPGA DDR3 -> Host PC
     // ====================
     for (int i = 0; i < num_desc_adj; i++) {
-        desc_c2h_p->flags = __builtin_bswap32(
-            (FILL_FLAG_NUMS ? SET_FLAG_NUM_DESC(num_desc_adj - i) : 0x0) | FLAG_MED);
-        desc_c2h_p->length = __builtin_bswap32(length);
+        uint32_t flags = 0x0;
+        uint64_t desc_next_a = 0x0;
+        if (IS_LAST_DESC(i)) {
+            uint32_t num_desc_adj_next = num_desc - (i + 1);
+            flags = SET_FLAG_NUM_DESC(DESC_MODULE(num_desc_adj_next - 1));
+            desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
+        };
+
+        desc_c2h_p->flags = __builtin_bswap32(flags);
+        desc_c2h_p->length = __builtin_bswap32(size_block);
         desc_c2h_p->addr_src_lo = 0x0;
         desc_c2h_p->addr_src_hi = 0x0;
         desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
         desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
-
-        uint64_t desc_next_a = proc->dma_dst + (i + 1) * SIZE_DESC;
-        desc_c2h_p->next_lo =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_LO(desc_next_a) : 0x0);
-        desc_c2h_p->next_hi =
-            __builtin_bswap32(FILL_NEXT ? PP_ADDR_HI(desc_next_a) : 0x0);
+        desc_c2h_p->next_lo = __builtin_bswap32(PP_ADDR_LO(desc_next_a));
+        desc_c2h_p->next_hi = __builtin_bswap32(PP_ADDR_HI(desc_next_a));
 
         desc_c2h_p += 1;
-        da += length;
+        da += size_block;
     }
 
     desc_c2h_p->flags = __builtin_bswap32(FLAG_LAST);
-    desc_c2h_p->length = __builtin_bswap32(length);
+    desc_c2h_p->length = __builtin_bswap32(size_block);
     desc_c2h_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(write_back_a));
     desc_c2h_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(write_back_a));
     desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
@@ -278,8 +285,8 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(desc_c2h_a);
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
-    gwbar0->c2h[0].num_desc_adj = num_desc_adj;
-    gwbar0->c2h[0].credit = 0x1FF; // infinity
+    gwbar0->c2h[0].num_desc_adj = num_desc_adj; //? DESC_MODULE()
+    gwbar0->c2h[0].credit = CREDIT_MAX;
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
@@ -287,7 +294,7 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
 
     int timeout_c2h = TIMEOUT_POLL;
-    while (!(*poll_c2h_p) && --timeout_c2h > 0 && !flag_exit) {
+    while ((*poll_c2h_p != _num_desc_swap) && --timeout_c2h > 0 && !flag_exit) {
         if (DBG_INFO) {
             printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
@@ -295,6 +302,7 @@ int main(int argc, char *argv[]) {
                    desc_c2h_p->flags);
             fflush(stdout);
         }
+        //? gwbar0->c2h[0].credit = CREDIT_MAX;
         usleep(1);
     }
     if (DBG_INFO) {
@@ -321,7 +329,9 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
-    dump_destination(da, dp);
+    if (config.en_dumping) {
+        dump_destination(da, dp);
+    }
 
     dest_proc(proc);
     return 0;
