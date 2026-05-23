@@ -11,6 +11,7 @@
         <File path="src/axi/axi_dma_rd.v" type="file.verilog" enable="1"/>
         <File path="src/axi/axi_dma_wr.v" type="file.verilog" enable="1"/>
         <File path="src/axi/axi_interconnect.v" type="file.verilog" enable="1"/>
+        <File path="src/axi/axis_async_fifo.v" type="file.verilog" enable="1"/>
         <File path="src/axi/priority_encoder.v" type="file.verilog" enable="1"/>
         <File path="src/ddr3_memory_interface/ddr3_memory_interface.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_pll/gowin_pll.v" type="file.verilog" enable="1"/>

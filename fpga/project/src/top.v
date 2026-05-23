@@ -31,6 +31,7 @@ module top (
   localparam integer RUN_DLY = 23;
   localparam integer SYS_RST_DLY = 20;
   // AXI
+  localparam integer FIFODEPTH = 4096;
   localparam integer AXIDATAWIDTH = 256;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
   localparam integer AXIIDWIDTH = 4;
@@ -192,21 +193,21 @@ module top (
   );
 
   /* PCIe SGDMA */
-  // h2c AXI stream data
-  wire         axis_h2c_data_tready;
-  wire         axis_h2c_data_tvalid;
-  wire [255:0] axis_h2c_data_tdata;
-  wire         axis_h2c_data_tlast;
-  wire [ 31:0] axis_h2c_data_tkeep;
-  wire [ 63:0] h2c_overhead;
-  wire         h2c_run;
-  // c2h AXI stream data
-  wire         axis_c2h_data_tready;
-  wire         axis_c2h_data_tvalid;
-  wire         axis_c2h_data_tlast;
-  wire [255:0] axis_c2h_data_tdata;
-  wire [ 31:0] axis_c2h_data_tkeep;
-  wire         c2h_run;
+  // h2c AXI-Stream data
+  wire                    axis_h2c_tready;
+  wire                    axis_h2c_tvalid;
+  wire [AXIDATAWIDTH-1:0] axis_h2c_tdata;
+  wire                    axis_h2c_tlast;
+  wire [AXISTRBWIDTH-1:0] axis_h2c_tkeep;
+  wire [            63:0] h2c_overhead;
+  wire                    h2c_run;
+  // c2h AXI-Stream data
+  wire                    axis_c2h_tready;
+  wire                    axis_c2h_tvalid;
+  wire [AXIDATAWIDTH-1:0] axis_c2h_tdata;
+  wire                    axis_c2h_tlast;
+  wire [AXISTRBWIDTH-1:0] axis_c2h_tkeep;
+  wire                    c2h_run;
   // BAR2
   wire         user_cs;
   wire [ 63:0] user_address;
@@ -250,17 +251,17 @@ module top (
       .pcie_ltssm(pcie_ltssm),
       .pcie_linkup(pcie_linkup),
       .pcie_tl_cfg_busdev(pcie_tl_cfg_busdev),
-      .m_axis_h2c_tready(axis_h2c_data_tready),
-      .m_axis_h2c_tvalid(axis_h2c_data_tvalid),
-      .m_axis_h2c_tdata(axis_h2c_data_tdata),
-      .m_axis_h2c_tlast(axis_h2c_data_tlast),
-      .m_axis_h2c_tkeep(axis_h2c_data_tkeep),
+      .m_axis_h2c_tready(axis_h2c_tready),
+      .m_axis_h2c_tvalid(axis_h2c_tvalid),
+      .m_axis_h2c_tdata(axis_h2c_tdata),
+      .m_axis_h2c_tlast(axis_h2c_tlast),
+      .m_axis_h2c_tkeep(axis_h2c_tkeep),
       .h2c_overhead(h2c_overhead),
-      .s_axis_c2h_tready(axis_c2h_data_tready),
-      .s_axis_c2h_tvalid(axis_c2h_data_tvalid),
-      .s_axis_c2h_tlast(axis_c2h_data_tlast),
-      .s_axis_c2h_tdata(axis_c2h_data_tdata),
-      .s_axis_c2h_tkeep(axis_c2h_data_tkeep),
+      .s_axis_c2h_tready(axis_c2h_tready),
+      .s_axis_c2h_tvalid(axis_c2h_tvalid),
+      .s_axis_c2h_tlast(axis_c2h_tlast),
+      .s_axis_c2h_tdata(axis_c2h_tdata),
+      .s_axis_c2h_tkeep(axis_c2h_tkeep),
       .c2h_overhead_valid(1'b1),
       .c2h_overhead_data(64'h76543210),
       .user_cs(user_cs),
@@ -276,14 +277,14 @@ module top (
   );
 
   /* Logic control BAR2 (Descriptors for DDR3) */
-  // h2c AXI stream descriptors
+  // h2c AXI-Stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_h2c_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_h2c_desc_len;
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
   wire                    axis_h2c_desc_status_valid;
   reg  [            63:0] h2c_overhead_reg;
-  // c2h AXI stream descriptors
+  // c2h AXI-Stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
   wire                    axis_c2h_desc_valid;
@@ -299,7 +300,7 @@ module top (
     if (!rst_n) begin
       h2c_overhead_reg <= 64'd0;
     end else begin
-      if (axis_h2c_data_tvalid) begin
+      if (axis_h2c_tvalid) begin
         h2c_overhead_reg <= h2c_overhead;
       end
     end
@@ -333,6 +334,112 @@ module top (
       .lad_len(lad_cfg_len),
       .lad_run(lad_run),
       .lad_done(lad_done)
+  );
+
+  /* AXI-Stream FIFO */
+  // h2c
+  wire                    axis_h2c_data_tready;
+  wire                    axis_h2c_data_tvalid;
+  wire [AXIDATAWIDTH-1:0] axis_h2c_data_tdata;
+  wire                    axis_h2c_data_tlast;
+  wire [AXISTRBWIDTH-1:0] axis_h2c_data_tkeep;
+  // c2h
+  wire                    axis_c2h_data_tready;
+  wire                    axis_c2h_data_tvalid;
+  wire [AXIDATAWIDTH-1:0] axis_c2h_data_tdata;
+  wire                    axis_c2h_data_tlast;
+  wire [AXISTRBWIDTH-1:0] axis_c2h_data_tkeep;
+
+  axis_async_fifo #(
+      .DEPTH(FIFODEPTH),
+      .DATA_WIDTH(AXIDATAWIDTH),
+      .KEEP_ENABLE(1),
+      .KEEP_WIDTH(AXISTRBWIDTH),
+      .LAST_ENABLE(1),
+      .ID_ENABLE(0),
+      .DEST_ENABLE(0),
+      .USER_ENABLE(0)
+  ) u_axis_h2c_fifo (
+      .s_clk(tlp_clk),
+      .s_rst(~rst_n),
+      .s_axis_tdata(axis_h2c_tdata),
+      .s_axis_tkeep(axis_h2c_tkeep),
+      .s_axis_tvalid(axis_h2c_tvalid),
+      .s_axis_tready(axis_h2c_tready),
+      .s_axis_tlast(axis_h2c_tlast),
+      .s_axis_tid(8'd0),
+      .s_axis_tdest(8'd0),
+      .s_axis_tuser(1'b0),
+      .m_clk(ui_clk),
+      .m_rst(ui_rst),
+      .m_axis_tdata(axis_h2c_data_tdata),
+      .m_axis_tkeep(axis_h2c_data_tkeep),
+      .m_axis_tvalid(axis_h2c_data_tvalid),
+      .m_axis_tready(axis_h2c_data_tready),
+      .m_axis_tlast(axis_h2c_data_tlast),
+      .m_axis_tid(),
+      .m_axis_tdest(),
+      .m_axis_tuser(),
+      .s_pause_req(1'b0),
+      .s_pause_ack(),
+      .m_pause_req(1'b0),
+      .m_pause_ack(),
+      .s_status_depth(),
+      .s_status_depth_commit(),
+      .s_status_overflow(),
+      .s_status_bad_frame(),
+      .s_status_good_frame(),
+      .m_status_depth(),
+      .m_status_depth_commit(),
+      .m_status_overflow(),
+      .m_status_bad_frame(),
+      .m_status_good_frame()
+  );
+
+  axis_async_fifo #(
+      .DEPTH(FIFODEPTH),
+      .DATA_WIDTH(AXIDATAWIDTH),
+      .KEEP_ENABLE(1),
+      .KEEP_WIDTH(AXISTRBWIDTH),
+      .LAST_ENABLE(1),
+      .ID_ENABLE(0),
+      .DEST_ENABLE(0),
+      .USER_ENABLE(0)
+  ) u_axis_c2h_fifo (
+      .s_clk(ui_clk),
+      .s_rst(ui_rst),
+      .s_axis_tdata(axis_c2h_data_tdata),
+      .s_axis_tkeep(axis_c2h_data_tkeep),
+      .s_axis_tvalid(axis_c2h_data_tvalid),
+      .s_axis_tready(axis_c2h_data_tready),
+      .s_axis_tlast(axis_c2h_data_tlast),
+      .s_axis_tid(8'd0),
+      .s_axis_tdest(8'd0),
+      .s_axis_tuser(1'b0),
+      .m_clk(tlp_clk),
+      .m_rst(~rst_n),
+      .m_axis_tdata(axis_c2h_tdata),
+      .m_axis_tkeep(axis_c2h_tkeep),
+      .m_axis_tvalid(axis_c2h_tvalid),
+      .m_axis_tready(axis_c2h_tready),
+      .m_axis_tlast(axis_c2h_tlast),
+      .m_axis_tid(),
+      .m_axis_tdest(),
+      .m_axis_tuser(),
+      .s_pause_req(1'b0),
+      .s_pause_ack(),
+      .m_pause_req(1'b0),
+      .m_pause_ack(),
+      .s_status_depth(),
+      .s_status_depth_commit(),
+      .s_status_overflow(),
+      .s_status_bad_frame(),
+      .s_status_good_frame(),
+      .m_status_depth(),
+      .m_status_depth_commit(),
+      .m_status_overflow(),
+      .m_status_bad_frame(),
+      .m_status_good_frame()
   );
 
   /* AXI DMA */
