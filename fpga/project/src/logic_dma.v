@@ -3,7 +3,7 @@ module logic_dma #(
     parameter integer AXI_LEN_WIDTH  = 20
 ) (
     input clk,
-    input rstn,
+    input rst_n,
 
     // BAR2 user interface from PCIe Sgdma
     input             user_cs,
@@ -58,8 +58,8 @@ module logic_dma #(
   reg lad_stop_pulse;
 
   // lad
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       lad_run <= 1'b0;
       lad_done_latched <= 1'b0;
     end else begin
@@ -80,8 +80,8 @@ module logic_dma #(
   end
 
   // BAR2 host write
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       m_axis_h2c_desc_addr <= {AXI_ADDR_WIDTH{1'b0}};
       m_axis_h2c_desc_len <= {AXI_LEN_WIDTH{1'b0}};
       m_axis_h2c_desc_valid <= 1'b0;
@@ -168,8 +168,8 @@ module logic_dma #(
   end
 
   // BAR2 host read
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       user_rd_valid <= 1'b0;
       user_rd_data  <= 32'd0;
     end else begin

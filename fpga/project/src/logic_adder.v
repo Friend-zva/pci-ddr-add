@@ -5,7 +5,7 @@ module logic_adder #(
     parameter integer AXI_STRB_WIDTH = 32
 ) (
     input clk,
-    input rstn,
+    input rst_n,
 
     // Config
     input [AXI_ADDR_WIDTH-1:0] cfg_read_addr,
@@ -76,8 +76,8 @@ module logic_adder #(
 
   wire stream_fire = s_axis_rx_tvalid && s_axis_rx_tready;
 
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       state <= IDLE;
       m_axis_read_desc_valid <= 1'b0;
       m_axis_write_desc_valid <= 1'b0;
@@ -141,8 +141,8 @@ module logic_adder #(
 
   assign s_axis_rx_tready = stream_enable && pipe_ready;
 
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       pipe_tvalid <= 1'b0;
       pipe_tlast  <= 1'b0;
     end else begin
