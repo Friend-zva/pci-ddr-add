@@ -24,12 +24,17 @@
 #define PP_ADDR_LO(addr) ((addr) & 0xFFFFFFFF)
 #define PP_ADDR_HI(addr) ((addr >> 32) & 0xFFFFFFFF)
 
+#define MODULE_NUM(num, module) ((num_desc) > module ? module : (num_desc))
+#define MODULE_DESC(num_desc) (MODULE_NUM(num_desc, DESC_IN_BLOCK_MAX))
+#define MODULE_CREDIT(num_credit) (MODULE_NUM(num_credit, CREDIT_MAX))
+
 static const int TIMEOUT_POLL = 1000000;
 
 static volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
+static int COUNTING_CREDIT = 0;
 
 static int FLAG_LAST = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
 
@@ -150,7 +155,7 @@ int main(int argc, char *argv[]) {
         uint64_t desc_next_a = 0x0;
         if (IS_LAST_DESC(i)) {
             uint32_t num_desc_adj_next = num_desc - (i + 1);
-            flags = SET_FLAG_NUM_DESC(DESC_MODULE(num_desc_adj_next - 1));
+            flags = SET_FLAG_NUM_DESC(MODULE_DESC(num_desc_adj_next - 1));
             desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
         };
 
@@ -180,7 +185,8 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_desc_hi = PP_ADDR_HI(desc_h2c_a);
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
-    gwbar0->h2c[0].num_desc_adj = num_desc_adj; //? DESC_MODULE()
+    gwbar0->h2c[0].num_desc_adj = num_desc_adj;
+    // gwbar0->h2c[0].num_desc_adj = MODULE_DESC(num_desc_adj - 1);
 
     if (DBG_INFO) {
         debug_dma(proc->fd, 0, 32);
@@ -255,7 +261,7 @@ int main(int argc, char *argv[]) {
         uint64_t desc_next_a = 0x0;
         if (IS_LAST_DESC(i)) {
             uint32_t num_desc_adj_next = num_desc - (i + 1);
-            flags = SET_FLAG_NUM_DESC(DESC_MODULE(num_desc_adj_next - 1));
+            flags = SET_FLAG_NUM_DESC(MODULE_DESC(num_desc_adj_next - 1));
             desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
         };
 
@@ -285,8 +291,10 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(desc_c2h_a);
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
-    gwbar0->c2h[0].num_desc_adj = num_desc_adj; //? DESC_MODULE()
-    gwbar0->c2h[0].credit = CREDIT_MAX;
+    gwbar0->c2h[0].num_desc_adj = num_desc_adj;
+    // gwbar0->c2h[0].num_desc_adj = MODULE_DESC(num_desc_adj - 1);
+    int credits = MODULE_CREDIT(num_desc);
+    gwbar0->c2h[0].credit = credits;
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
@@ -295,14 +303,25 @@ int main(int argc, char *argv[]) {
 
     int timeout_c2h = TIMEOUT_POLL;
     while ((*poll_c2h_p != _num_desc_swap) && --timeout_c2h > 0 && !flag_exit) {
+        if (COUNTING_CREDIT && credits < num_desc) {
+            uint32_t desc_comp = gwbar0->c2h[0].desc_count;
+            credits = gwbar0->c2h[0].credit;
+            uint32_t diff_credits = MODULE_CREDIT(CREDIT_MAX - credits);
+
+            if (diff_credits) {
+                gwbar0->c2h[0].credit = diff_credits;
+                credits = diff_credits;
+            }
+        }
+
         if (DBG_INFO) {
-            printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+            printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
                    *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
-                   gwbar0->c2h[0].desc_count, (desc_c2h_p - num_desc_adj)->flags,
-                   desc_c2h_p->flags);
+                   gwbar0->c2h[0].desc_count, gwbar0->c2h[0].credit,
+                   (desc_c2h_p - num_desc_adj)->flags, desc_c2h_p->flags);
             fflush(stdout);
         }
-        //? gwbar0->c2h[0].credit = CREDIT_MAX;
+        gwbar0->c2h[0].credit = CREDIT_MAX;
         usleep(1);
     }
     if (DBG_INFO) {

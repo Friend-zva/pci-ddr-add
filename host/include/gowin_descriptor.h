@@ -11,9 +11,7 @@
 #define IS_DESC_COMPLETED (1 << 4)
 #define IS_LAST_DESC(i) (((uint32_t)i & 0x7F) == 0x7F)
 
-#define MAX_DESC_IN_BLOCK 127
-#define DESC_MODULE(num_desc)                                                       \
-    ((num_desc) > MAX_DESC_IN_BLOCK ? MAX_DESC_IN_BLOCK : (num_desc))
+#define DESC_IN_BLOCK_MAX 127
 
 typedef struct __attribute__((packed, aligned(32))) {
     //* 0x00 - Stop[0], Eop[1], Completed[2], AdjDescNum[14:8]
