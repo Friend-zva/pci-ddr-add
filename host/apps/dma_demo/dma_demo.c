@@ -34,7 +34,6 @@ static volatile sig_atomic_t flag_exit = 0;
 void handle_sigint(int sig) { flag_exit = 1; }
 
 static int DBG_INFO = 1;
-static int COUNTING_CREDIT = 0;
 
 static int FLAG_LAST = SET_FLAG_STOP | SET_FLAG_EOP | SET_FLAG_COMP;
 
@@ -185,8 +184,7 @@ int main(int argc, char *argv[]) {
     gwbar0->h2c[0].addr_desc_hi = PP_ADDR_HI(desc_h2c_a);
     gwbar0->h2c[0].addr_poll_lo = PP_ADDR_LO(poll_h2c_a);
     gwbar0->h2c[0].addr_poll_hi = PP_ADDR_HI(poll_h2c_a);
-    gwbar0->h2c[0].num_desc_adj = num_desc_adj;
-    // gwbar0->h2c[0].num_desc_adj = MODULE_DESC(num_desc_adj - 1);
+    gwbar0->h2c[0].num_desc_adj = MODULE_DESC(num_desc_adj);
 
     if (DBG_INFO) {
         debug_dma(proc->fd, 0, 32);
@@ -291,10 +289,9 @@ int main(int argc, char *argv[]) {
     gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(desc_c2h_a);
     gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
     gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
-    gwbar0->c2h[0].num_desc_adj = num_desc_adj;
-    // gwbar0->c2h[0].num_desc_adj = MODULE_DESC(num_desc_adj - 1);
-    int credits = MODULE_CREDIT(num_desc);
-    gwbar0->c2h[0].credit = credits;
+    gwbar0->c2h[0].num_desc_adj = MODULE_DESC(num_desc_adj);
+    gwbar0->c2h[0].credit = CREDIT_MAX;
+    // gwbar0->c2h[0].credit = MODULE_CREDIT(num_desc);
 
     gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
     gwbar2->leng_ddr_c2h = size_data;
@@ -303,15 +300,9 @@ int main(int argc, char *argv[]) {
 
     int timeout_c2h = TIMEOUT_POLL;
     while ((*poll_c2h_p != _num_desc_swap) && --timeout_c2h > 0 && !flag_exit) {
-        if (COUNTING_CREDIT && credits < num_desc) {
-            uint32_t desc_comp = gwbar0->c2h[0].desc_count;
-            credits = gwbar0->c2h[0].credit;
-            uint32_t diff_credits = MODULE_CREDIT(CREDIT_MAX - credits);
-
-            if (diff_credits) {
-                gwbar0->c2h[0].credit = diff_credits;
-                credits = diff_credits;
-            }
+        uint32_t credits = gwbar0->c2h[0].credit & CREDIT_MAX;
+        if (credits <= DESC_IN_BLOCK_MAX) {
+            gwbar0->c2h[0].credit = MODULE_CREDIT(CREDIT_MAX - credits);
         }
 
         if (DBG_INFO) {
@@ -321,7 +312,6 @@ int main(int argc, char *argv[]) {
                    (desc_c2h_p - num_desc_adj)->flags, desc_c2h_p->flags);
             fflush(stdout);
         }
-        gwbar0->c2h[0].credit = CREDIT_MAX;
         usleep(1);
     }
     if (DBG_INFO) {
