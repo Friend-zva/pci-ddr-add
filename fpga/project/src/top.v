@@ -209,14 +209,14 @@ module top (
   wire [AXISTRBWIDTH-1:0] axis_c2h_tkeep;
   wire                    c2h_run;
   // BAR2
-  wire         user_cs;
-  wire [ 63:0] user_address;
-  wire         user_rw;
-  wire [ 31:0] user_wr_data;
-  wire [  3:0] user_wr_be;
-  wire [  3:0] user_rd_be;
-  wire         user_rd_valid;
-  wire [ 31:0] user_rd_data;
+  wire                    user_cs;
+  wire [            63:0] user_address;
+  wire                    user_rw;
+  wire [            31:0] user_wr_data;
+  wire [             3:0] user_wr_be;
+  wire [             3:0] user_rd_be;
+  wire                    user_rd_valid;
+  wire [            31:0] user_rd_data;
 
   Pcie_Sgdma_Top u_pcie_sgdma (
       .pcie_rstn(rst_n),
@@ -367,33 +367,13 @@ module top (
       .s_axis_tvalid(axis_h2c_tvalid),
       .s_axis_tready(axis_h2c_tready),
       .s_axis_tlast(axis_h2c_tlast),
-      .s_axis_tid(8'd0),
-      .s_axis_tdest(8'd0),
-      .s_axis_tuser(1'b0),
       .m_clk(ui_clk),
       .m_rst(ui_rst),
       .m_axis_tdata(axis_h2c_data_tdata),
       .m_axis_tkeep(axis_h2c_data_tkeep),
       .m_axis_tvalid(axis_h2c_data_tvalid),
       .m_axis_tready(axis_h2c_data_tready),
-      .m_axis_tlast(axis_h2c_data_tlast),
-      .m_axis_tid(),
-      .m_axis_tdest(),
-      .m_axis_tuser(),
-      .s_pause_req(1'b0),
-      .s_pause_ack(),
-      .m_pause_req(1'b0),
-      .m_pause_ack(),
-      .s_status_depth(),
-      .s_status_depth_commit(),
-      .s_status_overflow(),
-      .s_status_bad_frame(),
-      .s_status_good_frame(),
-      .m_status_depth(),
-      .m_status_depth_commit(),
-      .m_status_overflow(),
-      .m_status_bad_frame(),
-      .m_status_good_frame()
+      .m_axis_tlast(axis_h2c_data_tlast)
   );
 
   axis_async_fifo #(
@@ -422,24 +402,7 @@ module top (
       .m_axis_tkeep(axis_c2h_tkeep),
       .m_axis_tvalid(axis_c2h_tvalid),
       .m_axis_tready(axis_c2h_tready),
-      .m_axis_tlast(axis_c2h_tlast),
-      .m_axis_tid(),
-      .m_axis_tdest(),
-      .m_axis_tuser(),
-      .s_pause_req(1'b0),
-      .s_pause_ack(),
-      .m_pause_req(1'b0),
-      .m_pause_ack(),
-      .s_status_depth(),
-      .s_status_depth_commit(),
-      .s_status_overflow(),
-      .s_status_bad_frame(),
-      .s_status_good_frame(),
-      .m_status_depth(),
-      .m_status_depth_commit(),
-      .m_status_overflow(),
-      .m_status_bad_frame(),
-      .m_status_good_frame()
+      .m_axis_tlast(axis_c2h_tlast)
   );
 
   /* AXI DMA */
@@ -581,18 +544,18 @@ module top (
   wire                    axis_lad_wr_desc_valid;
   wire                    axis_lad_wr_desc_ready;
   wire                    axis_lad_wr_desc_status_valid;
-  // Receive data
-  wire                    axis_lad_rx_data_tready;
-  wire                    axis_lad_rx_data_tvalid;
-  wire [AXIDATAWIDTH-1:0] axis_lad_rx_data_tdata;
-  wire                    axis_lad_rx_data_tlast;
-  wire [AXISTRBWIDTH-1:0] axis_lad_rx_data_tkeep;
-  // Transmit data
-  wire                    axis_lad_tx_data_tready;
-  wire                    axis_lad_tx_data_tvalid;
-  wire                    axis_lad_tx_data_tlast;
-  wire [AXIDATAWIDTH-1:0] axis_lad_tx_data_tdata;
-  wire [AXISTRBWIDTH-1:0] axis_lad_tx_data_tkeep;
+  // Transmit
+  wire [AXIDATAWIDTH-1:0] axis_lad_tx_tdata;
+  wire [AXISTRBWIDTH-1:0] axis_lad_tx_tkeep;
+  wire                    axis_lad_tx_tvalid;
+  wire                    axis_lad_tx_tready;
+  wire                    axis_lad_tx_tlast;
+  // Receive
+  wire [AXIDATAWIDTH-1:0] axis_lad_rx_tdata;
+  wire [AXISTRBWIDTH-1:0] axis_lad_rx_tkeep;
+  wire                    axis_lad_rx_tvalid;
+  wire                    axis_lad_rx_tready;
+  wire                    axis_lad_rx_tlast;
 
   logic_adder #(
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
@@ -617,18 +580,84 @@ module top (
       .m_axis_write_desc_len(axis_lad_wr_desc_len),
       .m_axis_write_desc_tag(axis_lad_wr_desc_tag),
       .s_axis_write_desc_status_valid(axis_lad_wr_desc_status_valid),
-      .s_axis_rx_tready(axis_lad_rx_data_tready),
-      .s_axis_rx_tvalid(axis_lad_rx_data_tvalid),
-      .s_axis_rx_tdata(axis_lad_rx_data_tdata),
-      .s_axis_rx_tlast(axis_lad_rx_data_tlast),
-      .s_axis_rx_tkeep(axis_lad_rx_data_tkeep),
-      .m_axis_tx_tready(axis_lad_tx_data_tready),
-      .m_axis_tx_tvalid(axis_lad_tx_data_tvalid),
-      .m_axis_tx_tlast(axis_lad_tx_data_tlast),
-      .m_axis_tx_tdata(axis_lad_tx_data_tdata),
-      .m_axis_tx_tkeep(axis_lad_tx_data_tkeep),
+      .s_axis_rx_tready(axis_lad_rx_tready),
+      .s_axis_rx_tvalid(axis_lad_rx_tvalid),
+      .s_axis_rx_tdata(axis_lad_rx_tdata),
+      .s_axis_rx_tlast(axis_lad_rx_tlast),
+      .s_axis_rx_tkeep(axis_lad_rx_tkeep),
+      .m_axis_tx_tready(axis_lad_tx_tready),
+      .m_axis_tx_tvalid(axis_lad_tx_tvalid),
+      .m_axis_tx_tlast(axis_lad_tx_tlast),
+      .m_axis_tx_tdata(axis_lad_tx_tdata),
+      .m_axis_tx_tkeep(axis_lad_tx_tkeep),
       .run(lad_run),
       .done(lad_done)
+  );
+
+  /* AXI-Stream FIFO */
+  // Transmit
+  wire                    axis_lad_tx_data_tready;
+  wire                    axis_lad_tx_data_tvalid;
+  wire                    axis_lad_tx_data_tlast;
+  wire [AXIDATAWIDTH-1:0] axis_lad_tx_data_tdata;
+  wire [AXISTRBWIDTH-1:0] axis_lad_tx_data_tkeep;
+  // Receive
+  wire                    axis_lad_rx_data_tready;
+  wire                    axis_lad_rx_data_tvalid;
+  wire                    axis_lad_rx_data_tlast;
+  wire [AXIDATAWIDTH-1:0] axis_lad_rx_data_tdata;
+  wire [AXISTRBWIDTH-1:0] axis_lad_rx_data_tkeep;
+
+  axis_fifo #(
+      .DEPTH(FIFODEPTH),
+      .DATA_WIDTH(AXIDATAWIDTH),
+      .KEEP_WIDTH(AXISTRBWIDTH),
+      .LAST_ENABLE(1),
+      .ID_ENABLE(0),
+      .DEST_ENABLE(0),
+      .USER_ENABLE(0)
+  ) u_axis_lad_tx_fifo (
+      .clk(ui_clk),
+      .rst(ui_rst),
+      .s_axis_tdata(axis_lad_tx_tdata),
+      .s_axis_tkeep(axis_lad_tx_tkeep),
+      .s_axis_tvalid(axis_lad_tx_tvalid),
+      .s_axis_tready(axis_lad_tx_tready),
+      .s_axis_tlast(axis_lad_tx_tlast),
+      .s_axis_tid(8'd0),
+      .s_axis_tdest(8'd0),
+      .s_axis_tuser(1'b0),
+      .m_axis_tdata(axis_lad_tx_data_tdata),
+      .m_axis_tkeep(axis_lad_tx_data_tkeep),
+      .m_axis_tvalid(axis_lad_tx_data_tvalid),
+      .m_axis_tready(axis_lad_tx_data_tready),
+      .m_axis_tlast(axis_lad_tx_data_tlast)
+  );
+
+  axis_fifo #(
+      .DEPTH(FIFODEPTH),
+      .DATA_WIDTH(AXIDATAWIDTH),
+      .KEEP_WIDTH(AXISTRBWIDTH),
+      .LAST_ENABLE(1),
+      .ID_ENABLE(0),
+      .DEST_ENABLE(0),
+      .USER_ENABLE(0)
+  ) u_axis_lad_rx_fifo (
+      .clk(ui_clk),
+      .rst(ui_rst),
+      .s_axis_tdata(axis_lad_rx_data_tdata),
+      .s_axis_tkeep(axis_lad_rx_data_tkeep),
+      .s_axis_tvalid(axis_lad_rx_data_tvalid),
+      .s_axis_tready(axis_lad_rx_data_tready),
+      .s_axis_tlast(axis_lad_rx_data_tlast),
+      .s_axis_tid(8'd0),
+      .s_axis_tdest(8'd0),
+      .s_axis_tuser(1'b0),
+      .m_axis_tdata(axis_lad_rx_tdata),
+      .m_axis_tkeep(axis_lad_rx_tkeep),
+      .m_axis_tvalid(axis_lad_rx_tvalid),
+      .m_axis_tready(axis_lad_rx_tready),
+      .m_axis_tlast(axis_lad_rx_tlast)
   );
 
   /* AXI DMA */
