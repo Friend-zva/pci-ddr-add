@@ -24,7 +24,7 @@
 #define PP_ADDR_LO(addr) ((addr) & 0xFFFFFFFF)
 #define PP_ADDR_HI(addr) ((addr >> 32) & 0xFFFFFFFF)
 
-#define MODULE_NUM(num, module) ((num_desc) > module ? module : (num_desc))
+#define MODULE_NUM(number, module) ((number) > module ? module : (number))
 #define MODULE_DESC(num_desc) (MODULE_NUM(num_desc, DESC_IN_BLOCK_MAX))
 #define MODULE_CREDIT(num_credit) (MODULE_NUM(num_credit, CREDIT_MAX))
 
@@ -93,8 +93,8 @@ int main(int argc, char *argv[]) {
 
     // ddr
 
-    uint32_t addr_ddr_h2c = 0x1000;
-    uint32_t addr_ddr_c2h = 0x2000 + size_data;
+    uint32_t addr_ddr_h2c = 0x0;
+    uint32_t addr_ddr_c2h = size_data;
 
     // h2c
 

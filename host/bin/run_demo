@@ -31,7 +31,7 @@ if [ $# -ge 1 ]; then
 else
   echo '*  Data   size (bytes) :'
   echo '0. default  1. 32B  2. 1KB  3. 4KB  4. 16KB  5. 1MB  6. 16MB  7. 128MB  8. 512MB'
-  echo -n "Please enter your choice (1-5): "
+  echo -n "Please enter your choice (0-8): "
   while true; do
     read -n 1 b
     [ "$b" -ge 0 ] && [ "$b" -le 8 ] && {
@@ -44,7 +44,7 @@ else
 
   echo '*  Block  size (bytes) :'
   echo '0. default  1. 32  2. 64  3. 128  4. 256  5. 512  6. 1024  7. 2048  8. 4096'
-  echo -n "Please enter your choice (1-5): "
+  echo -n "Please enter your choice (0-8): "
   while true; do
     read -n 1 b
     [ "$b" -ge 0 ] && [ "$b" -le 8 ] && {
