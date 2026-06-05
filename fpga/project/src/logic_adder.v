@@ -11,7 +11,6 @@ module logic_adder #(
     input [AXI_ADDR_WIDTH-1:0] cfg_read_addr,
     input [AXI_ADDR_WIDTH-1:0] cfg_write_addr,
     input [ AXI_LEN_WIDTH-1:0] cfg_len,
-    input [               7:0] cfg_desc_tag,
 
     // Descriptors for AXI DMA
 
@@ -48,10 +47,10 @@ module logic_adder #(
 
   assign m_axis_read_desc_addr  = cfg_read_addr;
   assign m_axis_read_desc_len   = cfg_len;
-  assign m_axis_read_desc_tag   = cfg_desc_tag;
+  assign m_axis_read_desc_tag   = cfg_read_addr[15:8];
   assign m_axis_write_desc_addr = cfg_write_addr;
   assign m_axis_write_desc_len  = cfg_len;
-  assign m_axis_write_desc_tag  = cfg_desc_tag;
+  assign m_axis_write_desc_tag  = cfg_write_addr[15:8];
 
   // Adder
   wire [AXI_DATA_WIDTH-1:0] tx_data_add16;

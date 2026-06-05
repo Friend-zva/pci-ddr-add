@@ -194,20 +194,20 @@ module top (
 
   /* PCIe SGDMA */
   // h2c AXI-Stream data
-  wire                    axis_h2c_tready;
-  wire                    axis_h2c_tvalid;
-  wire [AXIDATAWIDTH-1:0] axis_h2c_tdata;
-  wire                    axis_h2c_tlast;
-  wire [AXISTRBWIDTH-1:0] axis_h2c_tkeep;
-  wire [            63:0] h2c_overhead;
-  wire                    h2c_run;
+  wire         axis_h2c_tready;
+  wire         axis_h2c_tvalid;
+  wire [255:0] axis_h2c_tdata;
+  wire         axis_h2c_tlast;
+  wire [ 31:0] axis_h2c_tkeep;
+  wire [ 63:0] h2c_overhead;
+  wire         h2c_run;
   // c2h AXI-Stream data
-  wire                    axis_c2h_tready;
-  wire                    axis_c2h_tvalid;
-  wire [AXIDATAWIDTH-1:0] axis_c2h_tdata;
-  wire                    axis_c2h_tlast;
-  wire [AXISTRBWIDTH-1:0] axis_c2h_tkeep;
-  wire                    c2h_run;
+  wire         axis_c2h_tready;
+  wire         axis_c2h_tvalid;
+  wire [255:0] axis_c2h_tdata;
+  wire         axis_c2h_tlast;
+  wire [ 31:0] axis_c2h_tkeep;
+  wire         c2h_run;
   // BAR2
   wire         user_cs;
   wire [ 63:0] user_address;
@@ -336,7 +336,7 @@ module top (
       .lad_done(lad_done)
   );
 
-  /* AXI-Stream FIFO */
+  /* AXI-Stream Async FIFO */
   // h2c
   wire                    axis_h2c_data_tready;
   wire                    axis_h2c_data_tvalid;
@@ -367,33 +367,13 @@ module top (
       .s_axis_tvalid(axis_h2c_tvalid),
       .s_axis_tready(axis_h2c_tready),
       .s_axis_tlast(axis_h2c_tlast),
-      .s_axis_tid(8'd0),
-      .s_axis_tdest(8'd0),
-      .s_axis_tuser(1'b0),
       .m_clk(ui_clk),
       .m_rst(ui_rst),
       .m_axis_tdata(axis_h2c_data_tdata),
       .m_axis_tkeep(axis_h2c_data_tkeep),
       .m_axis_tvalid(axis_h2c_data_tvalid),
       .m_axis_tready(axis_h2c_data_tready),
-      .m_axis_tlast(axis_h2c_data_tlast),
-      .m_axis_tid(),
-      .m_axis_tdest(),
-      .m_axis_tuser(),
-      .s_pause_req(1'b0),
-      .s_pause_ack(),
-      .m_pause_req(1'b0),
-      .m_pause_ack(),
-      .s_status_depth(),
-      .s_status_depth_commit(),
-      .s_status_overflow(),
-      .s_status_bad_frame(),
-      .s_status_good_frame(),
-      .m_status_depth(),
-      .m_status_depth_commit(),
-      .m_status_overflow(),
-      .m_status_bad_frame(),
-      .m_status_good_frame()
+      .m_axis_tlast(axis_h2c_data_tlast)
   );
 
   axis_async_fifo #(
@@ -413,33 +393,13 @@ module top (
       .s_axis_tvalid(axis_c2h_data_tvalid),
       .s_axis_tready(axis_c2h_data_tready),
       .s_axis_tlast(axis_c2h_data_tlast),
-      .s_axis_tid(8'd0),
-      .s_axis_tdest(8'd0),
-      .s_axis_tuser(1'b0),
       .m_clk(tlp_clk),
       .m_rst(~rst_n),
       .m_axis_tdata(axis_c2h_tdata),
       .m_axis_tkeep(axis_c2h_tkeep),
       .m_axis_tvalid(axis_c2h_tvalid),
       .m_axis_tready(axis_c2h_tready),
-      .m_axis_tlast(axis_c2h_tlast),
-      .m_axis_tid(),
-      .m_axis_tdest(),
-      .m_axis_tuser(),
-      .s_pause_req(1'b0),
-      .s_pause_ack(),
-      .m_pause_req(1'b0),
-      .m_pause_ack(),
-      .s_status_depth(),
-      .s_status_depth_commit(),
-      .s_status_overflow(),
-      .s_status_bad_frame(),
-      .s_status_good_frame(),
-      .m_status_depth(),
-      .m_status_depth_commit(),
-      .m_status_overflow(),
-      .m_status_bad_frame(),
-      .m_status_good_frame()
+      .m_axis_tlast(axis_c2h_tlast)
   );
 
   /* AXI DMA */
@@ -500,10 +460,7 @@ module top (
       .rst(ui_rst),
       .s_axis_read_desc_addr(axis_c2h_desc_addr),
       .s_axis_read_desc_len(axis_c2h_desc_len),
-      .s_axis_read_desc_tag(8'd0),
-      .s_axis_read_desc_id(8'd0),
-      .s_axis_read_desc_dest(8'd0),
-      .s_axis_read_desc_user(1'd0),
+      .s_axis_read_desc_tag(axis_c2h_desc_addr[15:8]),
       .s_axis_read_desc_valid(axis_c2h_desc_valid),
       .s_axis_read_desc_ready(axis_c2h_desc_ready),
       .m_axis_read_data_tdata(axis_c2h_data_tdata),
@@ -513,7 +470,7 @@ module top (
       .m_axis_read_data_tlast(axis_c2h_data_tlast),
       .s_axis_write_desc_addr(axis_h2c_desc_addr),
       .s_axis_write_desc_len(axis_h2c_desc_len),
-      .s_axis_write_desc_tag(8'd0),
+      .s_axis_write_desc_tag(axis_h2c_desc_addr[15:8]),
       .s_axis_write_desc_valid(axis_h2c_desc_valid),
       .s_axis_write_desc_ready(axis_h2c_desc_ready),
       .s_axis_write_data_tdata(axis_h2c_data_tdata),
@@ -521,8 +478,6 @@ module top (
       .s_axis_write_data_tvalid(axis_h2c_data_tvalid),
       .s_axis_write_data_tready(axis_h2c_data_tready),
       .s_axis_write_data_tlast(axis_h2c_data_tlast),
-      .s_axis_write_data_tid(8'd0),
-      .s_axis_write_data_tdest(8'd0),
       .m_axis_write_desc_status_valid(axis_h2c_desc_status_valid),
       .m_axi_awid(axi_pci_dma_awid),
       .m_axi_awaddr(axi_pci_dma_awaddr),
@@ -605,7 +560,6 @@ module top (
       .cfg_read_addr(lad_cfg_read_addr),
       .cfg_write_addr(lad_cfg_write_addr),
       .cfg_len(lad_cfg_len),
-      .cfg_desc_tag(8'd0),
       .m_axis_read_desc_valid(axis_lad_rd_desc_valid),
       .m_axis_read_desc_ready(axis_lad_rd_desc_ready),
       .m_axis_read_desc_addr(axis_lad_rd_desc_addr),
@@ -684,15 +638,12 @@ module top (
       .AXIS_USER_ENABLE(0),
       .ENABLE_SG(0),
       .ENABLE_UNALIGNED(0)
-  ) u_axi_pci_dma_logic_adder (
+  ) u_axi_dma_logic_adder (
       .clk(ui_clk),
       .rst(ui_rst),
       .s_axis_read_desc_addr(axis_lad_rd_desc_addr),
       .s_axis_read_desc_len(axis_lad_rd_desc_len),
       .s_axis_read_desc_tag(axis_lad_rd_desc_tag),
-      .s_axis_read_desc_id(8'd0),
-      .s_axis_read_desc_dest(8'd0),
-      .s_axis_read_desc_user(1'd0),
       .s_axis_read_desc_valid(axis_lad_rd_desc_valid),
       .s_axis_read_desc_ready(axis_lad_rd_desc_ready),
       .m_axis_read_data_tdata(axis_lad_rx_data_tdata),
@@ -710,8 +661,6 @@ module top (
       .s_axis_write_data_tvalid(axis_lad_tx_data_tvalid),
       .s_axis_write_data_tready(axis_lad_tx_data_tready),
       .s_axis_write_data_tlast(axis_lad_tx_data_tlast),
-      .s_axis_write_data_tid(8'd0),
-      .s_axis_write_data_tdest(8'd0),
       .m_axis_write_desc_status_valid(axis_lad_wr_desc_status_valid),
       .m_axi_awid(axi_lad_dma_awid),
       .m_axi_awaddr(axi_lad_dma_awaddr),
