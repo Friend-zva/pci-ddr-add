@@ -6,7 +6,7 @@
 //Part Number: GW5AST-LV138FPG676AC1/I0
 //Device: GW5AST-138
 //Device Version: B
-//Created Time: Fri Apr  3 20:06:56 2026
+//Created Time: Sat Jun  6 00:54:19 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
@@ -23,14 +23,14 @@
 		.s_axi_awvalid(s_axi_awvalid), //input s_axi_awvalid
 		.s_axi_awready(s_axi_awready), //output s_axi_awready
 		.s_axi_awid(s_axi_awid), //input [3:0] s_axi_awid
-		.s_axi_awaddr(s_axi_awaddr), //input [28:0] s_axi_awaddr
+		.s_axi_awaddr(s_axi_awaddr), //input [26:0] s_axi_awaddr
 		.s_axi_awlen(s_axi_awlen), //input [7:0] s_axi_awlen
 		.s_axi_awsize(s_axi_awsize), //input [2:0] s_axi_awsize
 		.s_axi_awburst(s_axi_awburst), //input [1:0] s_axi_awburst
 		.s_axi_wvalid(s_axi_wvalid), //input s_axi_wvalid
 		.s_axi_wready(s_axi_wready), //output s_axi_wready
-		.s_axi_wdata(s_axi_wdata), //input [255:0] s_axi_wdata
-		.s_axi_wstrb(s_axi_wstrb), //input [31:0] s_axi_wstrb
+		.s_axi_wdata(s_axi_wdata), //input [63:0] s_axi_wdata
+		.s_axi_wstrb(s_axi_wstrb), //input [7:0] s_axi_wstrb
 		.s_axi_wlast(s_axi_wlast), //input s_axi_wlast
 		.s_axi_bvalid(s_axi_bvalid), //output s_axi_bvalid
 		.s_axi_bready(s_axi_bready), //input s_axi_bready
@@ -39,13 +39,13 @@
 		.s_axi_arvalid(s_axi_arvalid), //input s_axi_arvalid
 		.s_axi_arready(s_axi_arready), //output s_axi_arready
 		.s_axi_arid(s_axi_arid), //input [3:0] s_axi_arid
-		.s_axi_araddr(s_axi_araddr), //input [28:0] s_axi_araddr
+		.s_axi_araddr(s_axi_araddr), //input [26:0] s_axi_araddr
 		.s_axi_arlen(s_axi_arlen), //input [7:0] s_axi_arlen
 		.s_axi_arsize(s_axi_arsize), //input [2:0] s_axi_arsize
 		.s_axi_arburst(s_axi_arburst), //input [1:0] s_axi_arburst
 		.s_axi_rvalid(s_axi_rvalid), //output s_axi_rvalid
 		.s_axi_rready(s_axi_rready), //input s_axi_rready
-		.s_axi_rdata(s_axi_rdata), //output [255:0] s_axi_rdata
+		.s_axi_rdata(s_axi_rdata), //output [63:0] s_axi_rdata
 		.s_axi_rresp(s_axi_rresp), //output [1:0] s_axi_rresp
 		.s_axi_rid(s_axi_rid), //output [3:0] s_axi_rid
 		.s_axi_rlast(s_axi_rlast), //output s_axi_rlast
@@ -65,10 +65,10 @@
 		.O_ddr_cke(O_ddr_cke), //output O_ddr_cke
 		.O_ddr_odt(O_ddr_odt), //output O_ddr_odt
 		.O_ddr_reset_n(O_ddr_reset_n), //output O_ddr_reset_n
-		.O_ddr_dqm(O_ddr_dqm), //output [3:0] O_ddr_dqm
-		.IO_ddr_dq(IO_ddr_dq), //inout [31:0] IO_ddr_dq
-		.IO_ddr_dqs(IO_ddr_dqs), //inout [3:0] IO_ddr_dqs
-		.IO_ddr_dqs_n(IO_ddr_dqs_n) //inout [3:0] IO_ddr_dqs_n
+		.O_ddr_dqm(O_ddr_dqm), //output [0:0] O_ddr_dqm
+		.IO_ddr_dq(IO_ddr_dq), //inout [7:0] IO_ddr_dq
+		.IO_ddr_dqs(IO_ddr_dqs), //inout [0:0] IO_ddr_dqs
+		.IO_ddr_dqs_n(IO_ddr_dqs_n) //inout [0:0] IO_ddr_dqs_n
 	);
 
 //--------Copy end-------------------

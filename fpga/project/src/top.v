@@ -16,10 +16,10 @@ module top (
     output ddr_cke,
     output ddr_odt,
     output ddr_reset_n,
-    output [3:0] ddr_dqm,
-    inout [31:0] ddr_dq,
-    inout [3:0] ddr_dqs,
-    inout [3:0] ddr_dqs_n
+    output [0:0] ddr_dqm,
+    inout [7:0] ddr_dq,
+    inout [0:0] ddr_dqs,
+    inout [0:0] ddr_dqs_n
 );
 
   // ==========
@@ -32,12 +32,12 @@ module top (
   localparam integer SYS_RST_DLY = 20;
   // AXI
   localparam integer FIFODEPTH = 4096;
-  localparam integer AXIDATAWIDTH = 256;
+  localparam integer AXIDATAWIDTH = 64;
   localparam integer AXISTRBWIDTH = AXIDATAWIDTH / 8;
   localparam integer AXIIDWIDTH = 4;
   localparam integer AXIBURSTLEN = 8;
   // DDR
-  localparam integer AXIADDRWIDTH = 29;
+  localparam integer AXIADDRWIDTH = 27;
   localparam integer AXILENWIDTH = AXIADDRWIDTH + 1;
 
   // ===============
@@ -352,9 +352,9 @@ module top (
 
   axis_async_fifo #(
       .DEPTH(FIFODEPTH),
-      .DATA_WIDTH(AXIDATAWIDTH),
+      .DATA_WIDTH(256),
       .KEEP_ENABLE(1),
-      .KEEP_WIDTH(AXISTRBWIDTH),
+      .KEEP_WIDTH(32),
       .LAST_ENABLE(1),
       .ID_ENABLE(0),
       .DEST_ENABLE(0),
@@ -378,9 +378,9 @@ module top (
 
   axis_async_fifo #(
       .DEPTH(FIFODEPTH),
-      .DATA_WIDTH(AXIDATAWIDTH),
+      .DATA_WIDTH(256),
       .KEEP_ENABLE(1),
-      .KEEP_WIDTH(AXISTRBWIDTH),
+      .KEEP_WIDTH(32),
       .LAST_ENABLE(1),
       .ID_ENABLE(0),
       .DEST_ENABLE(0),
