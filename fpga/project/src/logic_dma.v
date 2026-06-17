@@ -33,7 +33,7 @@ module logic_dma #(
     output reg [AXI_ADDR_WIDTH-1:0] lad_write_addr,
     output reg [ AXI_LEN_WIDTH-1:0] lad_len,
     output reg                      lad_run,
-    input                           lad_done
+    input                           lad_done_reg
 );
   //* All lengths in bytes.
 
@@ -63,7 +63,7 @@ module logic_dma #(
       lad_run <= 1'b0;
       lad_done_latched <= 1'b0;
     end else begin
-      if (lad_done) begin
+      if (lad_done_reg) begin
         lad_run <= 1'b0;
         lad_done_latched <= 1'b1;
       end

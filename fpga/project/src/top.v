@@ -26,7 +26,7 @@ module top (
   // Parameters
   // ==========
   // Clocks
-  localparam integer PCIE_DLY = 8;  //25~500ms
+  localparam integer PCIE_DLY = 8;
   localparam integer PERST_DLY = 25;
   localparam integer RUN_DLY = 23;
   localparam integer SYS_RST_DLY = 20;
@@ -283,7 +283,6 @@ module top (
   wire                    axis_h2c_desc_ready;
   wire                    axis_h2c_desc_valid;
   wire                    axis_h2c_desc_status_valid;
-  reg  [            63:0] h2c_overhead_reg;
   // c2h AXI-Stream descriptors
   wire [AXIADDRWIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXILENWIDTH-1:0] axis_c2h_desc_len;
@@ -295,6 +294,9 @@ module top (
   wire [ AXILENWIDTH-1:0] lad_cfg_len;
   wire                    lad_run;
   wire                    lad_done;
+  // Synchronization
+  reg  [            63:0] h2c_overhead_reg;
+  reg                     lad_done_reg;
 
   always @(posedge tlp_clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -306,12 +308,22 @@ module top (
     end
   end
 
+  always @(posedge ui_clk or negedge ui_rst) begin
+    if (!ui_rst) begin
+      lad_done_reg <= 1'b0;
+    end else begin
+      if (lad_done) begin
+        lad_done_reg <= 1'b1;
+      end
+    end
+  end
+
   logic_dma #(
       .AXI_ADDR_WIDTH(AXIADDRWIDTH),
       .AXI_LEN_WIDTH (AXILENWIDTH)
   ) u_logic_dma (
-      .clk(ui_clk),
-      .rst_n(~ui_rst),
+      .clk(tlp_clk),
+      .rst_n(rst_n),
       .user_cs(user_cs),
       .user_address(user_address),
       .user_rw(user_rw),
@@ -333,7 +345,7 @@ module top (
       .lad_write_addr(lad_cfg_write_addr),
       .lad_len(lad_cfg_len),
       .lad_run(lad_run),
-      .lad_done(lad_done)
+      .lad_done(lad_done_reg)
   );
 
   /* AXI-Stream Async FIFO */
