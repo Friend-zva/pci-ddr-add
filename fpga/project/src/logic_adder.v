@@ -52,15 +52,24 @@ module logic_adder #(
   assign m_axis_write_desc_len  = cfg_len;
   assign m_axis_write_desc_tag  = cfg_write_addr[15:8];
 
-  // Adder
-  wire [AXI_DATA_WIDTH-1:0] tx_data_add16;
+  // Register Receive
+  reg  [AXI_DATA_WIDTH-1:0] reg_rx_tdata;
+  reg  [AXI_STRB_WIDTH-1:0] reg_rx_tkeep;
+  reg                       reg_rx_tvalid;
+  reg                       reg_rx_tlast;
+  // Register Transmit
+  reg  [AXI_DATA_WIDTH-1:0] reg_tx_tdata;
+  reg  [AXI_STRB_WIDTH-1:0] reg_tx_tkeep;
+  reg                       reg_tx_tvalid;
+  reg                       reg_tx_tlast;
 
-  genvar tx_dw;
+  wire [AXI_DATA_WIDTH-1:0] sum32;
+  genvar dw;
   generate
-    for (tx_dw = 0; tx_dw < (AXI_DATA_WIDTH / 32); tx_dw = tx_dw + 1) begin : gen_tx_add16
-      wire [31:0] dword = s_axis_rx_tdata[tx_dw*32+:32];
+    for (dw = 0; dw < (AXI_DATA_WIDTH / 32); dw = dw + 1) begin : gen_add16
+      wire [31:0] dword = reg_rx_tdata[dw*32+:32];
       wire [16:0] sum16 = dword[15:0] + dword[31:16];
-      assign tx_data_add16[tx_dw*32+:32] = {15'd0, sum16};
+      assign sum32[dw*32+:32] = {15'd0, sum16};
     end
   endgenerate
 
@@ -71,9 +80,9 @@ module logic_adder #(
   localparam WAIT_AXI = 3'd3;
   localparam DONE_STATE = 3'd4;
 
-  reg [2:0] state;
+  reg  [2:0] state;
 
-  wire stream_fire = s_axis_rx_tvalid && s_axis_rx_tready;
+  wire       tx_fire = m_axis_tx_tvalid && m_axis_tx_tready;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -107,7 +116,7 @@ module logic_adder #(
         end
 
         WAIT_DATA: begin
-          if (stream_fire && s_axis_rx_tlast) begin
+          if (tx_fire && m_axis_tx_tlast) begin
             state <= WAIT_AXI;
           end
         end
@@ -130,33 +139,37 @@ module logic_adder #(
   end
 
   // Pipeline
-  reg  [AXI_DATA_WIDTH-1:0] pipe_tdata;
-  reg                       pipe_tvalid;
-  reg                       pipe_tlast;
-  reg  [AXI_STRB_WIDTH-1:0] pipe_tkeep;
-
-  wire                      stream_enable = (state == WAIT_DATA);
-  wire                      pipe_ready = m_axis_tx_tready || !pipe_tvalid;
-
-  assign s_axis_rx_tready = stream_enable && pipe_ready;
+  wire stream_enable = (state == WAIT_DATA);
+  assign s_axis_rx_tready = stream_enable && m_axis_tx_tready;
+  wire stream_fire = s_axis_rx_tvalid && s_axis_rx_tready;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      pipe_tvalid <= 1'b0;
-      pipe_tlast  <= 1'b0;
-    end else begin
-      if (pipe_ready) begin
-        pipe_tvalid <= (stream_enable && s_axis_rx_tvalid);
-        pipe_tdata  <= tx_data_add16;
-        pipe_tlast  <= s_axis_rx_tlast;
-        pipe_tkeep  <= s_axis_rx_tkeep;
-      end
+      reg_rx_tvalid <= 1'b0;
+      reg_rx_tlast  <= 1'b0;
+    end else if (m_axis_tx_tready) begin
+      reg_rx_tvalid <= stream_fire;
+      reg_rx_tdata  <= s_axis_rx_tdata;
+      reg_rx_tlast  <= s_axis_rx_tlast;
+      reg_rx_tkeep  <= s_axis_rx_tkeep;
     end
   end
 
-  assign m_axis_tx_tvalid = pipe_tvalid;
-  assign m_axis_tx_tdata  = pipe_tdata;
-  assign m_axis_tx_tlast  = pipe_tlast;
-  assign m_axis_tx_tkeep  = pipe_tkeep;
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      reg_tx_tvalid <= 1'b0;
+      reg_tx_tlast  <= 1'b0;
+    end else if (m_axis_tx_tready) begin
+      reg_tx_tvalid <= reg_rx_tvalid;
+      reg_tx_tdata  <= sum32;
+      reg_tx_tlast  <= reg_rx_tlast;
+      reg_tx_tkeep  <= reg_rx_tkeep;
+    end
+  end
+
+  assign m_axis_tx_tvalid = reg_tx_tvalid;
+  assign m_axis_tx_tdata  = reg_tx_tdata;
+  assign m_axis_tx_tlast  = reg_tx_tlast;
+  assign m_axis_tx_tkeep  = reg_tx_tkeep;
 
 endmodule
