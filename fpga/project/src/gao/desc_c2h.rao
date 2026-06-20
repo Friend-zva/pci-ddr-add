@@ -2,9 +2,13 @@
 <GAO_CONFIG>
     <Version>3.0</Version>
     <Mode>Standard</Mode>
-    <AoCore index="0" sample_clock="tlp_clk" trig_type="0" storage_depth="16384" window_num="1" capture_amount="16384" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
+    <AoCore index="0" sample_clock="ui_clk" trig_type="0" storage_depth="8192" window_num="1" capture_amount="8192" implementation="0" trigger_pos="20" module_name="top" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
         <SignalList>
+            <Signal capture_enable="true">ddr_init</Signal>
+            <Signal capture_enable="true">lad_run</Signal>
             <Signal capture_enable="true">c2h_run</Signal>
+            <Signal capture_enable="true">axis_c2h_desc_valid</Signal>
+            <Signal capture_enable="true">axis_c2h_desc_ready</Signal>
             <Bus capture_enable="true" name="axis_c2h_desc_addr[15:8]">
                 <Signal>axis_c2h_desc_addr[15]</Signal>
                 <Signal>axis_c2h_desc_addr[14]</Signal>
@@ -15,105 +19,77 @@
                 <Signal>axis_c2h_desc_addr[9]</Signal>
                 <Signal>axis_c2h_desc_addr[8]</Signal>
             </Bus>
-            <Signal capture_enable="true">axis_c2h_desc_valid</Signal>
-            <Signal capture_enable="true">axis_c2h_desc_ready</Signal>
-            <Signal capture_enable="true">axis_c2h_data_tlast</Signal>
-            <Signal capture_enable="true">axis_c2h_data_tready</Signal>
             <Signal capture_enable="true">axis_c2h_data_tvalid</Signal>
-            <Bus capture_enable="true" name="axis_write_data_tdata[31:0]">
-                <Signal>axis_write_data_tdata[31]</Signal>
-                <Signal>axis_write_data_tdata[30]</Signal>
-                <Signal>axis_write_data_tdata[29]</Signal>
-                <Signal>axis_write_data_tdata[28]</Signal>
-                <Signal>axis_write_data_tdata[27]</Signal>
-                <Signal>axis_write_data_tdata[26]</Signal>
-                <Signal>axis_write_data_tdata[25]</Signal>
-                <Signal>axis_write_data_tdata[24]</Signal>
-                <Signal>axis_write_data_tdata[23]</Signal>
-                <Signal>axis_write_data_tdata[22]</Signal>
-                <Signal>axis_write_data_tdata[21]</Signal>
-                <Signal>axis_write_data_tdata[20]</Signal>
-                <Signal>axis_write_data_tdata[19]</Signal>
-                <Signal>axis_write_data_tdata[18]</Signal>
-                <Signal>axis_write_data_tdata[17]</Signal>
-                <Signal>axis_write_data_tdata[16]</Signal>
-                <Signal>axis_write_data_tdata[15]</Signal>
-                <Signal>axis_write_data_tdata[14]</Signal>
-                <Signal>axis_write_data_tdata[13]</Signal>
-                <Signal>axis_write_data_tdata[12]</Signal>
-                <Signal>axis_write_data_tdata[11]</Signal>
-                <Signal>axis_write_data_tdata[10]</Signal>
-                <Signal>axis_write_data_tdata[9]</Signal>
-                <Signal>axis_write_data_tdata[8]</Signal>
-                <Signal>axis_write_data_tdata[7]</Signal>
-                <Signal>axis_write_data_tdata[6]</Signal>
-                <Signal>axis_write_data_tdata[5]</Signal>
-                <Signal>axis_write_data_tdata[4]</Signal>
-                <Signal>axis_write_data_tdata[3]</Signal>
-                <Signal>axis_write_data_tdata[2]</Signal>
-                <Signal>axis_write_data_tdata[1]</Signal>
-                <Signal>axis_write_data_tdata[0]</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tready</Signal>
+            <Signal capture_enable="true">axis_c2h_data_tlast</Signal>
+            <Bus capture_enable="true" name="axis_c2h_data_tdata[31:0]">
+                <Signal>axis_c2h_data_tdata[31]</Signal>
+                <Signal>axis_c2h_data_tdata[30]</Signal>
+                <Signal>axis_c2h_data_tdata[29]</Signal>
+                <Signal>axis_c2h_data_tdata[28]</Signal>
+                <Signal>axis_c2h_data_tdata[27]</Signal>
+                <Signal>axis_c2h_data_tdata[26]</Signal>
+                <Signal>axis_c2h_data_tdata[25]</Signal>
+                <Signal>axis_c2h_data_tdata[24]</Signal>
+                <Signal>axis_c2h_data_tdata[23]</Signal>
+                <Signal>axis_c2h_data_tdata[22]</Signal>
+                <Signal>axis_c2h_data_tdata[21]</Signal>
+                <Signal>axis_c2h_data_tdata[20]</Signal>
+                <Signal>axis_c2h_data_tdata[19]</Signal>
+                <Signal>axis_c2h_data_tdata[18]</Signal>
+                <Signal>axis_c2h_data_tdata[17]</Signal>
+                <Signal>axis_c2h_data_tdata[16]</Signal>
+                <Signal>axis_c2h_data_tdata[15]</Signal>
+                <Signal>axis_c2h_data_tdata[14]</Signal>
+                <Signal>axis_c2h_data_tdata[13]</Signal>
+                <Signal>axis_c2h_data_tdata[12]</Signal>
+                <Signal>axis_c2h_data_tdata[11]</Signal>
+                <Signal>axis_c2h_data_tdata[10]</Signal>
+                <Signal>axis_c2h_data_tdata[9]</Signal>
+                <Signal>axis_c2h_data_tdata[8]</Signal>
+                <Signal>axis_c2h_data_tdata[7]</Signal>
+                <Signal>axis_c2h_data_tdata[6]</Signal>
+                <Signal>axis_c2h_data_tdata[5]</Signal>
+                <Signal>axis_c2h_data_tdata[4]</Signal>
+                <Signal>axis_c2h_data_tdata[3]</Signal>
+                <Signal>axis_c2h_data_tdata[2]</Signal>
+                <Signal>axis_c2h_data_tdata[1]</Signal>
+                <Signal>axis_c2h_data_tdata[0]</Signal>
             </Bus>
-            <Bus capture_enable="true" name="axi_pci_dma_awaddr[15:8]">
-                <Signal>axi_pci_dma_awaddr[15]</Signal>
-                <Signal>axi_pci_dma_awaddr[14]</Signal>
-                <Signal>axi_pci_dma_awaddr[13]</Signal>
-                <Signal>axi_pci_dma_awaddr[12]</Signal>
-                <Signal>axi_pci_dma_awaddr[11]</Signal>
-                <Signal>axi_pci_dma_awaddr[10]</Signal>
-                <Signal>axi_pci_dma_awaddr[9]</Signal>
-                <Signal>axi_pci_dma_awaddr[8]</Signal>
+            <Signal capture_enable="true">axi_pci_dma_arvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_arready</Signal>
+            <Bus capture_enable="true" name="axi_pci_dma_araddr[15:8]">
+                <Signal>axi_pci_dma_araddr[15]</Signal>
+                <Signal>axi_pci_dma_araddr[14]</Signal>
+                <Signal>axi_pci_dma_araddr[13]</Signal>
+                <Signal>axi_pci_dma_araddr[12]</Signal>
+                <Signal>axi_pci_dma_araddr[11]</Signal>
+                <Signal>axi_pci_dma_araddr[10]</Signal>
+                <Signal>axi_pci_dma_araddr[9]</Signal>
+                <Signal>axi_pci_dma_araddr[8]</Signal>
             </Bus>
-            <Signal capture_enable="true">axi_pci_dma_awready</Signal>
-            <Signal capture_enable="true">axi_pci_dma_awvalid</Signal>
-            <Bus capture_enable="true" name="axi_pci_dma_wdata[31:0]">
-                <Signal>axi_pci_dma_wdata[31]</Signal>
-                <Signal>axi_pci_dma_wdata[30]</Signal>
-                <Signal>axi_pci_dma_wdata[29]</Signal>
-                <Signal>axi_pci_dma_wdata[28]</Signal>
-                <Signal>axi_pci_dma_wdata[27]</Signal>
-                <Signal>axi_pci_dma_wdata[26]</Signal>
-                <Signal>axi_pci_dma_wdata[25]</Signal>
-                <Signal>axi_pci_dma_wdata[24]</Signal>
-                <Signal>axi_pci_dma_wdata[23]</Signal>
-                <Signal>axi_pci_dma_wdata[22]</Signal>
-                <Signal>axi_pci_dma_wdata[21]</Signal>
-                <Signal>axi_pci_dma_wdata[20]</Signal>
-                <Signal>axi_pci_dma_wdata[19]</Signal>
-                <Signal>axi_pci_dma_wdata[18]</Signal>
-                <Signal>axi_pci_dma_wdata[17]</Signal>
-                <Signal>axi_pci_dma_wdata[16]</Signal>
-                <Signal>axi_pci_dma_wdata[15]</Signal>
-                <Signal>axi_pci_dma_wdata[14]</Signal>
-                <Signal>axi_pci_dma_wdata[13]</Signal>
-                <Signal>axi_pci_dma_wdata[12]</Signal>
-                <Signal>axi_pci_dma_wdata[11]</Signal>
-                <Signal>axi_pci_dma_wdata[10]</Signal>
-                <Signal>axi_pci_dma_wdata[9]</Signal>
-                <Signal>axi_pci_dma_wdata[8]</Signal>
-                <Signal>axi_pci_dma_wdata[7]</Signal>
-                <Signal>axi_pci_dma_wdata[6]</Signal>
-                <Signal>axi_pci_dma_wdata[5]</Signal>
-                <Signal>axi_pci_dma_wdata[4]</Signal>
-                <Signal>axi_pci_dma_wdata[3]</Signal>
-                <Signal>axi_pci_dma_wdata[2]</Signal>
-                <Signal>axi_pci_dma_wdata[1]</Signal>
-                <Signal>axi_pci_dma_wdata[0]</Signal>
+            <Signal capture_enable="true">axi_pci_dma_rvalid</Signal>
+            <Signal capture_enable="true">axi_pci_dma_rready</Signal>
+            <Signal capture_enable="true">axi_pci_dma_rlast</Signal>
+            <Signal capture_enable="true">axi_ddr_arvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_arready</Signal>
+            <Bus capture_enable="true" name="axi_ddr_araddr[15:8]">
+                <Signal>axi_ddr_araddr[15]</Signal>
+                <Signal>axi_ddr_araddr[14]</Signal>
+                <Signal>axi_ddr_araddr[13]</Signal>
+                <Signal>axi_ddr_araddr[12]</Signal>
+                <Signal>axi_ddr_araddr[11]</Signal>
+                <Signal>axi_ddr_araddr[10]</Signal>
+                <Signal>axi_ddr_araddr[9]</Signal>
+                <Signal>axi_ddr_araddr[8]</Signal>
             </Bus>
-            <Signal capture_enable="true">axi_pci_dma_wlast</Signal>
-            <Signal capture_enable="true">axi_pci_dma_wready</Signal>
-            <Signal capture_enable="true">axi_pci_dma_wvalid</Signal>
-            <Signal capture_enable="true">axi_pci_dma_bready</Signal>
-            <Signal capture_enable="true">axi_pci_dma_bvalid</Signal>
-            <Signal capture_enable="true">axi_ddr_awready</Signal>
-            <Signal capture_enable="true">axi_ddr_awvalid</Signal>
-            <Signal capture_enable="true">axi_ddr_wlast</Signal>
-            <Signal capture_enable="true">axi_ddr_wready</Signal>
-            <Signal capture_enable="true">axi_ddr_wvalid</Signal>
-            <Signal capture_enable="true">axi_ddr_bready</Signal>
-            <Signal capture_enable="true">axi_ddr_bvalid</Signal>
-            <Signal capture_enable="true">ddr_init</Signal>
-            <Signal capture_enable="true">lad_run</Signal>
+            <Signal capture_enable="true">axi_ddr_rvalid</Signal>
+            <Signal capture_enable="true">axi_ddr_rready</Signal>
+            <Signal capture_enable="true">axi_ddr_rlast</Signal>
+            <Bus capture_enable="true" name="axi_ddr_rresp[1:0]">
+                <Signal>axi_ddr_rresp[1]</Signal>
+                <Signal>axi_ddr_rresp[0]</Signal>
+            </Bus>
         </SignalList>
         <Triggers>
             <Trigger index="0">
@@ -171,5 +147,5 @@
             <Expression>M0|M1|M2|M3</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0010101111010000</GAO_ID>
+    <GAO_ID>1000100001100001</GAO_ID>
 </GAO_CONFIG>

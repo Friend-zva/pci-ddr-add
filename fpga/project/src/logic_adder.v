@@ -82,8 +82,6 @@ module logic_adder #(
       m_axis_write_desc_valid <= 1'b0;
       done <= 1'b0;
     end else begin
-      done <= 1'b0;
-
       if (m_axis_read_desc_valid && m_axis_read_desc_ready) begin
         m_axis_read_desc_valid <= 1'b0;
       end
@@ -121,10 +119,13 @@ module logic_adder #(
 
         DONE_STATE: begin
           if (!run) begin
+            done  <= 1'b0;
             state <= IDLE;
           end
         end
 
+        default: begin
+        end
       endcase
     end
   end

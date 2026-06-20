@@ -6,7 +6,7 @@
 #define BAR0_SIZE (1024 * 16)
 
 #define PCIE_READY (0xaa009719)
-#define CREDIT_MAX (0x1FF)
+#define CREDIT_MAX (0x3FF)
 
 // For control register (0x04)
 #define SGDMA_STOP (0x0000)

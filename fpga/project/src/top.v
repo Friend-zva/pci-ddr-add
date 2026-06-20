@@ -97,24 +97,24 @@ module top (
   // PCIe start delay
   always @(posedge cfg_clk or negedge rst_n)
     if (!rst_n) sys_rst_cnt <= 0;
-    else if (!sys_rst_cnt[SYS_RST_DLY]) sys_rst_cnt <= sys_rst_cnt + 2'd1;
+    else if (!sys_rst_cnt[SYS_RST_DLY]) sys_rst_cnt <= sys_rst_cnt + 1'd1;
 
   wire sys_rst_n = sys_rst_cnt[SYS_RST_DLY];
 
   always @(posedge cfg_clk or negedge sys_rst_n)
     if (!sys_rst_n) perst_cnt <= 0;
-    else if (!perst_cnt[PERST_DLY]) perst_cnt <= perst_cnt + 2'd1;
+    else if (!perst_cnt[PERST_DLY]) perst_cnt <= perst_cnt + 1'd1;
 
   always @(posedge cfg_clk or negedge sys_rst_n)
     if (!sys_rst_n) pcie_st_cnt <= 0;
-    else if (!pcie_start) pcie_st_cnt <= pcie_st_cnt + 2'd1;
+    else if (!pcie_start) pcie_st_cnt <= pcie_st_cnt + 1'd1;
 
   assign pcie_start = pcie_st_cnt[PCIE_DLY] ? 1'b1 : 1'b0;
 
   // Control led blink
   always @(posedge cfg_clk or negedge rst_n)
     if (!rst_n) run_cnt <= 0;
-    else run_cnt <= run_cnt + 2'd1;
+    else run_cnt <= run_cnt + 1'd1;
 
   wire pcie_linkup;
   reg  pcie_linkup_r = 0;
@@ -212,8 +212,6 @@ module top (
   wire [ 63:0] user_address;
   wire         user_rw;
   wire [ 31:0] user_wr_data;
-  wire [  3:0] user_wr_be;
-  wire [  3:0] user_rd_be;
   wire         user_rd_valid;
   wire [ 31:0] user_rd_data;
 
@@ -261,14 +259,12 @@ module top (
       .s_axis_c2h_tlast(axis_c2h_tlast),
       .s_axis_c2h_tdata(axis_c2h_tdata),
       .s_axis_c2h_tkeep(axis_c2h_tkeep),
-      .c2h_overhead_valid(1'b1),
-      .c2h_overhead_data(64'h76543210),
+      .c2h_overhead_valid(1'b0),
+      .c2h_overhead_data(64'd0),
       .user_cs(user_cs),
       .user_address(user_address),
       .user_rw(user_rw),
       .user_wr_data(user_wr_data),
-      .user_wr_be(user_wr_be),
-      .user_rd_be(user_rd_be),
       .user_rd_valid(user_rd_valid),
       .user_rd_data(user_rd_data),
       .h2c_run(h2c_run),
@@ -282,6 +278,7 @@ module top (
   wire                      axis_h2c_desc_ready;
   wire                      axis_h2c_desc_valid;
   wire                      axis_h2c_desc_status_valid;
+  reg  [              63:0] h2c_overhead_reg;
   // c2h AXI-Stream descriptors
   wire [AXI_ADDR_WIDTH-1:0] axis_c2h_desc_addr;
   wire [ AXI_LEN_WIDTH-1:0] axis_c2h_desc_len;
@@ -293,9 +290,6 @@ module top (
   wire [ AXI_LEN_WIDTH-1:0] lad_cfg_len;
   wire                      lad_run;
   wire                      lad_done;
-  // Synchronization
-  reg  [              63:0] h2c_overhead_reg;
-  reg                       lad_done_reg;
 
   always @(posedge tlp_clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -303,16 +297,6 @@ module top (
     end else begin
       if (axis_h2c_tvalid) begin
         h2c_overhead_reg <= h2c_overhead;
-      end
-    end
-  end
-
-  always @(posedge ui_clk or negedge ui_rst) begin
-    if (!ui_rst) begin
-      lad_done_reg <= 1'b0;
-    end else begin
-      if (lad_done) begin
-        lad_done_reg <= 1'b1;
       end
     end
   end
@@ -327,8 +311,6 @@ module top (
       .user_address(user_address),
       .user_rw(user_rw),
       .user_wr_data(user_wr_data),
-      .user_wr_be(user_wr_be),
-      .user_rd_be(user_rd_be),
       .user_rd_valid(user_rd_valid),
       .user_rd_data(user_rd_data),
       .m_axis_h2c_desc_addr(axis_h2c_desc_addr),
@@ -344,7 +326,7 @@ module top (
       .lad_len(lad_cfg_len),
       .lad_run(lad_run),
       .h2c_overhead_reg(h2c_overhead_reg),
-      .lad_done_reg(lad_done_reg)
+      .lad_done(lad_done)
   );
 
   /* AXI-Stream Async FIFO */

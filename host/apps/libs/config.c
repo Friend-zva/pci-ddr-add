@@ -10,7 +10,7 @@ Config init_config(int argc, char *argv[]) {
 
     if (argc > 1) {
         size_data = strtol(argv[1], NULL, 0);
-        if (size_data <= 0) {
+        if (size_data < 32) {
             size_data = 32;
         } else {
             size_data = ROUND2_TO(size_data, 32);
@@ -18,8 +18,10 @@ Config init_config(int argc, char *argv[]) {
     }
     if (argc > 2) {
         size_block = strtol(argv[2], NULL, 0);
-        if (size_block <= 0) {
+        if (size_block < 32) {
             size_block = 32;
+        } else if (size_block > size_data) {
+            size_block = size_data;
         } else {
             size_block = ROUND2_TO(size_block, 32);
         }

@@ -10,8 +10,6 @@ module logic_dma #(
     input      [63:0] user_address,
     input             user_rw,
     input      [31:0] user_wr_data,
-    input      [ 3:0] user_wr_be,
-    input      [ 3:0] user_rd_be,
     output reg        user_rd_valid,
     output reg [31:0] user_rd_data,
 
@@ -33,25 +31,27 @@ module logic_dma #(
     output reg [AXI_ADDR_WIDTH-1:0] lad_write_addr,
     output reg [ AXI_LEN_WIDTH-1:0] lad_len,
     output reg                      lad_run,
-    input                           lad_done_reg
+    input                           lad_done
 );
   //* All lengths in bytes.
 
-  localparam integer RegCtrl = 8'h00;
-  localparam integer RegStatus = 8'h04;
-  localparam integer RegAddrDDRh2c = 8'h10;
-  localparam integer RegLengDDRh2c = 8'h14;
-  localparam integer RegOverheadh2cLo = 8'h18;
-  localparam integer RegOverheadh2cHi = 8'h1C;
-  localparam integer RegAddrDDRc2h = 8'h20;
-  localparam integer RegLengDDRc2h = 8'h24;
-  localparam integer RegAddrLadRd = 8'h30;
-  localparam integer RegAddrLadWr = 8'h34;
-  localparam integer RegLengLad = 8'h38;
+  localparam integer USR_ADDR_WIDTH = 8;
+
+  localparam [USR_ADDR_WIDTH-1:0] RegCtrl = 8'h00;
+  localparam [USR_ADDR_WIDTH-1:0] RegStatus = 8'h04;
+  localparam [USR_ADDR_WIDTH-1:0] RegAddrDDRh2c = 8'h10;
+  localparam [USR_ADDR_WIDTH-1:0] RegLengDDRh2c = 8'h14;
+  localparam [USR_ADDR_WIDTH-1:0] RegOverheadh2cLo = 8'h18;
+  localparam [USR_ADDR_WIDTH-1:0] RegOverheadh2cHi = 8'h1C;
+  localparam [USR_ADDR_WIDTH-1:0] RegAddrDDRc2h = 8'h20;
+  localparam [USR_ADDR_WIDTH-1:0] RegLengDDRc2h = 8'h24;
+  localparam [USR_ADDR_WIDTH-1:0] RegAddrLadRd = 8'h30;
+  localparam [USR_ADDR_WIDTH-1:0] RegAddrLadWr = 8'h34;
+  localparam [USR_ADDR_WIDTH-1:0] RegLengLad = 8'h38;
 
   wire wr_en = user_cs && user_rw;
   wire rd_en = user_cs && !user_rw;
-  wire [7:0] addr_reg = user_address[7:0];
+  wire [USR_ADDR_WIDTH-1:0] addr_reg = user_address[USR_ADDR_WIDTH-1:0];
 
   reg lad_done_latched;
   reg lad_start_pulse;
@@ -63,7 +63,7 @@ module logic_dma #(
       lad_run <= 1'b0;
       lad_done_latched <= 1'b0;
     end else begin
-      if (lad_done_reg) begin
+      if (lad_done) begin
         lad_run <= 1'b0;
         lad_done_latched <= 1'b1;
       end
