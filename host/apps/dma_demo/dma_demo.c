@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
             uint32_t num_desc_adj_next = num_desc - (i + 1);
             flags = SET_FLAG_NUM_DESC(MODULE_DESC(num_desc_adj_next - 1));
             desc_next_a = proc->desc_src + (i + 1) * SIZE_DESC;
-        };
+        }
 
         desc_h2c_p->flags = __builtin_bswap32(flags);
         desc_h2c_p->length = __builtin_bswap32(size_block);
@@ -254,14 +254,21 @@ int main(int argc, char *argv[]) {
     // ====================
     // FPGA DDR3 -> Host PC
     // ====================
+    int step_c2h = 2048;
+    uint64_t _num_desc = step_c2h / size_block;
+    _num_desc_swap = __builtin_bswap32(_num_desc);
+
     for (int i = 0; i < num_desc_adj; i++) {
         uint32_t flags = 0x0;
         uint64_t desc_next_a = 0x0;
-        if (IS_LAST_DESC(i)) {
+        if ((i + 1) % _num_desc == 0) {
+            flags = FLAG_LAST;
+        }
+        if (0 && IS_LAST_DESC(i)) {
             uint32_t num_desc_adj_next = num_desc - (i + 1);
             flags = SET_FLAG_NUM_DESC(MODULE_DESC(num_desc_adj_next - 1));
             desc_next_a = proc->desc_dst + (i + 1) * SIZE_DESC;
-        };
+        }
 
         desc_c2h_p->flags = __builtin_bswap32(flags);
         desc_c2h_p->length = __builtin_bswap32(size_block);
@@ -285,49 +292,49 @@ int main(int argc, char *argv[]) {
     desc_c2h_p->next_lo = 0x0;
     desc_c2h_p->next_hi = 0x0;
 
-    gwbar0->c2h[0].addr_desc_lo = PP_ADDR_LO(desc_c2h_a);
-    gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(desc_c2h_a);
-    gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
-    gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
-    gwbar0->c2h[0].num_desc_adj = MODULE_DESC(num_desc_adj);
-    gwbar0->c2h[0].credit = CREDIT_MAX;
-    // gwbar0->c2h[0].credit = MODULE_CREDIT(num_desc);
+    for (int i = 0; i < size_data; i += step_c2h) {
+        uint64_t _desc_c2h_a = desc_c2h_a + i / size_block;
 
-    gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h);
-    gwbar2->leng_ddr_c2h = size_data;
-    gwbar2->ctrl = BAR2_PCIE_RD_START;
-    gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
+        gwbar0->c2h[0].addr_desc_lo = PP_ADDR_LO(_desc_c2h_a);
+        gwbar0->c2h[0].addr_desc_hi = PP_ADDR_HI(_desc_c2h_a);
+        gwbar0->c2h[0].addr_poll_lo = PP_ADDR_LO(poll_c2h_a);
+        gwbar0->c2h[0].addr_poll_hi = PP_ADDR_HI(poll_c2h_a);
+        gwbar0->c2h[0].num_desc_adj = MODULE_DESC(_num_desc - 1);
+        gwbar0->c2h[0].credit = CREDIT_MAX;
+        // gwbar0->c2h[0].credit = MODULE_CREDIT(num_desc);
 
-    int timeout_c2h = TIMEOUT_POLL;
-    while ((*poll_c2h_p != _num_desc_swap) && --timeout_c2h > 0 && !flag_exit) {
-        uint32_t credits = gwbar0->c2h[0].credit & CREDIT_MAX;
-        if (credits <= DESC_IN_BLOCK_MAX) {
-            gwbar0->c2h[0].credit = MODULE_CREDIT(CREDIT_MAX - credits);
+        gwbar2->addr_ddr_c2h = PP_ADDR_LO(addr_ddr_c2h + i);
+        gwbar2->leng_ddr_c2h = step_c2h;
+        gwbar2->ctrl = BAR2_PCIE_RD_START;
+        gwbar0->c2h[0].ctrl = SGDMA_START_POLL;
+
+        int timeout_c2h = TIMEOUT_POLL;
+        while ((*poll_c2h_p != _num_desc_swap) && --timeout_c2h > 0 && !flag_exit) {
+            if (DBG_INFO) {
+                printf("Status_c2h %i: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x "
+                       "0x%08x\n",
+                       i, *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
+                       gwbar0->c2h[0].desc_count, gwbar0->c2h[0].credit,
+                       (desc_c2h_p - num_desc_adj)->flags, desc_c2h_p->flags);
+                fflush(stdout);
+            }
+            usleep(1);
         }
-
         if (DBG_INFO) {
-            printf("Status_c2h: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-                   *poll_c2h_p, gwbar0->c2h[0].ctrl, gwbar0->c2h[0].status0,
-                   gwbar0->c2h[0].desc_count, gwbar0->c2h[0].credit,
-                   (desc_c2h_p - num_desc_adj)->flags, desc_c2h_p->flags);
-            fflush(stdout);
+            printf("c2h: poll: 0x%08x, write back: 0x%08x\n", *poll_c2h_p,
+                   *write_back_p);
         }
-        usleep(1);
-    }
-    if (DBG_INFO) {
-        printf("c2h: poll: 0x%08x, write back: 0x%08x\n", *poll_c2h_p,
-               *write_back_p);
-    }
-    if (timeout_c2h <= 0) {
-        printf("c2h: timeout\n");
-    }
+        if (timeout_c2h <= 0) {
+            printf("c2h: timeout\n");
+        }
 
-    gwbar0->c2h[0].ctrl = SGDMA_STOP;
-    gwbar2->ctrl = BAR2_PCIE_RD_STOP;
+        gwbar0->c2h[0].ctrl = SGDMA_STOP;
+        gwbar2->ctrl = BAR2_PCIE_RD_STOP;
 
-    if (flag_exit) {
-        dest_proc(proc);
-        return 1;
+        if (flag_exit) {
+            dest_proc(proc);
+            return 1;
+        }
     }
 
     for (int i = 0; i < size_data / 4; i++) {
