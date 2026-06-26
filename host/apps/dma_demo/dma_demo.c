@@ -46,14 +46,17 @@ int main(int argc, char *argv[]) {
     uint32_t size_block = config.size_block;
 
     uint32_t num_desc = size_data / size_block;
-    uint32_t num_desc_adj = (num_desc == 0) ? 0 : (num_desc - 1);
+    if (num_desc == 0) {
+        return -1;
+    }
+    uint32_t num_desc_adj = num_desc - 1;
     uint32_t _num_desc_swap = __builtin_bswap32(num_desc);
 
-    uint32_t offset_safe = 32;
-    uint32_t offset_poll = num_desc * SIZE_DESC + offset_safe;
-    uint32_t offset_wb = offset_poll + offset_safe;
+    uint32_t size_descs = num_desc * SIZE_DESC;
+    uint32_t offset_poll =
+        size_descs - 2 * sizeof(uint32_t); // masking as `next_lo` for alignment
 
-    Process *proc = init_proc(size_data, offset_wb);
+    Process *proc = init_proc(size_data, size_descs);
     if (proc == NULL) {
         return -1;
     }
@@ -99,11 +102,10 @@ int main(int argc, char *argv[]) {
     // h2c
 
     volatile GowinDescriptor *desc_h2c_p = (GowinDescriptor *)proc->desc_src_m;
-    memset((void *)desc_h2c_p, 0, offset_poll);
+    memset((void *)desc_h2c_p, 0, size_descs);
     uint64_t desc_h2c_a = proc->desc_src;
 
     volatile uint32_t *poll_h2c_p = (uint32_t *)(proc->desc_src_m + offset_poll);
-    *poll_h2c_p = 0;
     uint64_t poll_h2c_a = proc->desc_src + offset_poll;
 
     volatile uint8_t *sp = proc->data_src_m;
@@ -119,16 +121,11 @@ int main(int argc, char *argv[]) {
     // c2h
 
     volatile GowinDescriptor *desc_c2h_p = (GowinDescriptor *)proc->desc_dst_m;
-    memset((void *)desc_c2h_p, 0, offset_poll);
+    memset((void *)desc_c2h_p, 0, size_descs);
     uint64_t desc_c2h_a = proc->desc_dst;
 
     volatile uint32_t *poll_c2h_p = (uint32_t *)(proc->desc_dst_m + offset_poll);
-    *poll_c2h_p = 0;
     uint64_t poll_c2h_a = proc->desc_dst + offset_poll;
-
-    volatile uint32_t *write_back_p = (uint32_t *)(proc->desc_dst_m + offset_wb);
-    *write_back_p = 0;
-    uint64_t write_back_a = proc->desc_dst + offset_wb;
 
     volatile uint8_t *dp = proc->data_dst_m;
     uint64_t da = proc->data_dst;
@@ -278,8 +275,8 @@ int main(int argc, char *argv[]) {
 
     desc_c2h_p->flags = __builtin_bswap32(FLAG_LAST);
     desc_c2h_p->length = __builtin_bswap32(size_block);
-    desc_c2h_p->addr_src_lo = __builtin_bswap32(PP_ADDR_LO(write_back_a));
-    desc_c2h_p->addr_src_hi = __builtin_bswap32(PP_ADDR_HI(write_back_a));
+    desc_c2h_p->addr_src_lo = 0x0;
+    desc_c2h_p->addr_src_hi = 0x0;
     desc_c2h_p->addr_dst_lo = __builtin_bswap32(PP_ADDR_LO(da));
     desc_c2h_p->addr_dst_hi = __builtin_bswap32(PP_ADDR_HI(da));
     desc_c2h_p->next_lo = 0x0;
@@ -315,8 +312,7 @@ int main(int argc, char *argv[]) {
         usleep(1);
     }
     if (DBG_INFO) {
-        printf("c2h: poll: 0x%08x, write back: 0x%08x\n", *poll_c2h_p,
-               *write_back_p);
+        printf("c2h: poll: 0x%08x\n", *poll_c2h_p);
     }
     if (timeout_c2h <= 0) {
         printf("c2h: timeout\n");
