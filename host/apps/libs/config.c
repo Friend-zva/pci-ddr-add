@@ -3,27 +3,31 @@
 
 #include "config.h"
 
+static const int SIZE_BLOCK_MIN = 128;
+
 Config init_config(int argc, char *argv[]) {
-    int size_data = 4096;
-    int size_block = 128;
+    int size_data = 2048;
+    int size_block = SIZE_BLOCK_MIN;
     int en_dumping = 0;
 
     if (argc > 1) {
         size_data = strtol(argv[1], NULL, 0);
-        if (size_data < 32) {
-            size_data = 32;
+        if (size_data < SIZE_BLOCK_MIN) {
+            size_data = SIZE_BLOCK_MIN;
         } else {
             size_data = ROUND2_TO(size_data, 32);
         }
     }
     if (argc > 2) {
         size_block = strtol(argv[2], NULL, 0);
-        if (size_block < 32) {
-            size_block = 32;
-        } else if (size_block > size_data) {
-            size_block = size_data;
+        if (size_block < SIZE_BLOCK_MIN) {
+            size_block = SIZE_BLOCK_MIN;
         } else {
             size_block = ROUND2_TO(size_block, 32);
+        }
+
+        if (size_block > size_data) {
+            size_block = size_data;
         }
     }
     if (argc > 3) {
